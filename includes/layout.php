@@ -1,5 +1,9 @@
 <?php
 function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $description = 'Professionelle Hosting-Lösungen mit erstklassigem Support und modernster Technologie.') {
+    // Start session if not already started
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
+    }
 ?>
 <!DOCTYPE html>
 <html lang="de" class="scroll-smooth">
