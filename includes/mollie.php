@@ -1,14 +1,14 @@
 <?php
-class MolliePayment {
+
+class MollieAPI {
     private $apiKey;
-    private $apiUrl;
+    private $baseUrl = 'https://api.mollie.com/v2/';
     
-    public function __construct() {
-        $this->apiKey = MOLLIE_API_KEY;
-        $this->apiUrl = 'https://api.mollie.com/v2/';
+    public function __construct($apiKey) {
+        $this->apiKey = $apiKey;
     }
     
-    public function createPayment($amount, $description, $redirectUrl, $webhookUrl = null, $metadata = []) {
+    public function createPayment($amount, $description, $redirectUrl, $webhookUrl) {
         $data = [
             'amount' => [
                 'currency' => 'EUR',
@@ -16,22 +16,19 @@ class MolliePayment {
             ],
             'description' => $description,
             'redirectUrl' => $redirectUrl,
-            'metadata' => $metadata
+            'webhookUrl' => $webhookUrl,
+            'method' => 'ideal'
         ];
-        
-        if ($webhookUrl) {
-            $data['webhookUrl'] = $webhookUrl;
-        }
         
         return $this->makeRequest('payments', 'POST', $data);
     }
     
     public function getPayment($paymentId) {
-        return $this->makeRequest('payments/' . $paymentId, 'GET');
+        return $this->makeRequest("payments/{$paymentId}", 'GET');
     }
     
     private function makeRequest($endpoint, $method = 'GET', $data = null) {
-        $url = $this->apiUrl . $endpoint;
+        $url = $this->baseUrl . $endpoint;
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -52,11 +49,16 @@ class MolliePayment {
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         
-        if ($httpCode !== 200 && $httpCode !== 201) {
-            throw new Exception('Mollie API Fehler: HTTP ' . $httpCode);
+        if ($httpCode >= 200 && $httpCode < 300) {
+            return json_decode($response, true);
+        } else {
+            throw new Exception("Mollie API Error: " . $response);
         }
-        
-        return json_decode($response, true);
     }
 }
+
+// Initialize Mollie API with test key
+$mollieApiKey = 'test_dHar4XY7LxsDOtmnkVtjNVWXLSlXsM';
+$mollie = new MollieAPI($mollieApiKey);
+
 ?>

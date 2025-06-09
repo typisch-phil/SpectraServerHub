@@ -124,5 +124,18 @@ class ProxmoxAPI {
         
         return json_decode($response, true);
     }
+    
+    public function resetPassword($vmid, $newPassword) {
+        // Change VM password via Proxmox API
+        if (!$this->ticket) {
+            $this->authenticate();
+        }
+        
+        $data = [
+            'password' => $newPassword
+        ];
+        
+        return $this->makeRequest("/nodes/pve/qemu/{$vmid}/config", 'PUT', $data);
+    }
 }
 ?>

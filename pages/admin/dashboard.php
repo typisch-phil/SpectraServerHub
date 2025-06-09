@@ -1,10 +1,14 @@
 <?php
-require_once '../../includes/config.php';
-require_once '../../includes/database.php';
-require_once '../../includes/auth.php';
-require_once '../../includes/layout.php';
+require_once '../includes/config.php';
+require_once '../includes/database.php';
+require_once '../includes/auth.php';
+require_once '../includes/layout.php';
 
-requireAdmin();
+session_start();
+if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'admin') {
+    header('Location: /login');
+    exit;
+}
 
 $title = 'Admin Dashboard - SpectraHost';
 $description = 'Administrationsbereich für SpectraHost';

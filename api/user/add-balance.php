@@ -31,23 +31,14 @@ try {
     }
     
     // Create Mollie payment
-    $mollie = new MollieAPI();
+    global $mollie;
     
-    $payment = $mollie->createPayment([
-        'amount' => [
-            'currency' => 'EUR',
-            'value' => number_format($amount, 2, '.', '')
-        ],
-        'description' => 'Guthaben aufladen - SpectraHost',
-        'redirectUrl' => SITE_URL . '/dashboard?payment=success',
-        'webhookUrl' => SITE_URL . '/api/payment/webhook',
-        'method' => $payment_method,
-        'metadata' => [
-            'type' => 'balance_top_up',
-            'user_id' => $user['id'],
-            'amount' => $amount
-        ]
-    ]);
+    $payment = $mollie->createPayment(
+        $amount,
+        'Guthaben aufladen - SpectraHost',
+        SITE_URL . '/dashboard?payment=success',
+        SITE_URL . '/api/payment/webhook'
+    );
     
     if ($payment) {
         // Store payment in database
