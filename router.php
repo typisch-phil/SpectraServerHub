@@ -57,7 +57,15 @@ $routes = [
     '/admin/integrations' => 'pages/admin/integrations.php',
     '/admin/statistics' => 'pages/admin/statistics.php',
     '/ticket-detail' => 'pages/ticket-detail.php',
-    '/logout' => 'pages/logout.php'
+    '/logout' => 'pages/logout.php',
+    '/contact' => 'pages/contact.php',
+    '/order' => 'pages/order.php',
+    '/impressum' => 'pages/impressum.php',
+    // Product pages
+    '/products/webhosting' => 'pages/products/webhosting.php',
+    '/products/vps' => 'pages/products/vps.php',
+    '/products/gameserver' => 'pages/products/gameserver.php',
+    '/products/domains' => 'pages/products/domains.php'
 ];
 
 // Check for exact route match

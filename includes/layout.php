@@ -59,7 +59,67 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
                 <!-- Desktop Navigation -->
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="/" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Home</a>
-                    <a href="#services" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Services</a>
+                    
+                    <!-- Services Dropdown -->
+                    <div class="relative group">
+                        <button class="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            Services
+                            <i class="fas fa-chevron-down ml-1 text-sm group-hover:rotate-180 transition-transform"></i>
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div class="absolute left-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <div class="py-2">
+                                <a href="/products/webhosting" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-globe text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">Webhosting</div>
+                                        <div class="text-xs text-gray-500">WordPress, PHP & mehr</div>
+                                    </div>
+                                </a>
+                                
+                                <a href="/products/vps" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-server text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">vServer / VPS</div>
+                                        <div class="text-xs text-gray-500">Root-Zugriff & volle Kontrolle</div>
+                                    </div>
+                                </a>
+                                
+                                <a href="/products/gameserver" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-gamepad text-purple-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">GameServer</div>
+                                        <div class="text-xs text-gray-500">Minecraft, CS2 & mehr</div>
+                                    </div>
+                                </a>
+                                
+                                <a href="/products/domains" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <div class="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-link text-orange-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">Domains</div>
+                                        <div class="text-xs text-gray-500">.de, .com & 500+ TLDs</div>
+                                    </div>
+                                </a>
+                                
+                                <hr class="my-2 border-gray-200 dark:border-gray-700">
+                                
+                                <a href="/order" class="flex items-center px-4 py-3 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900 transition-colors">
+                                    <i class="fas fa-shopping-cart mr-3"></i>
+                                    <div class="font-medium">Alle Services bestellen</div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <a href="/contact" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Kontakt</a>
                     
                     <?php if (isset($_SESSION['user_id'])): ?>
@@ -101,7 +161,37 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
         <div id="mobile-menu" class="hidden md:hidden bg-white dark:bg-gray-800 border-t dark:border-gray-700">
             <div class="px-4 py-2 space-y-2">
                 <a href="/" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">Home</a>
-                <a href="#services" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">Services</a>
+                
+                <!-- Mobile Services Dropdown -->
+                <div class="py-2">
+                    <button onclick="toggleMobileServices()" class="flex items-center justify-between w-full text-left text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                        Services
+                        <i class="fas fa-chevron-down text-sm transition-transform" id="mobile-services-icon"></i>
+                    </button>
+                    <div id="mobile-services-menu" class="hidden pl-4 mt-2 space-y-2">
+                        <a href="/products/webhosting" class="flex items-center py-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                            <i class="fas fa-globe text-blue-600 mr-2"></i>
+                            Webhosting
+                        </a>
+                        <a href="/products/vps" class="flex items-center py-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                            <i class="fas fa-server text-green-600 mr-2"></i>
+                            vServer / VPS
+                        </a>
+                        <a href="/products/gameserver" class="flex items-center py-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                            <i class="fas fa-gamepad text-purple-600 mr-2"></i>
+                            GameServer
+                        </a>
+                        <a href="/products/domains" class="flex items-center py-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                            <i class="fas fa-link text-orange-600 mr-2"></i>
+                            Domains
+                        </a>
+                        <a href="/order" class="flex items-center py-2 text-blue-600 dark:text-blue-400">
+                            <i class="fas fa-shopping-cart mr-2"></i>
+                            Alle Services bestellen
+                        </a>
+                    </div>
+                </div>
+                
                 <a href="/contact" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">Kontakt</a>
                 
                 <?php if (isset($_SESSION['user_id'])): ?>
@@ -327,6 +417,20 @@ function renderFooter() {
                 }
             } catch (error) {
                 console.error('Logout failed:', error);
+            }
+        }
+        
+        // Mobile services dropdown toggle
+        function toggleMobileServices() {
+            const menu = document.getElementById('mobile-services-menu');
+            const icon = document.getElementById('mobile-services-icon');
+            
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                menu.classList.add('hidden');
+                icon.classList.remove('rotate-180');
             }
         }
         
