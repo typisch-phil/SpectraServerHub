@@ -1,0 +1,12 @@
+{
+  "name": "spectrahost",
+  "version": "1.0.0",
+  "description": "SpectraHost - Professional Server Hosting Platform",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "keywords": ["hosting", "servers", "php"],
+  "license": "MIT"
+}
