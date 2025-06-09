@@ -109,3 +109,22 @@ export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit
   createdAt: true,
   updatedAt: true,
 });
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  emailVerified: true,
+});
+
+export const loginSchema = z.object({
+  email: z.string().email("Gültige E-Mail-Adresse erforderlich"),
+  password: z.string().min(1, "Passwort erforderlich"),
+});
+
+export const registerSchema = z.object({
+  email: z.string().email("Gültige E-Mail-Adresse erforderlich"),
+  password: z.string().min(6, "Passwort muss mindestens 6 Zeichen lang sein"),
+  firstName: z.string().min(1, "Vorname erforderlich"),
+  lastName: z.string().min(1, "Nachname erforderlich"),
+});

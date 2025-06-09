@@ -1,23 +1,108 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertOrderSchema, insertSupportTicketSchema } from "@shared/schema";
+import { registerUser, authenticateUser } from "./auth";
+import { insertOrderSchema, insertSupportTicketSchema, registerSchema, loginSchema } from "@shared/schema";
 import { z } from "zod";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+    user?: any;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Session configuration
+  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  const pgStore = connectPg(session);
+  const sessionStore = new pgStore({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: true,
+    ttl: sessionTtl,
+    tableName: "sessions",
+  });
+
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key-here',
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, // Set to true in production with HTTPS
+      maxAge: sessionTtl,
+    },
+  }));
+
   // Auth middleware
-  await setupAuth(app);
+  const requireAuth = (req: any, res: any, next: any) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    next();
+  };
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.post('/api/auth/register', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      const userData = registerSchema.parse(req.body);
+      const user = await registerUser(userData);
+      
+      // Auto-login after registration
+      req.session.userId = user.id;
+      req.session.user = { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName };
+      
+      res.json({ 
+        message: "Registrierung erfolgreich",
+        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName }
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Ungültige Daten", errors: error.errors });
+      }
+      res.status(400).json({ message: error instanceof Error ? error.message : "Registrierung fehlgeschlagen" });
+    }
+  });
+
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const loginData = loginSchema.parse(req.body);
+      const user = await authenticateUser(loginData);
+      
+      req.session.userId = user.id;
+      req.session.user = { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName };
+      
+      res.json({ 
+        message: "Anmeldung erfolgreich",
+        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName }
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Ungültige Daten", errors: error.errors });
+      }
+      res.status(401).json({ message: error instanceof Error ? error.message : "Anmeldung fehlgeschlagen" });
+    }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy(() => {
+      res.json({ message: "Abmeldung erfolgreich" });
+    });
+  });
+
+  app.get('/api/auth/user', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "Benutzer nicht gefunden" });
+      }
+      res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName });
     } catch (error) {
       console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      res.status(500).json({ message: "Fehler beim Laden der Benutzerdaten" });
     }
   });
 
@@ -28,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(services);
     } catch (error) {
       console.error("Error fetching services:", error);
-      res.status(500).json({ message: "Failed to fetch services" });
+      res.status(500).json({ message: "Fehler beim Laden der Services" });
     }
   });
 
@@ -37,34 +122,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const service = await storage.getService(id);
       if (!service) {
-        return res.status(404).json({ message: "Service not found" });
+        return res.status(404).json({ message: "Service nicht gefunden" });
       }
       res.json(service);
     } catch (error) {
       console.error("Error fetching service:", error);
-      res.status(500).json({ message: "Failed to fetch service" });
+      res.status(500).json({ message: "Fehler beim Laden des Services" });
     }
   });
 
   // User services routes
-  app.get('/api/user/services', isAuthenticated, async (req: any, res) => {
+  app.get('/api/user/services', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const userServices = await storage.getUserServices(userId);
+      const userServices = await storage.getUserServices(req.session.userId);
       res.json(userServices);
     } catch (error) {
       console.error("Error fetching user services:", error);
-      res.status(500).json({ message: "Failed to fetch user services" });
+      res.status(500).json({ message: "Fehler beim Laden der Benutzer-Services" });
     }
   });
 
   // Orders routes
-  app.post('/api/orders', isAuthenticated, async (req: any, res) => {
+  app.post('/api/orders', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const orderData = insertOrderSchema.parse({
         ...req.body,
-        userId,
+        userId: req.session.userId,
       });
 
       const order = await storage.createOrder(orderData);
@@ -81,52 +164,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid order data", errors: error.errors });
+        return res.status(400).json({ message: "Ungültige Bestelldaten", errors: error.errors });
       }
       console.error("Error creating order:", error);
-      res.status(500).json({ message: "Failed to create order" });
+      res.status(500).json({ message: "Fehler beim Erstellen der Bestellung" });
     }
   });
 
-  app.get('/api/user/orders', isAuthenticated, async (req: any, res) => {
+  app.get('/api/user/orders', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const orders = await storage.getUserOrders(userId);
+      const orders = await storage.getUserOrders(req.session.userId);
       res.json(orders);
     } catch (error) {
       console.error("Error fetching user orders:", error);
-      res.status(500).json({ message: "Failed to fetch user orders" });
+      res.status(500).json({ message: "Fehler beim Laden der Bestellungen" });
     }
   });
 
   // Support tickets routes
-  app.post('/api/support/tickets', isAuthenticated, async (req: any, res) => {
+  app.post('/api/support/tickets', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const ticketData = insertSupportTicketSchema.parse({
         ...req.body,
-        userId,
+        userId: req.session.userId,
       });
 
       const ticket = await storage.createSupportTicket(ticketData);
       res.json(ticket);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid ticket data", errors: error.errors });
+        return res.status(400).json({ message: "Ungültige Ticket-Daten", errors: error.errors });
       }
       console.error("Error creating support ticket:", error);
-      res.status(500).json({ message: "Failed to create support ticket" });
+      res.status(500).json({ message: "Fehler beim Erstellen des Support-Tickets" });
     }
   });
 
-  app.get('/api/user/support/tickets', isAuthenticated, async (req: any, res) => {
+  app.get('/api/user/support/tickets', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const tickets = await storage.getUserSupportTickets(userId);
+      const tickets = await storage.getUserSupportTickets(req.session.userId);
       res.json(tickets);
     } catch (error) {
       console.error("Error fetching support tickets:", error);
-      res.status(500).json({ message: "Failed to fetch support tickets" });
+      res.status(500).json({ message: "Fehler beim Laden der Support-Tickets" });
     }
   });
 
@@ -140,40 +220,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (payment.status === 'paid') {
         // Find order by payment ID and update status
-        const orders = await storage.getUserOrders(''); // Would need to find by payment ID
-        // In a real implementation, you'd have a proper way to find the order
-        
-        // For now, just acknowledge the webhook
         console.log('Payment completed:', paymentId);
       }
       
       res.status(200).send('OK');
     } catch (error) {
       console.error("Error processing payment webhook:", error);
-      res.status(500).json({ message: "Failed to process payment webhook" });
+      res.status(500).json({ message: "Fehler beim Verarbeiten des Payment-Webhooks" });
     }
   });
 
   // Server management routes (Mock Proxmox integration)
-  app.get('/api/servers/:id/status', isAuthenticated, async (req: any, res) => {
+  app.get('/api/servers/:id/status', requireAuth, async (req: any, res) => {
     try {
       const serverId = req.params.id;
       const status = await getProxmoxServerStatus(serverId);
       res.json(status);
     } catch (error) {
       console.error("Error fetching server status:", error);
-      res.status(500).json({ message: "Failed to fetch server status" });
+      res.status(500).json({ message: "Fehler beim Laden des Server-Status" });
     }
   });
 
-  app.post('/api/servers/:id/restart', isAuthenticated, async (req: any, res) => {
+  app.post('/api/servers/:id/restart', requireAuth, async (req: any, res) => {
     try {
       const serverId = req.params.id;
       const result = await restartProxmoxServer(serverId);
       res.json(result);
     } catch (error) {
       console.error("Error restarting server:", error);
-      res.status(500).json({ message: "Failed to restart server" });
+      res.status(500).json({ message: "Fehler beim Neustart des Servers" });
     }
   });
 
