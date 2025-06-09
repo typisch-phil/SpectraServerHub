@@ -160,27 +160,6 @@ renderHeader('Meine Services - SpectraHost Dashboard');
             return texts[status] || status;
         }
     </script>
+</div>
 
-<?php
-renderDashboardFooter();
-
-function getStatusClass($status) {
-    $classes = [
-        'active' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-        'pending' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-        'suspended' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-        'terminated' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-    ];
-    return $classes[$status] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-}
-
-function getStatusText($status) {
-    $texts = [
-        'active' => 'Aktiv',
-        'pending' => 'Ausstehend',
-        'suspended' => 'Gesperrt',
-        'terminated' => 'Beendet'
-    ];
-    return $texts[$status] ?? $status;
-}
-?>
+<?php renderFooter(); ?>
