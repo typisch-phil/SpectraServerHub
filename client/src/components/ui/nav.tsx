@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Nav() {
+  const { isAuthenticated, user } = useAuth();
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -48,12 +50,31 @@ export default function Nav() {
           </div>
           <div className="flex items-center space-x-4">
             <ThemeToggle />
-            <Link href="/login">
-              <Button variant="ghost">Anmelden</Button>
-            </Link>
-            <Link href="/register">
-              <Button>Registrieren</Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link href="/dashboard">
+                  <Button variant="ghost">Dashboard</Button>
+                </Link>
+                <Button 
+                  variant="outline" 
+                  onClick={async () => {
+                    await fetch("/api/auth/logout", { method: "POST" });
+                    window.location.href = "/";
+                  }}
+                >
+                  Abmelden
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost">Anmelden</Button>
+                </Link>
+                <Link href="/register">
+                  <Button>Registrieren</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

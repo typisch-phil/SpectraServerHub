@@ -19,22 +19,13 @@ function Router() {
 
   return (
     <Switch>
+      <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/order" component={Order} />
       <Route path="/contact" component={Contact} />
       <Route path="/impressum" component={Impressum} />
-      {isLoading || !isAuthenticated ? (
-        <>
-          <Route path="/" component={Landing} />
-          <Route path="/order" component={Order} />
-        </>
-      ) : (
-        <>
-          <Route path="/" component={Dashboard} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/order" component={Order} />
-        </>
-      )}
       <Route component={NotFound} />
     </Switch>
   );
@@ -43,7 +34,7 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" storageKey="spectrahost-ui-theme">
+      <ThemeProvider defaultTheme="light" storageKey="spectrahost-ui-theme">
         <TooltipProvider>
           <Toaster />
           <Router />
