@@ -490,28 +490,122 @@ renderHeader($title, $description);
 
         function showNotification(type, message) {
             const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${
-                type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            }`;
+            const bgColor = type === 'success' ? 'bg-green-500' : 
+                           type === 'error' ? 'bg-red-500' : 
+                           type === 'info' ? 'bg-blue-500' : 'bg-gray-500';
+            const icon = type === 'success' ? 'check' : 
+                        type === 'error' ? 'exclamation-triangle' : 
+                        type === 'info' ? 'info-circle' : 'bell';
+            
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${bgColor} max-w-md`;
             notification.innerHTML = `
                 <div class="flex items-center">
-                    <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} mr-2"></i>
-                    <span>${message}</span>
+                    <i class="fas fa-${icon} mr-2"></i>
+                    <span class="text-sm">${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
                 </div>
             `;
             
             document.body.appendChild(notification);
             
             setTimeout(() => {
-                notification.remove();
-            }, 3000);
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, type === 'info' ? 5000 : 3000);
         }
 
-        // Specific integration functions
+        // Specific integration functions using dedicated APIs
         function configureProxmox() { configureIntegration('proxmox'); }
-        function testProxmox() { testIntegration('proxmox'); }
+        function testProxmox() { testSpecificIntegration('proxmox'); }
         function configureMollie() { configureIntegration('mollie'); }
-        function testMollie() { testIntegration('mollie'); }
+        function testMollie() { testSpecificIntegration('mollie'); }
+
+        async function testSpecificIntegration(integration) {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Teste...';
+            button.disabled = true;
+
+            try {
+                const response = await fetch(`/api/integrations/${integration}.php?action=test`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('success', result.message);
+                    if (result.details) {
+                        console.log(`${integration} Test Details:`, result.details);
+                        
+                        // Show detailed results for successful tests
+                        if (integration === 'proxmox' && result.details.nodes !== undefined) {
+                            showNotification('success', 
+                                `Proxmox: ${result.details.version} | ${result.details.nodes} Nodes | ${result.details.vms} VMs | ${result.details.response_time}`
+                            );
+                        } else if (integration === 'mollie' && result.details.profile_name) {
+                            showNotification('success', 
+                                `Mollie: ${result.details.profile_name} | ${result.details.available_methods.length} Methods | ${result.details.response_time}`
+                            );
+                        }
+                    }
+                } else {
+                    showNotification('error', result.message);
+                    if (result.details && result.details.suggestion) {
+                        setTimeout(() => {
+                            showNotification('info', result.details.suggestion);
+                        }, 2000);
+                    }
+                }
+            } catch (error) {
+                showNotification('error', `Verbindungsfehler beim Testen von ${integration}`);
+                console.error(`${integration} test error:`, error);
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        async function saveConfig(integration, event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const config = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(`/api/integrations/${integration}.php?action=configure`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ integration: integration, config: config })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('success', result.message);
+                    closeConfigModal();
+                    // Auto-test after successful configuration
+                    setTimeout(() => {
+                        if (integration === 'proxmox' || integration === 'mollie') {
+                            testSpecificIntegration(integration);
+                        }
+                    }, 1000);
+                } else {
+                    showNotification('error', result.message);
+                }
+            } catch (error) {
+                showNotification('error', 'Fehler beim Speichern der Konfiguration');
+                console.error('Save error:', error);
+            }
+        }
         function configureEmail() { configureIntegration('email'); }
         function testEmail() { testIntegration('email'); }
         function configureBackup() { configureIntegration('backup'); }
