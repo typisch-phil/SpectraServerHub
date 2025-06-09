@@ -196,9 +196,7 @@ renderHeader('Billing - SpectraHost Dashboard');
                     <div id="payment-methods-container" class="hidden space-y-3">
                         <!-- Payment methods will be loaded here -->
                     </div>
-                    <select id="payment-method-select" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white hidden" name="payment_method">
-                        <!-- Options will be populated dynamically -->
-                    </select>
+                    <input type="hidden" id="payment-method-select" name="payment_method" required>
                 </div>
                 
                 <div class="flex space-x-3">
@@ -234,37 +232,29 @@ renderHeader('Billing - SpectraHost Dashboard');
                     
                     // Show visual payment method selection
                     containerDiv.classList.remove('hidden');
-                    selectElement.classList.remove('hidden');
                     
-                    // Clear existing options
-                    selectElement.innerHTML = '';
+                    // Clear existing content
                     containerDiv.innerHTML = '';
                     
                     let selectedMethod = null;
                     
                     result.methods.forEach((method, index) => {
-                        // Add option to select
-                        const option = document.createElement('option');
-                        option.value = method.id;
-                        option.textContent = method.description;
-                        selectElement.appendChild(option);
-                        
                         // Create visual method card
                         const methodCard = document.createElement('div');
-                        methodCard.className = `payment-method-card border-2 border-gray-200 dark:border-gray-600 rounded-lg p-3 cursor-pointer hover:border-blue-500 transition-colors ${index === 0 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900' : ''}`;
+                        methodCard.className = `payment-method-card border-2 border-gray-200 dark:border-gray-600 rounded-lg p-4 cursor-pointer hover:border-blue-500 transition-colors ${index === 0 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900' : ''}`;
                         methodCard.dataset.method = method.id;
                         
                         methodCard.innerHTML = `
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center">
-                                    ${method.image ? `<img src="${method.image}" alt="${method.description}" class="w-8 h-8 mr-3 rounded">` : `<div class="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded mr-3 flex items-center justify-center"><i class="fas fa-credit-card text-gray-500"></i></div>`}
+                                    ${method.image ? `<img src="${method.image}" alt="${method.description}" class="w-10 h-10 mr-4 rounded">` : `<div class="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded mr-4 flex items-center justify-center"><i class="fas fa-credit-card text-gray-500"></i></div>`}
                                     <div>
-                                        <div class="font-medium text-gray-900 dark:text-white">${method.description}</div>
-                                        ${method.pricing ? `<div class="text-xs text-gray-500">Gebühr: €${method.pricing.fixed} + ${(parseFloat(method.pricing.variable) * 100).toFixed(1)}%</div>` : ''}
+                                        <div class="font-semibold text-gray-900 dark:text-white">${method.description}</div>
+                                        ${method.pricing ? `<div class="text-sm text-gray-500 dark:text-gray-400">Gebühr: €${method.pricing.fixed} + ${(parseFloat(method.pricing.variable) * 100).toFixed(1)}%</div>` : ''}
                                     </div>
                                 </div>
-                                <div class="radio-indicator w-4 h-4 border-2 border-gray-300 rounded-full ${index === 0 ? 'border-blue-500 bg-blue-500' : ''}">
-                                    ${index === 0 ? '<div class="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>' : ''}
+                                <div class="radio-indicator w-5 h-5 border-2 border-gray-300 rounded-full flex items-center justify-center ${index === 0 ? 'border-blue-500 bg-blue-500' : ''}">
+                                    ${index === 0 ? '<div class="w-2.5 h-2.5 bg-white rounded-full"></div>' : ''}
                                 </div>
                             </div>
                         `;
@@ -305,7 +295,7 @@ renderHeader('Billing - SpectraHost Dashboard');
                     card.classList.remove('border-gray-200', 'dark:border-gray-600');
                     indicator.classList.add('border-blue-500', 'bg-blue-500');
                     indicator.classList.remove('border-gray-300');
-                    indicator.innerHTML = '<div class="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>';
+                    indicator.innerHTML = '<div class="w-2.5 h-2.5 bg-white rounded-full"></div>';
                 } else {
                     card.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900');
                     card.classList.add('border-gray-200', 'dark:border-gray-600');
@@ -315,7 +305,7 @@ renderHeader('Billing - SpectraHost Dashboard');
                 }
             });
             
-            // Update select value
+            // Update hidden input value
             document.getElementById('payment-method-select').value = methodId;
         }
 
