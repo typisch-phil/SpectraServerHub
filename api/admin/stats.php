@@ -1,5 +1,5 @@
 <?php
-require_once 'includes/session.php';
+require_once __DIR__ . '/../../includes/session.php';
 requireLogin();
 requireAdmin();
 
@@ -13,18 +13,18 @@ try {
     $userStmt->execute();
     $totalUsers = $userStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-    // Get service statistics
-    $serviceStmt = $db->prepare("SELECT COUNT(*) as total FROM services WHERE status = 'active'");
+    // Get active user services count
+    $serviceStmt = $db->prepare("SELECT COUNT(*) as total FROM user_services WHERE status = 'active'");
     $serviceStmt->execute();
     $activeServices = $serviceStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-    // Get ticket statistics
-    $ticketStmt = $db->prepare("SELECT COUNT(*) as total FROM tickets WHERE status = 'open'");
-    $ticketStmt->execute();
-    $openTickets = $ticketStmt->fetch(PDO::FETCH_ASSOC)['total'];
+    // Get server statistics
+    $serverStmt = $db->prepare("SELECT COUNT(*) as total FROM servers WHERE status = 'running'");
+    $serverStmt->execute();
+    $runningServers = $serverStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-    // Get revenue statistics
-    $revenueStmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total FROM invoices WHERE status = 'paid' AND created_at >= date('now', '-30 days')");
+    // Get revenue statistics from payments
+    $revenueStmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'completed' AND created_at >= date('now', '-30 days')");
     $revenueStmt->execute();
     $monthlyRevenue = $revenueStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
@@ -33,20 +33,20 @@ try {
     $newUsersStmt->execute();
     $newUsersThisMonth = $newUsersStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-    // Get recent activity counts
-    $activityStmt = $db->prepare("SELECT type, COUNT(*) as count FROM activity_logs WHERE created_at >= date('now', '-7 days') GROUP BY type");
-    $activityStmt->execute();
-    $recentActivity = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
+    // Get total services available
+    $totalServicesStmt = $db->prepare("SELECT COUNT(*) as total FROM services WHERE active = 1");
+    $totalServicesStmt->execute();
+    $totalServices = $totalServicesStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
     $response = [
         'success' => true,
         'stats' => [
             'total_users' => (int)$totalUsers,
             'active_services' => (int)$activeServices,
-            'open_tickets' => (int)$openTickets,
+            'running_servers' => (int)$runningServers,
             'monthly_revenue' => (float)$monthlyRevenue,
             'new_users_this_month' => (int)$newUsersThisMonth,
-            'recent_activity' => $recentActivity
+            'total_services' => (int)$totalServices
         ]
     ];
 
