@@ -230,11 +230,41 @@ class Database {
                 ");
             }
             
+            // Create ticket_attachments table
+            $result = $this->connection->query("SHOW TABLES LIKE 'ticket_attachments'");
+            if ($result->rowCount() == 0) {
+                $this->connection->exec("
+                    CREATE TABLE IF NOT EXISTS ticket_attachments (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        ticket_id INT NULL,
+                        reply_id INT NULL,
+                        filename VARCHAR(255) NOT NULL,
+                        original_filename VARCHAR(255) NOT NULL,
+                        file_path VARCHAR(500) NOT NULL,
+                        file_size INT NOT NULL,
+                        mime_type VARCHAR(100) NOT NULL,
+                        uploaded_by INT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+                        FOREIGN KEY (reply_id) REFERENCES ticket_replies(id) ON DELETE CASCADE,
+                        FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                ");
+            }
+            
             // Ensure users table has role column
             $dbname = $_ENV['MYSQL_DATABASE'];
             $result = $this->connection->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '$dbname' AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'");
             if ($result->rowCount() == 0) {
                 $this->connection->exec("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'");
+            }
+            
+            // Ensure users table has is_admin column for compatibility
+            $result = $this->connection->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '$dbname' AND TABLE_NAME = 'users' AND COLUMN_NAME = 'is_admin'");
+            if ($result->rowCount() == 0) {
+                $this->connection->exec("ALTER TABLE users ADD COLUMN is_admin TINYINT(1) DEFAULT 0");
+                // Update existing admin users based on role
+                $this->connection->exec("UPDATE users SET is_admin = 1 WHERE role = 'admin'");
             }
             
         } catch (Exception $e) {

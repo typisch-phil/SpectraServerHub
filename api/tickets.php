@@ -80,19 +80,24 @@ try {
                     $result['replies'] = $replies;
                 }
                 
-                // Include attachments if any
-                $attachment_query = "SELECT * FROM ticket_attachments 
-                                   WHERE ticket_id = ? OR reply_id IN (
-                                       SELECT id FROM ticket_replies WHERE ticket_id = ?
-                                   )
-                                   ORDER BY created_at ASC";
-                
-                $attachment_stmt = $db->prepare($attachment_query);
-                $attachment_stmt->execute([$ticket_id, $ticket_id]);
-                $attachments = $attachment_stmt->fetchAll();
-                
-                if ($attachments) {
-                    $result['attachments'] = $attachments;
+                // Include attachments if any (wrapped in try-catch)
+                try {
+                    $attachment_query = "SELECT * FROM ticket_attachments 
+                                       WHERE ticket_id = ? OR reply_id IN (
+                                           SELECT id FROM ticket_replies WHERE ticket_id = ?
+                                       )
+                                       ORDER BY created_at ASC";
+                    
+                    $attachment_stmt = $db->prepare($attachment_query);
+                    $attachment_stmt->execute([$ticket_id, $ticket_id]);
+                    $attachments = $attachment_stmt->fetchAll();
+                    
+                    if ($attachments) {
+                        $result['attachments'] = $attachments;
+                    }
+                } catch (Exception $e) {
+                    // If attachments table doesn't exist or query fails, continue without attachments
+                    error_log("Attachment query failed: " . $e->getMessage());
                 }
                 
                 echo json_encode($result);
