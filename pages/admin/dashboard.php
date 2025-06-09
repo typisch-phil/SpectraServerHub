@@ -25,7 +25,7 @@ try {
     $stmt->execute();
     $pending_orders = $stmt->fetchColumn();
     
-    $stmt = $database->prepare("SELECT COUNT(*) FROM support_tickets WHERE status = 'open'");
+    $stmt = $database->prepare("SELECT COUNT(*) FROM tickets WHERE status = 'open'");
     $stmt->execute();
     $open_tickets = $stmt->fetchColumn();
 } catch (Exception $e) {
