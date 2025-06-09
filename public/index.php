@@ -25,6 +25,24 @@ switch ($path) {
     case '/admin':
         include '../pages/admin/dashboard.php';
         break;
+    case '/admin/users':
+        include '../pages/admin/users.php';
+        break;
+    case '/admin/services':
+        include '../pages/admin/services.php';
+        break;
+    case '/admin/tickets':
+        include '../pages/admin/tickets.php';
+        break;
+    case '/admin/invoices':
+        include '../pages/admin/invoices.php';
+        break;
+    case '/admin/statistics':
+        include '../pages/admin/statistics.php';
+        break;
+    case '/admin/integrations':
+        include '../pages/admin/integrations.php';
+        break;
     case '/order':
         include '../pages/order.php';
         break;

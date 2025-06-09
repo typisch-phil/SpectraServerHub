@@ -62,7 +62,7 @@ try {
                         </button>
                     </div>
                     <span class="text-gray-700 dark:text-gray-300">Willkommen, <?= htmlspecialchars($_SESSION['user']['first_name']) ?></span>
-                    <?php if ($_SESSION['user']['is_admin']): ?>
+                    <?php if (($_SESSION['user']['role'] ?? 'user') === 'admin'): ?>
                         <a href="/admin" class="btn-outline">Admin Panel</a>
                     <?php endif; ?>
                     <a href="/api/logout" class="btn-outline">Abmelden</a>
