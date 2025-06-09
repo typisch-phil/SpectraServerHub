@@ -166,6 +166,29 @@ renderHeader('Dashboard - SpectraHost');
 </div>
 
 <script>
+// API Request helper function
+async function apiRequest(url, method = 'GET', data = null) {
+    const options = {
+        method: method,
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+    
+    if (data) {
+        options.body = JSON.stringify(data);
+    }
+    
+    const response = await fetch(url, options);
+    
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return await response.json();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboardData();
 });

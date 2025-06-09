@@ -1,42 +1,71 @@
 <?php
+require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/database.php';
+require_once __DIR__ . '/../../includes/auth.php';
+
 header('Content-Type: application/json');
-require_once '../../includes/config.php';
-require_once '../../includes/database.php';
-require_once '../../includes/auth.php';
+
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Check if user is logged in
+if (!isLoggedIn()) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Unauthorized']);
+    exit;
+}
+
+$method = $_SERVER['REQUEST_METHOD'];
+
+if ($method !== 'GET') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Method not allowed']);
+    exit;
+}
 
 try {
-    // Check authentication
-    if (!$auth->isLoggedIn()) {
-        throw new Exception('Anmeldung erforderlich');
+    // Get database instance
+    $database = Database::getInstance();
+    $db = $database->getConnection();
+    
+    // Get user ID from session
+    $user = getCurrentUser();
+    $user_id = $user ? $user['id'] : null;
+    
+    if (!$user_id) {
+        http_response_code(401);
+        echo json_encode(['error' => 'User not found']);
+        exit;
     }
     
-    $db = Database::getInstance();
-    $userId = $_SESSION['user_id'];
-    
-    // Get user orders with service details
+    // Get user orders
     $stmt = $db->prepare("
         SELECT 
-            o.*, 
-            s.name as service_name,
-            s.type as service_type
-        FROM orders o
-        JOIN services s ON o.service_id = s.id
-        WHERE o.user_id = ?
-        ORDER BY o.created_at DESC
+            id,
+            service_name,
+            total_amount,
+            status,
+            created_at,
+            updated_at
+        FROM orders 
+        WHERE user_id = ? 
+        ORDER BY created_at DESC
+        LIMIT 10
     ");
-    $stmt->execute([$userId]);
+    
+    $stmt->execute([$user_id]);
     $orders = $stmt->fetchAll();
     
+    // Return orders with success flag
     echo json_encode([
         'success' => true,
         'orders' => $orders
     ]);
     
 } catch (Exception $e) {
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'error' => $e->getMessage()
-    ]);
+    http_response_code(500);
+    echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
 }
 ?>
