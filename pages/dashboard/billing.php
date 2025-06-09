@@ -224,14 +224,52 @@ renderHeader('Billing - SpectraHost Dashboard');
             });
         }
 
-        document.getElementById('addBalanceForm').addEventListener('submit', function(e) {
+        document.getElementById('addBalanceForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const amount = this.querySelector('input[type="number"]').value;
             const method = this.querySelector('select').value;
+            const submitBtn = this.querySelector('button[type="submit"]');
             
-            // Here you would typically send this to your payment processor
-            alert(`Guthaben aufladen: €${amount} via ${method}`);
-            closeModal();
+            // Validate amount
+            if (amount < 10 || amount > 1000) {
+                showNotification('Betrag muss zwischen €10 und €1000 liegen', 'error');
+                return;
+            }
+            
+            // Set loading state
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Zahlung wird erstellt...';
+            
+            try {
+                const response = await fetch('/api/payment/mollie.php?action=create_payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        amount: amount,
+                        payment_method: method
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Weiterleitung zur Zahlung...', 'info');
+                    // Redirect to Mollie payment page
+                    window.location.href = result.payment_url;
+                } else {
+                    showNotification(result.error || 'Fehler bei der Zahlungserstellung', 'error');
+                }
+            } catch (error) {
+                console.error('Payment creation error:', error);
+                showNotification('Netzwerkfehler. Bitte versuchen Sie es erneut.', 'error');
+            } finally {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
         });
 
         // Close modal with escape key
@@ -240,6 +278,49 @@ renderHeader('Billing - SpectraHost Dashboard');
                 closeModal();
             }
         });
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${getNotificationClass(type)}`;
+            notification.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-lg">&times;</button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+        
+        function getNotificationClass(type) {
+            const classes = {
+                'success': 'bg-green-100 border border-green-400 text-green-700',
+                'error': 'bg-red-100 border border-red-400 text-red-700',
+                'warning': 'bg-yellow-100 border border-yellow-400 text-yellow-700',
+                'info': 'bg-blue-100 border border-blue-400 text-blue-700'
+            };
+            return classes[type] || classes.info;
+        }
+        
+        // Handle URL parameters for payment status
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('success') === 'payment_completed') {
+            showNotification('Zahlung erfolgreich abgeschlossen! Ihr Guthaben wurde aufgeladen.', 'success');
+        } else if (urlParams.get('error')) {
+            const error = urlParams.get('error');
+            let message = 'Ein Fehler ist aufgetreten.';
+            if (error === 'payment_failed') message = 'Zahlung fehlgeschlagen. Bitte versuchen Sie es erneut.';
+            if (error === 'payment_not_found') message = 'Zahlung nicht gefunden.';
+            if (error === 'invalid_payment') message = 'Ungültige Zahlungsparameter.';
+            showNotification(message, 'error');
+        }
 
         // Theme toggle functionality
         function toggleTheme() {
