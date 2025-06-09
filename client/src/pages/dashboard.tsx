@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,12 +39,12 @@ export default function Dashboard() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
-        title: "Unauthorized",
-        description: "You need to log in to access the dashboard.",
+        title: "Nicht angemeldet",
+        description: "Sie müssen sich anmelden, um das Dashboard zu verwenden.",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/login";
       }, 500);
       return;
     }
@@ -93,9 +94,17 @@ export default function Dashboard() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.location.href = "/api/logout"}
+                onClick={async () => {
+                  try {
+                    await apiRequest("POST", "/api/auth/logout", {});
+                    window.location.href = "/";
+                  } catch (error) {
+                    console.error("Logout error:", error);
+                    window.location.href = "/";
+                  }
+                }}
               >
-                Logout
+                Abmelden
               </Button>
             </div>
           </div>

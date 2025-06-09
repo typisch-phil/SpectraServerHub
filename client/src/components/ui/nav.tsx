@@ -47,14 +47,11 @@ export default function Nav() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost"
-              onClick={() => window.location.href = "/api/login"}
-            >
-              Login
-            </Button>
-            <Link href="/order">
-              <Button>Get Started</Button>
+            <Link href="/login">
+              <Button variant="ghost">Anmelden</Button>
+            </Link>
+            <Link href="/register">
+              <Button>Registrieren</Button>
             </Link>
           </div>
         </div>
