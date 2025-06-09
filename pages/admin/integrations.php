@@ -594,6 +594,19 @@ renderHeader($title, $description);
                             setTimeout(() => {
                                 showNotification('info', detailMsg);
                             }, 1000);
+                            
+                        } else if (integration === 'email' && result.details.smtp_host) {
+                            const sslStatus = result.details.ssl_enabled ? 'SSL/TLS Enabled' : 'No SSL';
+                            const detailMsg = `🟢 E-Mail SMTP Connected
+                            SMTP Server: ${result.details.smtp_host}:${result.details.smtp_port}
+                            Username: ${result.details.username}
+                            Security: ${sslStatus}
+                            Response Time: ${result.details.response_time}
+                            Status: ${result.details.status}`;
+                            
+                            setTimeout(() => {
+                                showNotification('info', detailMsg);
+                            }, 1000);
                         }
                     }
                 } else {
@@ -622,6 +635,18 @@ renderHeader($title, $description);
                             3. Ensure account is activated for payments
                             4. Verify webhook URL is accessible
                             5. Check network connectivity`;
+                            
+                        } else if (integration === 'email') {
+                            troubleshootMsg = `❌ E-Mail SMTP Connection Failed
+                            Error: ${result.details.error || 'Unknown error'}
+                            
+                            Troubleshooting Steps:
+                            1. Verify SMTP server hostname and port
+                            2. Check username and password credentials
+                            3. Ensure SMTP authentication is enabled
+                            4. Verify SSL/TLS settings match server requirements
+                            5. Check firewall settings (ports 25, 587, 465)
+                            6. Test with different SMTP provider if needed`;
                         }
                         
                         if (troubleshootMsg) {
@@ -681,7 +706,10 @@ renderHeader($title, $description);
             }
         }
         function configureEmail() { configureIntegration('email'); }
-        function testEmail() { testIntegration('email'); }
+        function testEmail() { 
+            const btn = event.target;
+            testSpecificIntegration('email', btn); 
+        }
         function configureBackup() { configureIntegration('backup'); }
         function testBackup() { testIntegration('backup'); }
         function configureMonitoring() { configureIntegration('monitoring'); }
