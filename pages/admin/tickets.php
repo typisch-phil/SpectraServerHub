@@ -97,20 +97,117 @@ renderHeader($title, $description);
         </div>
 
         <!-- Tickets Table -->
+        <!-- Ticket Management Header -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Support-Tickets (<?= count($tickets) ?>)</h2>
+                    
+                    <!-- Ticket Statistics -->
+                    <div class="flex space-x-4 text-sm">
+                        <?php
+                        $statusCounts = [];
+                        foreach ($tickets as $ticket) {
+                            $statusCounts[$ticket['status']] = ($statusCounts[$ticket['status']] ?? 0) + 1;
+                        }
+                        ?>
+                        <div class="flex items-center space-x-1">
+                            <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                            <span class="text-gray-600 dark:text-gray-400">Offen: <?= $statusCounts['open'] ?? 0 ?></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
+                            <span class="text-gray-600 dark:text-gray-400">In Bearbeitung: <?= $statusCounts['in_progress'] ?? 0 ?></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="w-3 h-3 bg-yellow-500 rounded-full"></span>
+                            <span class="text-gray-600 dark:text-gray-400">Wartet: <?= $statusCounts['waiting_customer'] ?? 0 ?></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                            <span class="text-gray-600 dark:text-gray-400">Geschlossen: <?= $statusCounts['closed'] ?? 0 ?></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filters and Actions -->
+            <div class="px-6 py-4">
+                <div class="flex flex-wrap gap-4 items-center justify-between">
+                    <!-- Filters -->
+                    <div class="flex space-x-3">
+                        <select id="statusFilter" class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white">
+                            <option value="">Alle Status</option>
+                            <option value="open">Offen</option>
+                            <option value="in_progress">In Bearbeitung</option>
+                            <option value="waiting_customer">Wartet auf Kunde</option>
+                            <option value="closed">Geschlossen</option>
+                        </select>
+                        
+                        <select id="priorityFilter" class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white">
+                            <option value="">Alle Prioritäten</option>
+                            <option value="low">Niedrig</option>
+                            <option value="medium">Mittel</option>
+                            <option value="high">Hoch</option>
+                            <option value="critical">Kritisch</option>
+                        </select>
+                        
+                        <input type="text" id="searchFilter" placeholder="Suchen..." 
+                               class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white dark:placeholder-gray-400">
+                    </div>
+                    
+                    <!-- Bulk Actions -->
+                    <div class="flex space-x-2">
+                        <select id="bulkAction" class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white">
+                            <option value="">Bulk-Aktionen</option>
+                            <option value="mark-solved">Als gelöst markieren</option>
+                            <option value="mark-progress">In Bearbeitung setzen</option>
+                            <option value="mark-waiting">Auf Kunde warten</option>
+                            <option value="delete">Löschen</option>
+                        </select>
+                        <button onclick="executeBulkAction()" 
+                                class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:bg-gray-400" 
+                                id="bulkActionBtn" disabled>
+                            Ausführen
+                        </button>
+                        <button onclick="refreshTickets()" 
+                                class="px-4 py-2 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-lg">
+                            <i class="fas fa-sync-alt mr-1"></i>Aktualisieren
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tickets Table -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
             <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Support-Tickets</h2>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" 
+                               class="mr-3 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                        <span class="text-sm text-gray-600 dark:text-gray-400" id="selectedCount">0 ausgewählt</span>
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400" id="filteredCount">
+                        Zeige alle <?= count($tickets) ?> Tickets
+                    </div>
+                </div>
             </div>
             
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead class="bg-gray-50 dark:bg-gray-700">
                         <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                <input type="checkbox" id="selectAllTable" onchange="toggleSelectAll()" 
+                                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                            </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Betreff</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kunde</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Priorität</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Antworten</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Erstellt</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aktionen</th>
                         </tr>
@@ -165,15 +262,51 @@ renderHeader($title, $description);
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300"><?= date('d.m.Y H:i', strtotime($ticket['created_at'])) ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <button onclick="viewTicket(<?= $ticket['id'] ?>)" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3" title="Ticket anzeigen">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button onclick="replyToTicket(<?= $ticket['id'] ?>)" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3" title="Antworten">
-                                        <i class="fas fa-reply"></i>
-                                    </button>
-                                    <button onclick="updateTicketStatus(<?= $ticket['id'] ?>, '<?= $ticket['status'] ?>')" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300" title="Status ändern">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
+                                    <div class="flex space-x-2">
+                                        <button onclick="viewTicket(<?= $ticket['id'] ?>)" 
+                                                class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 p-1 rounded hover:bg-indigo-50" 
+                                                title="Ticket anzeigen">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button onclick="replyToTicket(<?= $ticket['id'] ?>)" 
+                                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50" 
+                                                title="Antworten">
+                                            <i class="fas fa-reply"></i>
+                                        </button>
+                                        <div class="relative">
+                                            <button onclick="toggleStatusDropdown(<?= $ticket['id'] ?>)" 
+                                                    class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1 rounded hover:bg-green-50" 
+                                                    title="Status ändern">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <div id="statusDropdown<?= $ticket['id'] ?>" 
+                                                 class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-600">
+                                                <div class="py-1">
+                                                    <button onclick="changeTicketStatus(<?= $ticket['id'] ?>, 'open')" 
+                                                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                        <i class="fas fa-circle text-red-500 mr-2"></i>Offen
+                                                    </button>
+                                                    <button onclick="changeTicketStatus(<?= $ticket['id'] ?>, 'in_progress')" 
+                                                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                        <i class="fas fa-circle text-blue-500 mr-2"></i>In Bearbeitung
+                                                    </button>
+                                                    <button onclick="changeTicketStatus(<?= $ticket['id'] ?>, 'waiting_customer')" 
+                                                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                        <i class="fas fa-circle text-yellow-500 mr-2"></i>Wartet auf Kunde
+                                                    </button>
+                                                    <button onclick="changeTicketStatus(<?= $ticket['id'] ?>, 'closed')" 
+                                                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                        <i class="fas fa-circle text-green-500 mr-2"></i>Geschlossen
+                                                    </button>
+                                                    <hr class="my-1 border-gray-200 dark:border-gray-600">
+                                                    <button onclick="deleteTicket(<?= $ticket['id'] ?>)" 
+                                                            class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900">
+                                                        <i class="fas fa-trash mr-2"></i>Löschen
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

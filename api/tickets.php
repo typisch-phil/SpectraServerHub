@@ -192,6 +192,48 @@ try {
             }
             break;
             
+        case 'DELETE':
+            // Delete ticket (admin only)
+            $user = getCurrentUser();
+            if ($user['role'] !== 'admin') {
+                http_response_code(403);
+                echo json_encode(['error' => 'Admin access required']);
+                exit;
+            }
+            
+            if (!isset($_GET['id'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Ticket ID required']);
+                exit;
+            }
+            
+            $ticket_id = intval($_GET['id']);
+            
+            // Start transaction
+            $db->beginTransaction();
+            
+            try {
+                // Delete replies first
+                $stmt = $db->prepare("DELETE FROM ticket_replies WHERE ticket_id = ?");
+                $stmt->execute([$ticket_id]);
+                
+                // Delete ticket
+                $stmt = $db->prepare("DELETE FROM tickets WHERE id = ?");
+                $stmt->execute([$ticket_id]);
+                
+                if ($stmt->rowCount() === 0) {
+                    throw new Exception('Ticket not found');
+                }
+                
+                $db->commit();
+                echo json_encode(['success' => true, 'message' => 'Ticket deleted successfully']);
+            } catch (Exception $e) {
+                $db->rollBack();
+                http_response_code(404);
+                echo json_encode(['error' => 'Ticket not found or could not be deleted']);
+            }
+            break;
+            
         default:
             http_response_code(405);
             echo json_encode(['error' => 'Method not allowed']);
