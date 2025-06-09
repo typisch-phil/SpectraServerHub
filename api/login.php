@@ -39,6 +39,7 @@ try {
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
+    $_SESSION['user_id'] = $user['id'];
     $_SESSION['user'] = [
         'id' => $user['id'],
         'email' => $user['email'],
