@@ -112,10 +112,22 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             messageDiv.className = 'mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded';
             messageDiv.textContent = result.message;
             
-            // Redirect immediately after success
+            // Check user role and redirect appropriately
             const urlParams = new URLSearchParams(window.location.search);
-            const redirect = urlParams.get('redirect') || '/dashboard';
-            window.location.href = redirect;
+            let redirect = urlParams.get('redirect');
+            
+            if (!redirect) {
+                // Determine redirect based on user data from response
+                if (result.user && result.user.email && result.user.email.includes('admin')) {
+                    redirect = '/admin/dashboard';
+                } else {
+                    redirect = '/dashboard';
+                }
+            }
+            
+            setTimeout(() => {
+                window.location.href = redirect;
+            }, 500);
         } else {
             messageDiv.className = 'mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded';
             messageDiv.textContent = result.error;
