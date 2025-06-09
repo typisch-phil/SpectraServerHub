@@ -1,11 +1,11 @@
 <?php
-// Database configuration - Using PostgreSQL
-define('DB_HOST', $_ENV['PGHOST'] ?? 'localhost');
-define('DB_NAME', $_ENV['PGDATABASE'] ?? 'spectrahost');
-define('DB_USER', $_ENV['PGUSER'] ?? 'postgres');
-define('DB_PASS', $_ENV['PGPASSWORD'] ?? '');
-define('DB_PORT', $_ENV['PGPORT'] ?? 5432);
-define('DB_TYPE', 'pgsql');
+// Database configuration - Using MySQL
+define('DB_HOST', $_ENV['DB_HOST'] ?? 'localhost');
+define('DB_NAME', $_ENV['DB_NAME'] ?? 'spectrahost');
+define('DB_USER', $_ENV['DB_USER'] ?? 'root');
+define('DB_PASS', $_ENV['DB_PASS'] ?? '');
+define('DB_PORT', $_ENV['DB_PORT'] ?? 3306);
+define('DB_TYPE', 'mysql');
 
 // Mollie API configuration
 define('MOLLIE_API_KEY', $_ENV['MOLLIE_API_KEY'] ?? '');
