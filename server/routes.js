@@ -1,20 +1,13 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { registerUser, authenticateUser } from "./auth";
-import { insertOrderSchema, insertSupportTicketSchema, registerSchema, loginSchema } from "@shared/schema";
+import express from "express";
+import { createServer } from "http";
+import { storage } from "./storage.js";
+import { registerUser, authenticateUser } from "./auth.js";
+import { insertOrderSchema, insertSupportTicketSchema, registerSchema, loginSchema } from "../shared/schema.js";
 import { z } from "zod";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
-declare module 'express-session' {
-  interface SessionData {
-    userId?: number;
-    user?: any;
-  }
-}
-
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app) {
   // Session configuration
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);

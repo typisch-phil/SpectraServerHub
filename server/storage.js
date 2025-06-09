@@ -4,27 +4,13 @@ import {
   userServices,
   orders,
   supportTickets,
-  type User,
-  type UpsertUser,
-  type InsertUser,
-  type Service,
-  type InsertService,
-  type UserService,
-  type InsertUserService,
-  type Order,
-  type InsertOrder,
-  type SupportTicket,
-  type InsertSupportTicket,
-} from "@shared/schema";
-import { db } from "./db";
+} from "../shared/schema.js";
+import { db } from "./db.js";
 import { eq, desc } from "drizzle-orm";
 
-export interface IStorage {
+export class DatabaseStorage {
   // User operations
-  getUser(id: number): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  async getUser(id) {
   
   // Service operations
   getServices(): Promise<Service[]>;
