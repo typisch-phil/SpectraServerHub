@@ -306,6 +306,7 @@ function updateStats(services) {
 
 async function loadTicketStats() {
     try {
+        console.log('Loading ticket stats...');
         const response = await fetch('/api/tickets.php', {
             method: 'GET',
             credentials: 'same-origin',
@@ -314,14 +315,21 @@ async function loadTicketStats() {
             }
         });
         
+        console.log('Ticket API response status:', response.status);
+        
         if (response.ok) {
             const tickets = await response.json();
+            console.log('Received tickets:', tickets);
+            
             const openTickets = tickets.filter(ticket => 
                 ticket.status === 'open' || ticket.status === 'waiting_customer'
             ).length;
             
+            console.log('Open tickets count:', openTickets);
+            
             document.getElementById('support-tickets-count').textContent = openTickets;
         } else {
+            console.log('API response not ok, setting to 0');
             document.getElementById('support-tickets-count').textContent = '0';
         }
     } catch (error) {
