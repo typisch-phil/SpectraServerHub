@@ -12,14 +12,11 @@ if (!isLoggedIn()) {
 }
 
 try {
-    // Get Mollie API key
-    $stmt = $db->prepare("SELECT config_value FROM integration_configs WHERE integration_name = 'mollie' AND config_key = 'api_key'");
-    $stmt->execute();
-    $mollie_api_key = $stmt->fetchColumn();
+    // Get Mollie API key from environment
+    $mollie_api_key = $_ENV['MOLLIE_API_KEY'] ?? null;
     
     if (!$mollie_api_key) {
-        echo json_encode(['success' => false, 'error' => 'Mollie nicht konfiguriert']);
-        exit;
+        throw new Exception('Mollie API key not configured');
     }
     
     // Get available payment methods from Mollie

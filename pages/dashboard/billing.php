@@ -279,32 +279,20 @@ renderHeader('Billing - SpectraHost Dashboard');
                     });
                     
                 } else {
-                    // Fallback to basic select
+                    // Show error message if no methods available
                     loadingDiv.classList.add('hidden');
-                    selectElement.classList.remove('hidden');
-                    selectElement.innerHTML = `
-                        <option value="ideal">iDEAL</option>
-                        <option value="creditcard">Kreditkarte</option>
-                        <option value="banktransfer">Banküberweisung</option>
-                        <option value="paypal">PayPal</option>
-                    `;
+                    containerDiv.innerHTML = '<div class="text-red-500 p-4 text-center">Keine Zahlungsmethoden verfügbar. Bitte kontaktieren Sie den Support.</div>';
                 }
                 
             } catch (error) {
                 console.error('Error loading payment methods:', error);
                 
-                // Fallback to basic select
+                // Show error message
                 const loadingDiv = document.getElementById('payment-methods-loading');
-                const selectElement = document.getElementById('payment-method-select');
+                const containerDiv = document.getElementById('payment-methods-container');
                 
                 loadingDiv.classList.add('hidden');
-                selectElement.classList.remove('hidden');
-                selectElement.innerHTML = `
-                    <option value="ideal">iDEAL</option>
-                    <option value="creditcard">Kreditkarte</option>
-                    <option value="banktransfer">Banküberweisung</option>
-                    <option value="paypal">PayPal</option>
-                `;
+                containerDiv.innerHTML = '<div class="text-red-500 p-4 text-center">Fehler beim Laden der Zahlungsmethoden. Bitte versuchen Sie es später erneut.</div>';
             }
         }
         
