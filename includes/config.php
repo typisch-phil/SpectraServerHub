@@ -6,7 +6,7 @@ define('APP_NAME', 'SpectraHost');
 define('APP_VERSION', '1.0.0');
 define('APP_ENV', 'development');
 
-// Database Configuration (MySQL via PostgreSQL adapter)
+// Database Configuration (MySQL compatible via PostgreSQL)
 define('DB_TYPE', 'mysql');
 define('DB_HOST', getenv('PGHOST') ?: 'localhost');
 define('DB_NAME', getenv('PGDATABASE') ?: 'spectrahost');
