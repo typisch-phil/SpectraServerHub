@@ -72,7 +72,6 @@ function createMolliePayment() {
             ],
             'description' => $description,
             'redirectUrl' => BASE_URL . '/api/payment/mollie.php?action=return&payment_id=' . $payment_id,
-            'webhookUrl' => BASE_URL . '/api/payment/mollie.php?action=webhook',
             'metadata' => [
                 'payment_id' => $payment_id,
                 'user_id' => $user_id,
