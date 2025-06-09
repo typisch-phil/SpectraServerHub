@@ -79,6 +79,9 @@ switch ($path) {
     case '/api/admin/activity':
         include '../api/admin/activity.php';
         break;
+    case '/api/admin/stats':
+        include '../api/admin/stats.php';
+        break;
 
     default:
         http_response_code(404);
