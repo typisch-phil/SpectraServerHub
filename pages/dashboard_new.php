@@ -4,18 +4,23 @@ require_once '../includes/database.php';
 require_once '../includes/auth.php';
 require_once '../includes/layout.php';
 
-requireLogin();
+// Remove function call, handle manually below
 
 $title = 'Dashboard - SpectraHost';
 $description = 'Verwalten Sie Ihre Services und Bestellungen';
 renderHeader($title, $description);
 
-$user_id = $_SESSION['user']['id'];
+// Check if user is logged in
+if (!isset($_SESSION['user'])) {
+    header('Location: /login');
+    exit;
+}
+
+$user = $_SESSION['user'];
+$user_id = $user['id'];
 
 // Get user balance and stats
 $database = Database::getInstance();
-$user = getCurrentUser();
-$user_id = $user['id'];
 
 try {
     $stmt = $database->prepare("SELECT balance FROM users WHERE id = ?");

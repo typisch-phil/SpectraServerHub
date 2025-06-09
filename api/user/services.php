@@ -1,17 +1,18 @@
 <?php
-require_once '../../includes/config.php';
-require_once '../../includes/database.php';
-require_once '../../includes/auth.php';
+require_once '../includes/config.php';
+require_once '../includes/database.php';
+require_once '../includes/auth.php';
 
 header('Content-Type: application/json');
 
-if (!isLoggedIn()) {
+session_start();
+if (!isset($_SESSION['user'])) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Nicht authentifiziert']);
     exit;
 }
 
-$user = getCurrentUser();
+$user = $_SESSION['user'];
 $user_id = $user['id'];
 $database = Database::getInstance();
 
