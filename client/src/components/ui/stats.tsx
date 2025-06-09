@@ -29,7 +29,7 @@ const stats = [
 
 export default function Stats() {
   return (
-    <section className="py-16 bg-slate-900">
+    <section className="py-16 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {stats.map((stat, index) => (
@@ -40,9 +40,9 @@ export default function Stats() {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4 group-hover:bg-primary/20 transition-colors duration-300">
                 <stat.icon className="w-8 h-8 text-primary" />
               </div>
-              <div className="text-3xl font-bold text-white mb-2">{stat.number}</div>
-              <div className="text-lg font-semibold text-white mb-1">{stat.label}</div>
-              <div className="text-gray-400 text-sm">{stat.description}</div>
+              <div className="text-3xl font-bold text-foreground mb-2">{stat.number}</div>
+              <div className="text-lg font-semibold text-foreground mb-1">{stat.label}</div>
+              <div className="text-muted-foreground text-sm">{stat.description}</div>
             </div>
           ))}
         </div>

@@ -4,30 +4,22 @@ import { Link } from "wouter";
 
 export default function Hero() {
   return (
-    <section className="relative pt-20 pb-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
+    <section className="relative pt-20 pb-20 bg-gradient-to-br from-background via-background/80 to-background overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20"></div>
-      <div 
-        className="absolute inset-0 opacity-20" 
-        style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      ></div>
       
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 animate-fade-in">
+          <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 animate-fade-in">
             Premium{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
               Server Hosting
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto animate-slide-up">
+          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto animate-slide-up">
             Hochperformante Server, zuverlässige Infrastruktur und erstklassiger Support für deine digitalen Projekte. 
             Seit 2015 vertrauen über 50.000 Kunden auf unsere bewährte Hosting-Lösung.
           </p>
-          <div className="flex flex-wrap justify-center gap-8 mb-8 text-white/80 animate-fade-in">
+          <div className="flex flex-wrap justify-center gap-8 mb-8 text-muted-foreground animate-fade-in">
             <div className="flex items-center">
               <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
               <span>99.98% Uptime</span>
@@ -51,7 +43,7 @@ export default function Hero() {
             <Button 
               variant="outline" 
               size="lg"
-              className="glassmorphism text-white border-white/20 hover:bg-white/20 text-lg font-semibold transition-all duration-300"
+              className="text-lg font-semibold transition-all duration-300"
             >
               <Play className="w-5 h-5 mr-2" />
               Demo ansehen
