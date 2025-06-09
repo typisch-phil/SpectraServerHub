@@ -285,9 +285,9 @@ renderHeader($title, $description);
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zahlungsart</label>
                         <select id="paymentMethod" name="payment_method" 
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
-                            <option value="manual">Manuell</option>
-                            <option value="paypal">PayPal</option>
                             <option value="mollie">Mollie</option>
+                            <option value="paypal">PayPal</option>
+                            <option value="manual">Manuell</option>
                             <option value="bank_transfer">Überweisung</option>
                         </select>
                     </div>
