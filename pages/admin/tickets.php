@@ -993,7 +993,7 @@ renderHeader($title, $description);
         }
 
         // Handle Reply Form Submission
-        document.addEventListener('DOMContentLoaded', function() {
+        function handleReplySubmission() {
             const replyForm = document.getElementById('replyForm');
             if (replyForm) {
                 replyForm.addEventListener('submit', async function(e) {
@@ -1057,7 +1057,7 @@ renderHeader($title, $description);
                     }
                 });
             }
-        });
+        }
 
         // Quick Actions
         function toggleQuickActions() {
@@ -1187,7 +1187,7 @@ renderHeader($title, $description);
         }
 
         // Handle Status Form Submission
-        document.addEventListener('DOMContentLoaded', function() {
+        function handleStatusSubmission() {
             const statusForm = document.getElementById('statusForm');
             if (statusForm) {
                 statusForm.addEventListener('submit', async function(e) {
@@ -1245,7 +1245,7 @@ renderHeader($title, $description);
                     }
                 });
             }
-        });
+        }
 
         // Enhanced Ticket Management
         function assignTicket(ticketId) {
@@ -1388,6 +1388,51 @@ renderHeader($title, $description);
             if (actionsContainer) {
                 actionsContainer.appendChild(quickActionsBtn);
             }
+
+            // Initialize form handlers
+            handleReplySubmission();
+            handleStatusSubmission();
+
+            // Fix selectAll functionality
+            const selectAll = document.getElementById('selectAll');
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    const checkboxes = document.querySelectorAll('.ticket-checkbox');
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = selectAll.checked;
+                    });
+                    updateSelectedCount();
+                });
+            }
+
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'a') {
+                    e.preventDefault();
+                    const selectAll = document.getElementById('selectAll');
+                    if (selectAll) {
+                        selectAll.checked = true;
+                        selectAll.dispatchEvent(new Event('change'));
+                    }
+                }
+                
+                if (e.key === 'Escape') {
+                    closeViewModal();
+                    closeReplyModal();
+                    closeStatusModal();
+                }
+                
+                if (e.key === 'Delete') {
+                    const selected = document.querySelectorAll('.ticket-checkbox:checked');
+                    if (selected.length > 0) {
+                        bulkAction('delete');
+                    }
+                }
+                
+                if (e.key === 'q' || e.key === 'Q') {
+                    toggleQuickActions();
+                }
+            });
         });
     </script>
 </div>
