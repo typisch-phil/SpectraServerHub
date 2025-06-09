@@ -240,6 +240,40 @@ renderHeader('Billing - SpectraHost Dashboard');
                 closeModal();
             }
         });
+
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.classList.remove('dark', 'light');
+            html.classList.add(newTheme);
+            
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            const themeToggle = document.getElementById('theme-toggle');
+            const isDark = document.documentElement.classList.contains('dark');
+            themeToggle.innerHTML = isDark 
+                ? '<i class="fas fa-sun text-yellow-500"></i>'
+                : '<i class="fas fa-moon text-gray-600"></i>';
+        }
+
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.classList.add(savedTheme);
+            updateThemeIcon();
+            
+            // Add event listener to theme toggle button
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', toggleTheme);
+            }
+        });
     </script>
 
     <?php
