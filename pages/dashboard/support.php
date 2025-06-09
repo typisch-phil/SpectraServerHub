@@ -363,8 +363,17 @@ renderHeader('Support - SpectraHost Dashboard');
         async function loadTickets() {
             try {
                 const response = await fetch('/api/tickets.php', {
-                    credentials: 'same-origin'
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const tickets = await response.json();
                 
                 const ticketsContainer = document.getElementById('tickets-container');

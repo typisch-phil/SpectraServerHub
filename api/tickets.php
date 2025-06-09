@@ -14,7 +14,15 @@ if (session_status() === PHP_SESSION_NONE) {
 // Check if user is logged in
 if (!isLoggedIn()) {
     http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
+    echo json_encode([
+        'error' => 'Unauthorized',
+        'debug' => [
+            'session_status' => session_status(),
+            'session_id' => session_id(),
+            'has_session_user' => isset($_SESSION['user']),
+            'session_keys' => array_keys($_SESSION ?? [])
+        ]
+    ]);
     exit;
 }
 
