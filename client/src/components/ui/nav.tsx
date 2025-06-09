@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Link } from "wouter";
 
 export default function Nav() {
@@ -10,7 +11,7 @@ export default function Nav() {
   };
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-200">
+    <nav className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-md border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
@@ -21,24 +22,24 @@ export default function Nav() {
               <div className="flex items-baseline space-x-8">
                 <button 
                   onClick={() => scrollToSection('services')}
-                  className="text-gray-600 hover:text-primary transition-colors duration-200"
+                  className="text-foreground/70 hover:text-primary transition-colors duration-200"
                 >
                   Services
                 </button>
                 <button 
                   onClick={() => scrollToSection('pricing')}
-                  className="text-gray-600 hover:text-primary transition-colors duration-200"
+                  className="text-foreground/70 hover:text-primary transition-colors duration-200"
                 >
                   Pricing
                 </button>
                 <button 
                   onClick={() => scrollToSection('features')}
-                  className="text-gray-600 hover:text-primary transition-colors duration-200"
+                  className="text-foreground/70 hover:text-primary transition-colors duration-200"
                 >
                   Features
                 </button>
                 <Link href="/contact">
-                  <span className="text-gray-600 hover:text-primary transition-colors duration-200 cursor-pointer">
+                  <span className="text-foreground/70 hover:text-primary transition-colors duration-200 cursor-pointer">
                     Kontakt
                   </span>
                 </Link>
@@ -46,6 +47,7 @@ export default function Nav() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <ThemeToggle />
             <Link href="/login">
               <Button variant="ghost">Anmelden</Button>
             </Link>
