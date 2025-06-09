@@ -1,13 +1,21 @@
 <?php
-require_once __DIR__ . '/../../includes/session.php';
-require_once __DIR__ . '/layout.php';
-requireLogin();
+session_start();
+require_once __DIR__ . '/../../includes/database.php';
+require_once __DIR__ . '/../../includes/layout.php';
 
-$db = Database::getInstance();
-$user_id = $_SESSION['user']['id'];
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: /login');
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
+$user = $_SESSION['user'];
+
+$database = Database::getInstance();
 
 // Get user's services
-$stmt = $db->prepare("
+$stmt = $database->prepare("
     SELECT us.*, s.name, s.type, s.description, s.price, s.features 
     FROM user_services us 
     JOIN services s ON us.service_id = s.id 
@@ -17,9 +25,38 @@ $stmt = $db->prepare("
 $stmt->execute([$user_id]);
 $user_services = $stmt->fetchAll();
 
-renderDashboardHeader("Meine Services", "Verwalten Sie Ihre aktiven Hosting-Services und Server.");
-renderDashboardNavigation('services');
+renderHeader('Meine Services - SpectraHost Dashboard');
 ?>
+
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Dashboard Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-blue-600 dark:text-blue-400">SpectraHost</a>
+                    <div class="ml-8 flex space-x-4">
+                        <a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Dashboard</a>
+                        <a href="/dashboard/services" class="text-blue-600 dark:text-blue-400 font-medium border-b-2 border-blue-600 pb-1">Meine Services</a>
+                        <a href="/dashboard/billing" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Billing</a>
+                        <a href="/dashboard/support" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Support</a>
+                        <a href="/order" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Bestellen</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">Guthaben:</span>
+                        <span class="font-semibold text-green-600 dark:text-green-400"><?php echo number_format($user['balance'] ?? 0, 2); ?> €</span>
+                    </div>
+                    <span class="text-gray-700 dark:text-gray-300">Willkommen, <?php echo htmlspecialchars($user['first_name'] ?? 'Benutzer'); ?></span>
+                    <?php if (($user['role'] ?? 'user') === 'admin'): ?>
+                        <a href="/admin" class="btn-outline">Admin Panel</a>
+                    <?php endif; ?>
+                    <a href="/api/logout" class="btn-outline">Abmelden</a>
+                </div>
+            </div>
+        </div>
+    </nav>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->

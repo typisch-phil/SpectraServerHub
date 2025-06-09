@@ -1,70 +1,47 @@
 <?php
-require_once __DIR__ . '/../../includes/session.php';
-require_once __DIR__ . '/layout.php';
-requireLogin();
+session_start();
+require_once __DIR__ . '/../../includes/database.php';
+require_once __DIR__ . '/../../includes/layout.php';
 
-$db = Database::getInstance();
-$user_id = $_SESSION['user']['id'];
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: /login');
+    exit;
+}
 
-$pageTitle = "Support - SpectraHost";
-$pageDescription = "Erstellen Sie Support-Tickets und verwalten Sie Ihre Anfragen.";
+$user_id = $_SESSION['user_id'];
+$user = $_SESSION['user'];
+
+$database = Database::getInstance();
+
+renderHeader('Support - SpectraHost Dashboard');
 ?>
 
-<!DOCTYPE html>
-<html lang="de" class="scroll-smooth">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle; ?></title>
-    <meta name="description" content="<?php echo $pageDescription; ?>">
-    <meta name="robots" content="noindex, nofollow">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='%233b82f6'/><stop offset='100%' stop-color='%236366f1'/></linearGradient></defs><rect width='32' height='32' rx='6' fill='url(%23g)'/><text x='16' y='22' text-anchor='middle' fill='white' font-family='Arial' font-size='18' font-weight='bold'>S</text></svg>">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#eff6ff',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
-    
-    <!-- Navigation -->
-    <nav class="bg-white dark:bg-gray-800 shadow-lg">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Dashboard Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
+            <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="/" class="flex items-center space-x-2">
-                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">S</span>
-                        </div>
-                        <span class="text-xl font-bold text-gray-900 dark:text-white">SpectraHost</span>
-                    </a>
+                    <a href="/" class="text-xl font-bold text-blue-600 dark:text-blue-400">SpectraHost</a>
+                    <div class="ml-8 flex space-x-4">
+                        <a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Dashboard</a>
+                        <a href="/dashboard/services" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Meine Services</a>
+                        <a href="/dashboard/billing" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Billing</a>
+                        <a href="/dashboard/support" class="text-blue-600 dark:text-blue-400 font-medium border-b-2 border-blue-600 pb-1">Support</a>
+                        <a href="/order" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Bestellen</a>
+                    </div>
                 </div>
-                
                 <div class="flex items-center space-x-4">
-                    <a href="/dashboard" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">Dashboard</a>
-                    <a href="/api/logout" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
-                        Abmelden
-                    </a>
+                    <div class="text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">Guthaben:</span>
+                        <span class="font-semibold text-green-600 dark:text-green-400"><?php echo number_format($user['balance'] ?? 0, 2); ?> €</span>
+                    </div>
+                    <span class="text-gray-700 dark:text-gray-300">Willkommen, <?php echo htmlspecialchars($user['first_name'] ?? 'Benutzer'); ?></span>
+                    <?php if (($user['role'] ?? 'user') === 'admin'): ?>
+                        <a href="/admin" class="btn-outline">Admin Panel</a>
+                    <?php endif; ?>
+                    <a href="/api/logout" class="btn-outline">Abmelden</a>
                 </div>
             </div>
         </div>
@@ -73,7 +50,9 @@ $pageDescription = "Erstellen Sie Support-Tickets und verwalten Sie Ihre Anfrage
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Support Center</h1>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Support</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">Erstellen Sie Support-Tickets und verwalten Sie Ihre Anfragen</p>
+        </div>
             <p class="text-gray-600 dark:text-gray-400 mt-2">Benötigen Sie Hilfe? Erstellen Sie ein Support-Ticket oder durchsuchen Sie unsere FAQ</p>
         </div>
 
