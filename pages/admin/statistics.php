@@ -21,12 +21,24 @@ if (!$user || $user['role'] !== 'admin') {
     exit;
 }
 
-// Get statistics data
-$userCount = $database->query("SELECT COUNT(*) as count FROM users")->fetch()['count'];
-$serviceCount = $database->query("SELECT COUNT(*) as count FROM services WHERE active = 1")->fetch()['count'];
-$ticketCount = $database->query("SELECT COUNT(*) as count FROM tickets")->fetch()['count'];
-$paymentCount = $database->query("SELECT COUNT(*) as count FROM payments WHERE status = 'completed'")->fetch()['count'];
-$totalRevenue = $database->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'completed'")->fetch()['total'];
+// Get statistics data with error handling
+try {
+    $userCount = $database->query("SELECT COUNT(*) as count FROM users")->fetch()['count'];
+    $serviceCount = $database->query("SELECT COUNT(*) as count FROM services WHERE active = 1")->fetch()['count'];
+    $ticketCount = $database->query("SELECT COUNT(*) as count FROM tickets")->fetch()['count'];
+    $paymentCount = $database->query("SELECT COUNT(*) as count FROM payments WHERE status = 'paid'")->fetch()['count'];
+    $totalRevenue = $database->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid'")->fetch()['total'];
+    
+    // Get additional statistics
+    $pendingPayments = $database->query("SELECT COUNT(*) as count FROM payments WHERE status = 'pending'")->fetch()['count'];
+    $thisMonthRevenue = $database->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid' AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)")->fetch()['total'];
+    $activeServices = $database->query("SELECT COUNT(*) as count FROM user_services WHERE status = 'active'")->fetch()['count'];
+} catch (Exception $e) {
+    // Set default values if queries fail
+    $userCount = $serviceCount = $ticketCount = $paymentCount = $pendingPayments = $activeServices = 0;
+    $totalRevenue = $thisMonthRevenue = 0.00;
+    error_log("Statistics query error: " . $e->getMessage());
+}
 
 $title = 'Statistiken - SpectraHost Admin';
 $description = 'Übersicht über wichtige Geschäftskennzahlen und Systemstatistiken';
@@ -96,9 +108,9 @@ renderHeader($title, $description);
                         <i class="fas fa-server text-green-600 text-2xl"></i>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Aktive Services</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Verfügbare Services</p>
                         <p class="text-2xl font-bold text-gray-900 dark:text-white"><?= number_format($serviceCount) ?></p>
-                        <p class="text-xs text-green-600 dark:text-green-400">+8% seit letztem Monat</p>
+                        <p class="text-xs text-blue-600 dark:text-blue-400">Produktkatalog</p>
                     </div>
                 </div>
             </div>
