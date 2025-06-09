@@ -23,16 +23,32 @@ if (!$user || $user['role'] !== 'admin') {
 
 // Get statistics data with error handling
 try {
-    $userCount = $database->query("SELECT COUNT(*) as count FROM users")->fetch()['count'];
-    $serviceCount = $database->query("SELECT COUNT(*) as count FROM services WHERE active = 1")->fetch()['count'];
-    $ticketCount = $database->query("SELECT COUNT(*) as count FROM tickets")->fetch()['count'];
-    $paymentCount = $database->query("SELECT COUNT(*) as count FROM payments WHERE status = 'paid'")->fetch()['count'];
-    $totalRevenue = $database->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid'")->fetch()['total'];
+    $pdo = $database->getConnection();
+    
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM users");
+    $userCount = $stmt->fetch()['count'];
+    
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM services WHERE active = 1");
+    $serviceCount = $stmt->fetch()['count'];
+    
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM tickets");
+    $ticketCount = $stmt->fetch()['count'];
+    
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM payments WHERE status = 'paid'");
+    $paymentCount = $stmt->fetch()['count'];
+    
+    $stmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid'");
+    $totalRevenue = $stmt->fetch()['total'];
     
     // Get additional statistics
-    $pendingPayments = $database->query("SELECT COUNT(*) as count FROM payments WHERE status = 'pending'")->fetch()['count'];
-    $thisMonthRevenue = $database->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid' AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)")->fetch()['total'];
-    $activeServices = $database->query("SELECT COUNT(*) as count FROM user_services WHERE status = 'active'")->fetch()['count'];
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM payments WHERE status = 'pending'");
+    $pendingPayments = $stmt->fetch()['count'];
+    
+    $stmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid' AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+    $thisMonthRevenue = $stmt->fetch()['total'];
+    
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM user_services WHERE status = 'active'");
+    $activeServices = $stmt->fetch()['count'];
 } catch (Exception $e) {
     // Set default values if queries fail
     $userCount = $serviceCount = $ticketCount = $paymentCount = $pendingPayments = $activeServices = 0;
