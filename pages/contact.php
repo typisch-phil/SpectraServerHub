@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../includes/layout.php';
+require_once __DIR__ . '/../includes/layout.php';
 renderHeader('Kontakt - SpectraHost');
 ?>
 

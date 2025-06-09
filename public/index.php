@@ -1,8 +1,8 @@
 <?php
 session_start();
-require_once '../includes/config.php';
-require_once '../includes/database.php';
-require_once '../includes/auth.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/database.php';
+require_once __DIR__ . '/../includes/auth.php';
 
 // Simple routing
 $request = $_SERVER['REQUEST_URI'];
@@ -11,7 +11,7 @@ $path = parse_url($request, PHP_URL_PATH);
 // Route handling
 switch ($path) {
     case '/':
-        include '../pages/home.php';
+        include __DIR__ . '/../pages/home.php';
         break;
     case '/login':
         // Redirect logged in users to dashboard
@@ -19,7 +19,7 @@ switch ($path) {
             header('Location: /dashboard');
             exit;
         }
-        include '../pages/login.php';
+        include __DIR__ . '/../pages/login.php';
         break;
     case '/register':
         // Redirect logged in users to dashboard
@@ -27,87 +27,87 @@ switch ($path) {
             header('Location: /dashboard');
             exit;
         }
-        include '../pages/register.php';
+        include __DIR__ . '/../pages/register.php';
         break;
     case '/dashboard':
-        include '../pages/dashboard/index.php';
+        include __DIR__ . '/../pages/dashboard/index.php';
         break;
     case '/dashboard/services':
-        include '../pages/dashboard/services.php';
+        include __DIR__ . '/../pages/dashboard/services.php';
         break;
     case '/dashboard/billing':
-        include '../pages/dashboard/billing.php';
+        include __DIR__ . '/../pages/dashboard/billing.php';
         break;
     case '/dashboard/support':
-        include '../pages/dashboard/support.php';
+        include __DIR__ . '/../pages/dashboard/support.php';
         break;
     case '/admin':
-        include '../pages/admin/dashboard.php';
+        include __DIR__ . '/../pages/admin/dashboard.php';
         break;
     case '/admin/users':
-        include '../pages/admin/users.php';
+        include __DIR__ . '/../pages/admin/users.php';
         break;
     case '/admin/services':
-        include '../pages/admin/services.php';
+        include __DIR__ . '/../pages/admin/services.php';
         break;
     case '/admin/tickets':
-        include '../pages/admin/tickets.php';
+        include __DIR__ . '/../pages/admin/tickets.php';
         break;
     case '/admin/invoices':
-        include '../pages/admin/invoices.php';
+        include __DIR__ . '/../pages/admin/invoices.php';
         break;
     case '/admin/statistics':
-        include '../pages/admin/statistics.php';
+        include __DIR__ . '/../pages/admin/statistics.php';
         break;
     case '/admin/integrations':
-        include '../pages/admin/integrations.php';
+        include __DIR__ . '/../pages/admin/integrations.php';
         break;
     case '/order':
-        include '../pages/order.php';
+        include __DIR__ . '/../pages/order.php';
         break;
     case '/contact':
-        include '../pages/contact.php';
+        include __DIR__ . '/../pages/contact.php';
         break;
     case '/impressum':
-        include '../pages/impressum.php';
+        include __DIR__ . '/../pages/impressum.php';
         break;
     case '/api/login':
-        include '../api/login.php';
+        include __DIR__ . '/../api/login.php';
         break;
     case '/api/register':
-        include '../api/register.php';
+        include __DIR__ . '/../api/register.php';
         break;
     case '/api/logout':
-        include '../api/logout.php';
+        include __DIR__ . '/../api/logout.php';
         break;
     case '/api/order':
-        include '../api/order.php';
+        include __DIR__ . '/../api/order.php';
         break;
     case '/api/services':
-        include '../api/services.php';
+        include __DIR__ . '/../api/services.php';
         break;
     case '/api/user/services':
-        include '../api/user/services.php';
+        include __DIR__ . '/../api/user/services.php';
         break;
     case '/api/user/status':
-        include '../api/user/status.php';
+        include __DIR__ . '/../api/user/status.php';
         break;
     case '/api/user/add-balance':
-        include '../api/user/add-balance.php';
+        include __DIR__ . '/../api/user/add-balance.php';
         break;
     case '/api/payment/webhook':
-        include '../api/payment/webhook.php';
+        include __DIR__ . '/../api/payment/webhook.php';
         break;
     case '/api/admin/activity':
-        include '../api/admin/activity.php';
+        include __DIR__ . '/../api/admin/activity.php';
         break;
     case '/api/admin/stats':
-        include '../api/admin/stats.php';
+        include __DIR__ . '/../api/admin/stats.php';
         break;
 
     default:
         http_response_code(404);
-        include '../pages/404.php';
+        include __DIR__ . '/../pages/404.php';
         break;
 }
 ?>
