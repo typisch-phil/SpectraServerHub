@@ -6,56 +6,23 @@ require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/layout.php';
 
 // Check if user is logged in and is admin
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user'])) {
     header('Location: /login');
     exit;
 }
 
-$database = Database::getInstance();
-$stmt = $database->prepare("SELECT role FROM users WHERE id = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$user = $stmt->fetch();
-
+$user = $_SESSION['user'];
 if (!$user || $user['role'] !== 'admin') {
     header('Location: /dashboard');
     exit;
 }
 
-// Create tickets table if not exists and add sample data
-$database->getConnection()->exec("
-    CREATE TABLE IF NOT EXISTS tickets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        subject VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        status VARCHAR(50) DEFAULT 'open',
-        priority VARCHAR(20) DEFAULT 'normal',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )
-");
+$database = Database::getInstance();
 
-// Check if tickets exist, if not add sample data
-$stmt = $database->prepare("SELECT COUNT(*) FROM tickets");
-$stmt->execute();
-if ($stmt->fetchColumn() == 0) {
-    $sampleTickets = [
-        [1, 'Server Problem', 'Mein vServer ist nicht erreichbar seit heute morgen.', 'open', 'high'],
-        [1, 'Domain Weiterleitung', 'Kann die Domain-Weiterleitung nicht konfigurieren.', 'pending', 'normal'],
-        [1, 'Backup Anfrage', 'Benötige ein Backup meiner Website vom letzten Freitag.', 'closed', 'low']
-    ];
-    
-    $stmt = $database->prepare("INSERT INTO tickets (user_id, subject, message, status, priority) VALUES (?, ?, ?, ?, ?)");
-    foreach ($sampleTickets as $ticket) {
-        $stmt->execute($ticket);
-    }
-}
-
-global $db;
+// Tables are already created in the database initialization
 
 // Get all tickets with user information and reply count
-$stmt = $db->prepare("
+$stmt = $database->prepare("
     SELECT t.*, u.email, u.first_name, u.last_name,
            COUNT(r.id) as reply_count
     FROM tickets t 

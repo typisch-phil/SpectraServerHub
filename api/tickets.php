@@ -20,7 +20,8 @@ if (!isLoggedIn()) {
 $method = $_SERVER['REQUEST_METHOD'];
 
 // Get database instance
-global $db;
+$database = Database::getInstance();
+$db = $database->getConnection();
 
 // Get user ID from session
 $user = getCurrentUser();
