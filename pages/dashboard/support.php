@@ -6,13 +6,13 @@ require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/layout.php';
 
 // Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user'])) {
     header('Location: /login');
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
 $user = $_SESSION['user'];
+$user_id = $user['id'];
 
 $database = Database::getInstance();
 
