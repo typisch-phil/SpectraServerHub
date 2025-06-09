@@ -45,7 +45,7 @@ export default function DashboardNav() {
             <ThemeToggle />
             {user && (
               <span className="text-foreground/70 text-sm">
-                Willkommen, {user.firstName || user.email}
+                Willkommen, {(user as any).firstName || (user as any).email}
               </span>
             )}
             <Button variant="outline" onClick={handleLogout}>
