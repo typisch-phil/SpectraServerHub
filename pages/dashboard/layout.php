@@ -44,6 +44,9 @@ function renderDashboardNavigation($current_page = 'dashboard') {
                 </div>
                 
                 <div class="flex items-center space-x-4">
+                    <!-- Theme Toggle -->
+                    <div class="theme-toggle" id="themeToggle" onclick="toggleTheme()"></div>
+                    
                     <!-- Balance Display -->
                     <div class="hidden sm:flex items-center bg-green-50 dark:bg-green-900 px-3 py-1 rounded-lg">
                         <i class="fas fa-wallet text-green-600 dark:text-green-400 mr-2"></i>
@@ -102,10 +105,45 @@ function renderDashboardNavigation($current_page = 'dashboard') {
     </nav>
 
     <script>
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            const theme = savedTheme || systemTheme;
+            
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeToggle').classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('themeToggle').classList.remove('dark');
+            }
+        }
+        
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const toggle = document.getElementById('themeToggle');
+            
+            if (isDark) {
+                document.documentElement.classList.remove('dark');
+                toggle.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                toggle.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        
         function toggleMobileMenu() {
             const menu = document.getElementById('mobileMenu');
             menu.classList.toggle('hidden');
         }
+        
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+        });
     </script>
 <?php
 }
@@ -148,8 +186,46 @@ function renderDashboardHeader($title, $description = '') {
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Custom Dark Mode Toggle */
+        .theme-toggle {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #374151;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle.dark {
+            background: #3b82f6;
+        }
+        
+        .theme-toggle::after {
+            content: '🌙';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .theme-toggle.dark::after {
+            content: '☀️';
+            transform: translateX(30px);
+        }
+    </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen transition-colors duration-300">
 <?php
 }
 

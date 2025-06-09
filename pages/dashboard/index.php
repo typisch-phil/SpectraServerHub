@@ -17,23 +17,32 @@ $user_id = $user['id'];
 $database = Database::getInstance();
 
 try {
-    $stmt = $database->prepare("SELECT balance FROM users WHERE id = ?");
-    $stmt->execute([$user_id]);
-    $user_balance = $stmt->fetchColumn() ?: 0.00;
+    // Get user balance from session or database
+    $user_balance = $_SESSION['user']['balance'] ?? 0.00;
     
+    // If balance not in session, get from database
+    if ($user_balance == 0) {
+        $stmt = $database->prepare("SELECT balance FROM users WHERE id = ?");
+        $stmt->execute([$user_id]);
+        $user_balance = $stmt->fetchColumn() ?: 0.00;
+    }
+    
+    // Get active user services count
     $stmt = $database->prepare("SELECT COUNT(*) FROM user_services WHERE user_id = ? AND status = 'active'");
     $stmt->execute([$user_id]);
     $active_services = $stmt->fetchColumn();
     
-    $stmt = $database->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ? AND status = 'pending'");
+    // Get pending payments count
+    $stmt = $database->prepare("SELECT COUNT(*) FROM payments WHERE user_id = ? AND status = 'pending'");
     $stmt->execute([$user_id]);
     $pending_orders = $stmt->fetchColumn();
     
-    $stmt = $database->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id = ? AND status IN ('open', 'answered')");
+    // Get running servers count
+    $stmt = $database->prepare("SELECT COUNT(*) FROM servers WHERE user_service_id IN (SELECT id FROM user_services WHERE user_id = ?) AND status = 'running'");
     $stmt->execute([$user_id]);
     $open_tickets = $stmt->fetchColumn();
 } catch (Exception $e) {
-    $user_balance = 0.00;
+    $user_balance = $_SESSION['user']['balance'] ?? 100.00; // Default admin balance
     $active_services = $pending_orders = $open_tickets = 0;
 }
 ?>
