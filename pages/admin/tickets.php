@@ -375,6 +375,23 @@ renderHeader($title, $description);
                         </label>
                     </div>
                     
+                    <div class="mb-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="isInternalNote" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Interne Notiz (nicht für Kunde sichtbar)</span>
+                        </label>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status nach Antwort</label>
+                        <select id="statusAfterReply" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            <option value="">Status nicht ändern</option>
+                            <option value="in_progress">In Bearbeitung</option>
+                            <option value="waiting_customer">Wartet auf Kunde</option>
+                            <option value="closed">Geschlossen</option>
+                        </select>
+                    </div>
+                    
                     <div class="flex justify-end space-x-3">
                         <button type="button" onclick="closeReplyModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500">
                             Abbrechen
@@ -423,6 +440,106 @@ renderHeader($title, $description);
             </div>
         </div>
     </div>
+
+    <!-- Quick Actions Panel -->
+    <div id="quickActionsPanel" class="fixed right-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-4 hidden z-40">
+        <div class="flex items-center justify-between mb-3">
+            <h4 class="text-sm font-medium text-gray-900 dark:text-white">Schnellaktionen</h4>
+            <button onclick="toggleQuickActions()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="space-y-2 min-w-[200px]">
+            <button onclick="createQuickReply('Vielen Dank für Ihre Nachricht. Wir bearbeiten Ihr Anliegen und melden uns in Kürze bei Ihnen.')" 
+                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                <i class="fas fa-reply mr-2"></i>Standard-Antwort
+            </button>
+            <button onclick="createQuickReply('Ihr Problem wurde erfolgreich gelöst. Sollten weitere Fragen aufkommen, kontaktieren Sie uns gerne.')" 
+                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                <i class="fas fa-check-circle mr-2"></i>Problem gelöst
+            </button>
+            <button onclick="createQuickReply('Wir benötigen weitere Informationen von Ihnen. Bitte teilen Sie uns folgende Details mit:')" 
+                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                <i class="fas fa-question-circle mr-2"></i>Info anfordern
+            </button>
+            <hr class="my-2">
+            <button onclick="bulkMarkAsResolved()" 
+                    class="w-full text-left px-3 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900 rounded">
+                <i class="fas fa-check-double mr-2"></i>Ausgewählte als gelöst
+            </button>
+            <button onclick="bulkAssignToMe()" 
+                    class="w-full text-left px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900 rounded">
+                <i class="fas fa-user mr-2"></i>Mir zuweisen
+            </button>
+        </div>
+    </div>
+
+    <!-- Enhanced Status Modal -->
+    <div id="statusModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-lg mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Ticket-Status verwalten</h3>
+                    <button onclick="closeStatusModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form id="statusForm">
+                    <input type="hidden" id="statusTicketId">
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Neuer Status</label>
+                        <select id="newStatus" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" required>
+                            <option value="">Status wählen</option>
+                            <option value="open">🔴 Offen</option>
+                            <option value="in_progress">🔵 In Bearbeitung</option>
+                            <option value="waiting_customer">🟡 Wartet auf Kunde</option>
+                            <option value="closed">🟢 Geschlossen</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priorität ändern</label>
+                        <select id="newPriority" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            <option value="">Priorität nicht ändern</option>
+                            <option value="low">Niedrig</option>
+                            <option value="medium">Mittel</option>
+                            <option value="high">Hoch</option>
+                            <option value="critical">Kritisch</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Interne Notiz (optional)</label>
+                        <textarea id="statusNote" rows="3" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="Grund für Statusänderung..."></textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="notifyCustomer" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" checked>
+                            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Kunde über Statusänderung benachrichtigen</span>
+                        </label>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeStatusModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500">
+                            Abbrechen
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg">
+                            <i class="fas fa-save mr-1"></i>Änderungen speichern
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Trigger Button -->
+    <button id="quickActionsTrigger" onclick="toggleQuickActions()" 
+            class="fixed right-4 top-1/2 transform -translate-y-1/2 bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-l-lg shadow-lg z-30">
+        <i class="fas fa-bolt"></i>
+    </button>
 
     <script>
         // View ticket details
@@ -854,7 +971,389 @@ renderHeader($title, $description);
             updateSelectedCount();
         }
 
-        // Initialize theme on page load
+        // Enhanced Reply Function
+        function replyToTicket(ticketId) {
+            document.getElementById('replyTicketId').value = ticketId;
+            document.getElementById('replyMessage').value = '';
+            document.getElementById('markResolved').checked = false;
+            document.getElementById('isInternalNote').checked = false;
+            document.getElementById('statusAfterReply').value = '';
+            
+            document.getElementById('replyModal').classList.remove('hidden');
+            document.getElementById('replyModal').classList.add('flex');
+            
+            setTimeout(() => {
+                document.getElementById('replyMessage').focus();
+            }, 100);
+        }
+
+        function closeReplyModal() {
+            document.getElementById('replyModal').classList.add('hidden');
+            document.getElementById('replyModal').classList.remove('flex');
+        }
+
+        // Handle Reply Form Submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const replyForm = document.getElementById('replyForm');
+            if (replyForm) {
+                replyForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const ticketId = document.getElementById('replyTicketId').value;
+                    const message = document.getElementById('replyMessage').value.trim();
+                    const markResolved = document.getElementById('markResolved').checked;
+                    const isInternal = document.getElementById('isInternalNote').checked;
+                    const statusAfterReply = document.getElementById('statusAfterReply').value;
+                    
+                    if (!message) {
+                        alert('Bitte geben Sie eine Antwort ein');
+                        return;
+                    }
+                    
+                    try {
+                        // Send reply
+                        const replyResponse = await fetch('/api/ticket-replies.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                ticket_id: ticketId,
+                                message: message,
+                                is_internal: isInternal
+                            })
+                        });
+                        
+                        const replyResult = await replyResponse.json();
+                        
+                        if (!replyResult.success) {
+                            throw new Error(replyResult.error || 'Fehler beim Senden der Antwort');
+                        }
+                        
+                        // Update status if needed
+                        let statusToSet = statusAfterReply;
+                        if (markResolved) {
+                            statusToSet = 'closed';
+                        }
+                        
+                        if (statusToSet) {
+                            const statusResponse = await fetch(`/api/tickets.php?id=${ticketId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: statusToSet })
+                            });
+                            
+                            const statusResult = await statusResponse.json();
+                            if (!statusResult.success) {
+                                console.warn('Status update failed:', statusResult.error);
+                            }
+                        }
+                        
+                        closeReplyModal();
+                        showNotification('Antwort erfolgreich gesendet', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                        
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showNotification('Fehler: ' + error.message, 'error');
+                    }
+                });
+            }
+        });
+
+        // Quick Actions
+        function toggleQuickActions() {
+            const panel = document.getElementById('quickActionsPanel');
+            panel.classList.toggle('hidden');
+            
+            const icon = panel.querySelector('i');
+            if (panel.classList.contains('hidden')) {
+                icon.className = 'fas fa-chevron-left';
+            } else {
+                icon.className = 'fas fa-chevron-right';
+            }
+        }
+
+        function createQuickReply(message) {
+            const selectedTickets = Array.from(document.querySelectorAll('.ticket-checkbox:checked'));
+            
+            if (selectedTickets.length === 0) {
+                alert('Bitte wählen Sie mindestens ein Ticket aus');
+                return;
+            }
+            
+            if (selectedTickets.length === 1) {
+                const ticketId = selectedTickets[0].value;
+                replyToTicket(ticketId);
+                document.getElementById('replyMessage').value = message;
+                return;
+            }
+            
+            // Multiple tickets - batch reply
+            if (confirm(`Schnellantwort an ${selectedTickets.length} Tickets senden?`)) {
+                Promise.all(selectedTickets.map(checkbox => {
+                    const ticketId = checkbox.value;
+                    return fetch('/api/ticket-replies.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ticket_id: ticketId,
+                            message: message,
+                            is_internal: false
+                        })
+                    }).then(response => response.json());
+                }))
+                .then(results => {
+                    const successful = results.filter(r => r.success).length;
+                    showNotification(`${successful} von ${selectedTickets.length} Antworten gesendet`, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Fehler beim Senden der Antworten', 'error');
+                });
+            }
+        }
+
+        function bulkMarkAsResolved() {
+            const selectedTickets = Array.from(document.querySelectorAll('.ticket-checkbox:checked')).map(cb => cb.value);
+            
+            if (selectedTickets.length === 0) {
+                alert('Bitte wählen Sie mindestens ein Ticket aus');
+                return;
+            }
+            
+            if (confirm(`${selectedTickets.length} Ticket(s) als gelöst markieren?`)) {
+                Promise.all(selectedTickets.map(ticketId => 
+                    fetch(`/api/tickets.php?id=${ticketId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'closed' })
+                    }).then(response => response.json())
+                ))
+                .then(results => {
+                    const successful = results.filter(r => r.success).length;
+                    showNotification(`${successful} von ${selectedTickets.length} Tickets als gelöst markiert`, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Fehler beim Aktualisieren der Tickets', 'error');
+                });
+            }
+        }
+
+        function bulkAssignToMe() {
+            const selectedTickets = Array.from(document.querySelectorAll('.ticket-checkbox:checked')).map(cb => cb.value);
+            
+            if (selectedTickets.length === 0) {
+                alert('Bitte wählen Sie mindestens ein Ticket aus');
+                return;
+            }
+            
+            if (confirm(`${selectedTickets.length} Ticket(s) mir zuweisen?`)) {
+                Promise.all(selectedTickets.map(ticketId => 
+                    fetch(`/api/tickets.php?id=${ticketId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ assigned_to: 2 }) // Admin User ID
+                    }).then(response => response.json())
+                ))
+                .then(results => {
+                    const successful = results.filter(r => r.success).length;
+                    showNotification(`${successful} von ${selectedTickets.length} Tickets zugewiesen`, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Fehler beim Zuweisen der Tickets', 'error');
+                });
+            }
+        }
+
+        // Enhanced Status Modal Functions
+        function updateTicketStatus(ticketId, currentStatus) {
+            document.getElementById('statusTicketId').value = ticketId;
+            document.getElementById('newStatus').value = '';
+            document.getElementById('newPriority').value = '';
+            document.getElementById('statusNote').value = '';
+            document.getElementById('notifyCustomer').checked = true;
+            
+            document.getElementById('statusModal').classList.remove('hidden');
+            document.getElementById('statusModal').classList.add('flex');
+        }
+
+        function closeStatusModal() {
+            document.getElementById('statusModal').classList.add('hidden');
+            document.getElementById('statusModal').classList.remove('flex');
+        }
+
+        // Handle Status Form Submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusForm = document.getElementById('statusForm');
+            if (statusForm) {
+                statusForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const ticketId = document.getElementById('statusTicketId').value;
+                    const newStatus = document.getElementById('newStatus').value;
+                    const newPriority = document.getElementById('newPriority').value;
+                    const statusNote = document.getElementById('statusNote').value;
+                    const notifyCustomer = document.getElementById('notifyCustomer').checked;
+                    
+                    if (!newStatus) {
+                        alert('Bitte wählen Sie einen Status aus');
+                        return;
+                    }
+                    
+                    try {
+                        const updateData = { status: newStatus };
+                        if (newPriority) {
+                            updateData.priority = newPriority;
+                        }
+                        
+                        const response = await fetch(`/api/tickets.php?id=${ticketId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updateData)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (!result.success) {
+                            throw new Error(result.error || 'Fehler beim Aktualisieren des Status');
+                        }
+                        
+                        // Add internal note if provided
+                        if (statusNote.trim()) {
+                            await fetch('/api/ticket-replies.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    ticket_id: ticketId,
+                                    message: `Status geändert zu: ${newStatus}\nNotiz: ${statusNote}`,
+                                    is_internal: true
+                                })
+                            });
+                        }
+                        
+                        closeStatusModal();
+                        showNotification('Status erfolgreich aktualisiert', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                        
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showNotification('Fehler: ' + error.message, 'error');
+                    }
+                });
+            }
+        });
+
+        // Enhanced Ticket Management
+        function assignTicket(ticketId) {
+            document.getElementById('assignTicketId').value = ticketId;
+            document.getElementById('assignToUser').value = '';
+            document.getElementById('assignmentNote').value = '';
+            
+            document.getElementById('assignmentModal').classList.remove('hidden');
+            document.getElementById('assignmentModal').classList.add('flex');
+        }
+
+        function closeAssignmentModal() {
+            document.getElementById('assignmentModal').classList.add('hidden');
+            document.getElementById('assignmentModal').classList.remove('flex');
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+R for refresh
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                location.reload();
+            }
+            
+            // Ctrl+A for select all
+            if (e.ctrlKey && e.key === 'a' && !e.target.matches('input, textarea')) {
+                e.preventDefault();
+                document.getElementById('selectAllTable').checked = true;
+                toggleSelectAll();
+            }
+            
+            // Delete key for bulk delete
+            if (e.key === 'Delete' && document.querySelectorAll('.ticket-checkbox:checked').length > 0) {
+                document.getElementById('bulkAction').value = 'delete';
+                executeBulkAction();
+            }
+            
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                closeTicketModal();
+                closeReplyModal();
+                closeAssignmentModal();
+                closeStatusModal();
+                
+                // Hide quick actions panel
+                document.getElementById('quickActionsPanel').classList.add('hidden');
+            }
+            
+            // Q for quick actions
+            if (e.key === 'q' && !e.target.matches('input, textarea')) {
+                toggleQuickActions();
+            }
+        });
+
+        // Auto-refresh every 30 seconds
+        let autoRefreshInterval;
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(() => {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('de-DE');
+                console.log(`Auto-refresh at ${timeString}`);
+                location.reload();
+            }, 30000);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        }
+
+        // Search enhancement
+        function enhancedSearch() {
+            const searchTerm = document.getElementById('searchFilter').value.toLowerCase();
+            const rows = document.querySelectorAll('.ticket-row');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const ticketId = row.dataset.ticketId;
+                
+                // Search in ticket ID, subject, customer name, email
+                const visible = text.includes(searchTerm) || ticketId.includes(searchTerm);
+                row.style.display = visible ? '' : 'none';
+                
+                // Highlight search terms
+                if (searchTerm && visible) {
+                    const cells = row.querySelectorAll('td');
+                    cells.forEach(cell => {
+                        if (!cell.querySelector('input, button')) {
+                            highlightSearchTerm(cell, searchTerm);
+                        }
+                    });
+                }
+            });
+        }
+
+        function highlightSearchTerm(element, term) {
+            if (!term) return;
+            
+            const regex = new RegExp(`(${term})`, 'gi');
+            const originalText = element.textContent;
+            
+            if (originalText.toLowerCase().includes(term)) {
+                element.innerHTML = originalText.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800">$1</mark>');
+            }
+        }
+
+        // Initialize everything
         document.addEventListener('DOMContentLoaded', function() {
             const savedTheme = localStorage.getItem('theme') || 'light';
             document.documentElement.classList.add(savedTheme);
@@ -869,6 +1368,26 @@ renderHeader($title, $description);
             // Initialize filters
             initializeFilters();
             updateSelectedCount();
+            
+            // Start auto-refresh
+            startAutoRefresh();
+            
+            // Add enhanced search
+            const searchInput = document.getElementById('searchFilter');
+            if (searchInput) {
+                searchInput.addEventListener('input', enhancedSearch);
+            }
+            
+            // Add quick actions button
+            const quickActionsBtn = document.createElement('button');
+            quickActionsBtn.innerHTML = '<i class="fas fa-lightning-bolt mr-1"></i>Schnellaktionen';
+            quickActionsBtn.className = 'px-4 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded-lg';
+            quickActionsBtn.onclick = toggleQuickActions;
+            
+            const actionsContainer = document.querySelector('.flex.space-x-2');
+            if (actionsContainer) {
+                actionsContainer.appendChild(quickActionsBtn);
+            }
         });
     </script>
 </div>
