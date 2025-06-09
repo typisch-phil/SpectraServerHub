@@ -1,5 +1,5 @@
 <?php
-require_once '../includes/layout.php';
+require_once __DIR__ . '/../includes/layout.php';
 
 // Redirect if already logged in
 if (isset($_SESSION['user_id'])) {
