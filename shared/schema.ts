@@ -24,13 +24,15 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table (required for Replit Auth)
+// User storage table
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  id: serial("id").primaryKey(),
+  email: varchar("email").unique().notNull(),
+  password: varchar("password").notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  emailVerified: boolean("email_verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -50,7 +52,7 @@ export const services = pgTable("services", {
 // User services table
 export const userServices = pgTable("user_services", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   serviceId: integer("service_id").notNull().references(() => services.id),
   domain: varchar("domain"),
   status: varchar("status").default("active"), // active, suspended, cancelled
@@ -62,7 +64,7 @@ export const userServices = pgTable("user_services", {
 // Orders table
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   serviceId: integer("service_id").notNull().references(() => services.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   status: varchar("status").default("pending"), // pending, paid, failed, cancelled
@@ -75,7 +77,7 @@ export const orders = pgTable("orders", {
 // Support tickets table
 export const supportTickets = pgTable("support_tickets", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   subject: varchar("subject").notNull(),
   message: text("message").notNull(),
   status: varchar("status").default("open"), // open, in_progress, closed
@@ -86,6 +88,7 @@ export const supportTickets = pgTable("support_tickets", {
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
 export type Service = typeof services.$inferSelect;
 export type InsertService = typeof services.$inferInsert;
 export type UserService = typeof userServices.$inferSelect;

@@ -6,6 +6,7 @@ import {
   supportTickets,
   type User,
   type UpsertUser,
+  type InsertUser,
   type Service,
   type InsertService,
   type UserService,
@@ -16,11 +17,13 @@ import {
   type InsertSupportTicket,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (required for Replit Auth)
-  getUser(id: string): Promise<User | undefined>;
+  // User operations
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Service operations
@@ -29,26 +32,36 @@ export interface IStorage {
   createService(service: InsertService): Promise<Service>;
   
   // User service operations
-  getUserServices(userId: string): Promise<UserService[]>;
+  getUserServices(userId: number): Promise<UserService[]>;
   createUserService(userService: InsertUserService): Promise<UserService>;
   updateUserServiceStatus(id: number, status: string): Promise<void>;
   
   // Order operations
   createOrder(order: InsertOrder): Promise<Order>;
   getOrder(id: number): Promise<Order | undefined>;
-  getUserOrders(userId: string): Promise<Order[]>;
+  getUserOrders(userId: number): Promise<Order[]>;
   updateOrderStatus(id: number, status: string, paymentId?: string): Promise<void>;
   
   // Support ticket operations
   createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
-  getUserSupportTickets(userId: string): Promise<SupportTicket[]>;
+  getUserSupportTickets(userId: number): Promise<SupportTicket[]>;
   updateSupportTicketStatus(id: number, status: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
   // User operations
-  async getUser(id: string): Promise<User | undefined> {
+  async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(userData).returning();
     return user;
   }
 
@@ -57,7 +70,7 @@ export class DatabaseStorage implements IStorage {
       .insert(users)
       .values(userData)
       .onConflictDoUpdate({
-        target: users.id,
+        target: users.email,
         set: {
           ...userData,
           updatedAt: new Date(),
@@ -83,7 +96,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // User service operations
-  async getUserServices(userId: string): Promise<UserService[]> {
+  async getUserServices(userId: number): Promise<UserService[]> {
     return await db
       .select()
       .from(userServices)
@@ -117,7 +130,7 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
-  async getUserOrders(userId: string): Promise<Order[]> {
+  async getUserOrders(userId: number): Promise<Order[]> {
     return await db
       .select()
       .from(orders)
@@ -139,7 +152,7 @@ export class DatabaseStorage implements IStorage {
     return ticket;
   }
 
-  async getUserSupportTickets(userId: string): Promise<SupportTicket[]> {
+  async getUserSupportTickets(userId: number): Promise<SupportTicket[]> {
     return await db
       .select()
       .from(supportTickets)
