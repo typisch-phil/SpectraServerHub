@@ -6,13 +6,9 @@ define('APP_NAME', 'SpectraHost');
 define('APP_VERSION', '1.0.0');
 define('APP_ENV', 'development');
 
-// Database Configuration (MySQL)
-define('DB_TYPE', 'mysql');
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'spectrahost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_PORT', '3306');
+// Database Configuration (SQLite for development)
+define('DB_TYPE', 'sqlite');
+define('DB_PATH', __DIR__ . '/../database/spectrahost.db');
 
 // Session Configuration
 define('SESSION_TIMEOUT', 3600); // 1 hour

@@ -7,16 +7,22 @@ class Database {
     
     private function __construct() {
         try {
-            // Use MySQL database
-            $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-            $this->connection = new PDO($dsn, DB_USER, DB_PASS, [
+            // Ensure database directory exists
+            $dbDir = dirname(DB_PATH);
+            if (!is_dir($dbDir)) {
+                mkdir($dbDir, 0755, true);
+            }
+            
+            // Use SQLite database (will be converted to MySQL in production)
+            $dsn = "sqlite:" . DB_PATH;
+            $this->connection = new PDO($dsn, null, null, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false
             ]);
             
-            // Set SQL mode for MySQL
-            $this->connection->exec("SET sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO'");
+            // Enable foreign key constraints for SQLite
+            $this->connection->exec("PRAGMA foreign_keys = ON");
             
             // Initialize database if it doesn't exist
             $this->initializeDatabase();
@@ -47,7 +53,7 @@ class Database {
     
     private function initializeDatabase() {
         // Check if tables exist
-        $result = $this->connection->query("SHOW TABLES LIKE 'users'");
+        $result = $this->connection->query("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
         if ($result->rowCount() == 0) {
             $this->createTables();
             $this->insertDefaultData();
@@ -60,124 +66,124 @@ class Database {
         // Create tables one by one to avoid conflicts
         $tables = [
             "CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email VARCHAR(255) NOT NULL UNIQUE,
                 password VARCHAR(255) NOT NULL,
                 first_name VARCHAR(100),
                 last_name VARCHAR(100),
                 role VARCHAR(20) DEFAULT 'user',
                 balance DECIMAL(10,2) DEFAULT 0.00,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
             
             "CREATE TABLE IF NOT EXISTS services (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name VARCHAR(255) NOT NULL,
                 type VARCHAR(50) NOT NULL,
                 description TEXT,
                 price DECIMAL(10,2) NOT NULL,
-                features JSON,
+                features TEXT,
                 active BOOLEAN DEFAULT 1,
-                cpu_cores INT DEFAULT 0,
-                memory_gb INT DEFAULT 0,
-                storage_gb INT DEFAULT 0,
-                bandwidth_gb INT DEFAULT 0,
+                cpu_cores INTEGER DEFAULT 0,
+                memory_gb INTEGER DEFAULT 0,
+                storage_gb INTEGER DEFAULT 0,
+                bandwidth_gb INTEGER DEFAULT 0,
                 status VARCHAR(50) DEFAULT 'available',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
             
             "CREATE TABLE IF NOT EXISTS user_services (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                service_id INT NOT NULL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                service_id INTEGER NOT NULL,
                 domain VARCHAR(255),
                 status VARCHAR(50) DEFAULT 'pending',
-                next_payment TIMESTAMP NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                next_payment DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            )",
             
             "CREATE TABLE IF NOT EXISTS payments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                service_id INT,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                service_id INTEGER,
                 amount DECIMAL(10,2) NOT NULL,
                 currency VARCHAR(3) DEFAULT 'EUR',
                 payment_method VARCHAR(50),
                 payment_id VARCHAR(255),
                 status VARCHAR(50) DEFAULT 'pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE SET NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            )",
             
             "CREATE TABLE IF NOT EXISTS sessions (
                 session_id VARCHAR(128) PRIMARY KEY,
-                user_id INT,
+                user_id INTEGER,
                 data TEXT,
-                expires_at TIMESTAMP NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            )",
             
             "CREATE TABLE IF NOT EXISTS servers (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_service_id INT NOT NULL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_service_id INTEGER NOT NULL,
                 server_name VARCHAR(255),
                 ip_address VARCHAR(45),
-                proxmox_vmid INT,
+                proxmox_vmid INTEGER,
                 root_password VARCHAR(255),
                 status VARCHAR(50) DEFAULT 'creating',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_service_id) REFERENCES user_services(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            )",
             
             "CREATE TABLE IF NOT EXISTS tickets (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
                 subject TEXT NOT NULL,
                 message TEXT NOT NULL,
                 status VARCHAR(50) DEFAULT 'open',
                 priority VARCHAR(20) DEFAULT 'medium',
                 category VARCHAR(50) DEFAULT 'general',
-                assigned_to INT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                assigned_to INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            )",
             
             "CREATE TABLE IF NOT EXISTS ticket_replies (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                ticket_id INT NOT NULL,
-                user_id INT NOT NULL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
                 message TEXT NOT NULL,
                 is_internal BOOLEAN DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            )",
             
             "CREATE TABLE IF NOT EXISTS ticket_attachments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                ticket_id INT NULL,
-                reply_id INT NULL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id INTEGER,
+                reply_id INTEGER,
                 filename VARCHAR(255) NOT NULL,
                 original_filename VARCHAR(255) NOT NULL,
                 file_path VARCHAR(500) NOT NULL,
-                file_size INT NOT NULL,
+                file_size INTEGER NOT NULL,
                 mime_type VARCHAR(100) NOT NULL,
-                uploaded_by INT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                uploaded_by INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
                 FOREIGN KEY (reply_id) REFERENCES ticket_replies(id) ON DELETE CASCADE,
                 FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+            )"
         ];
         
         foreach ($tables as $sql) {
