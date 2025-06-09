@@ -225,6 +225,9 @@ function renderFooter() {
                     }
                 });
             }
+            
+            // Update navigation based on login status
+            updateNavigation();
         });
         
         // Check login status and update navigation

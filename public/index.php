@@ -89,6 +89,9 @@ switch ($path) {
     case '/api/user/services':
         include '../api/user/services.php';
         break;
+    case '/api/user/status':
+        include '../api/user/status.php';
+        break;
     case '/api/user/add-balance':
         include '../api/user/add-balance.php';
         break;
