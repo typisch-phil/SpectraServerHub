@@ -6,9 +6,13 @@ define('APP_NAME', 'SpectraHost');
 define('APP_VERSION', '1.0.0');
 define('APP_ENV', 'development');
 
-// Database Configuration (using SQLite for development)
-define('DB_TYPE', 'sqlite');
-define('DB_PATH', __DIR__ . '/../database/spectrahost.sqlite');
+// Database Configuration (PostgreSQL)
+define('DB_TYPE', 'pgsql');
+define('DB_HOST', getenv('PGHOST') ?: 'localhost');
+define('DB_NAME', getenv('PGDATABASE') ?: 'spectrahost');
+define('DB_USER', getenv('PGUSER') ?: 'postgres');
+define('DB_PASS', getenv('PGPASSWORD') ?: '');
+define('DB_PORT', getenv('PGPORT') ?: '5432');
 
 // Session Configuration
 define('SESSION_TIMEOUT', 3600); // 1 hour
