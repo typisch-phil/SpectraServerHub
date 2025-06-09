@@ -78,6 +78,15 @@ class Auth {
         $stmt->execute([$_SESSION['user_id']]);
         return $stmt->fetch();
     }
+    
+    public function requireAdmin() {
+        $this->requireLogin();
+        $user = $this->getCurrentUser();
+        if (!$user || !$user['is_admin']) {
+            header('HTTP/1.1 403 Forbidden');
+            die('Zugriff verweigert - Admin-Berechtigung erforderlich');
+        }
+    }
 }
 
 // Generate CSRF token
@@ -94,4 +103,25 @@ function verifyCSRFToken($token) {
 }
 
 $auth = new Auth();
+
+// Global helper functions
+function requireLogin() {
+    global $auth;
+    $auth->requireLogin();
+}
+
+function requireAdmin() {
+    global $auth;
+    $auth->requireAdmin();
+}
+
+function getCurrentUser() {
+    global $auth;
+    return $auth->getCurrentUser();
+}
+
+function isLoggedIn() {
+    global $auth;
+    return $auth->isLoggedIn();
+}
 ?>

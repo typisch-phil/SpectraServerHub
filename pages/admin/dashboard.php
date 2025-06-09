@@ -1,5 +1,9 @@
 <?php
-require_once '../includes/auth.php';
+require_once '../../includes/config.php';
+require_once '../../includes/database.php';
+require_once '../../includes/auth.php';
+require_once '../../includes/layout.php';
+
 requireAdmin();
 
 $title = 'Admin Dashboard - SpectraHost';
@@ -7,20 +11,21 @@ $description = 'Administrationsbereich für SpectraHost';
 renderHeader($title, $description);
 
 // Dashboard Statistics
+$database = Database::getInstance();
 try {
-    $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE is_admin = 0");
+    $stmt = $database->prepare("SELECT COUNT(*) FROM users WHERE is_admin = 0");
     $stmt->execute();
     $total_users = $stmt->fetchColumn();
     
-    $stmt = $db->prepare("SELECT COUNT(*) FROM user_services WHERE status = 'active'");
+    $stmt = $database->prepare("SELECT COUNT(*) FROM user_services WHERE status = 'active'");
     $stmt->execute();
     $active_services = $stmt->fetchColumn();
     
-    $stmt = $db->prepare("SELECT COUNT(*) FROM orders WHERE status = 'pending'");
+    $stmt = $database->prepare("SELECT COUNT(*) FROM orders WHERE status = 'pending'");
     $stmt->execute();
     $pending_orders = $stmt->fetchColumn();
     
-    $stmt = $db->prepare("SELECT COUNT(*) FROM support_tickets WHERE status = 'open'");
+    $stmt = $database->prepare("SELECT COUNT(*) FROM support_tickets WHERE status = 'open'");
     $stmt->execute();
     $open_tickets = $stmt->fetchColumn();
 } catch (Exception $e) {
