@@ -76,9 +76,9 @@ renderHeader($title, $description);
                     <div class="text-sm text-gray-700 dark:text-gray-300">
                         <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
                     </div>
-                    <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                    <a href="/api/logout.php" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm inline-block text-center no-underline">
                         Abmelden
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
@@ -803,10 +803,7 @@ function refreshTickets() {
     location.reload();
 }
 
-function logout() {
-    // Direct redirect approach for immediate logout
-    window.location.href = '/api/logout.php';
-}
+// Logout handled via direct link now
 
 // Theme Functions
 function toggleTheme() {
