@@ -233,7 +233,7 @@ function renderFooter() {
         // Check login status and update navigation
         async function updateNavigation() {
             try {
-                const response = await fetch('/api/user/status');
+                const response = await fetch('/api/user/status.php');
                 const data = await response.json();
                 
                 const desktopNav = document.querySelector('.hidden.md\\:flex .space-x-8');
@@ -317,7 +317,7 @@ function renderFooter() {
         // Logout function
         async function logout() {
             try {
-                const response = await fetch('/api/logout', {
+                const response = await fetch('/api/logout.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });

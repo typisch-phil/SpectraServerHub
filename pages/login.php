@@ -98,7 +98,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         const formData = new FormData(this);
         const data = Object.fromEntries(formData);
         
-        const response = await fetch('/api/login', {
+        const response = await fetch('/api/login.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

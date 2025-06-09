@@ -303,7 +303,7 @@ renderHeader($title, $description);
         }
 
         function logout() {
-            window.location.href = '/api/logout';
+            window.location.href = '/api/logout.php';
         }
 
         // Theme toggle functionality
