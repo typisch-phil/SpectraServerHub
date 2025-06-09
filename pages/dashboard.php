@@ -179,23 +179,33 @@ renderHeader('Dashboard - SpectraHost');
 async function apiRequest(url, method = 'GET', data = null) {
     const options = {
         method: method,
-        credentials: 'same-origin',
+        credentials: 'include',
         headers: {
+            'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
     };
     
-    if (data) {
+    if (data && method !== 'GET') {
         options.body = JSON.stringify(data);
     }
     
+    console.log(`Making ${method} request to ${url}`, options);
+    
     const response = await fetch(url, options);
     
+    console.log(`Response from ${url}:`, response.status, response.statusText);
+    
     if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API Error Response: ${errorText}`);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
-    return await response.json();
+    const result = await response.json();
+    console.log(`Response data from ${url}:`, result);
+    
+    return result;
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -206,19 +216,26 @@ async function loadDashboardData() {
     try {
         // Load user services
         console.log('Loading services...');
-        const servicesResponse = await apiRequest('/api/user/services.php');
+        const servicesResponse = await apiRequest('/api/user/services.php', 'GET');
         console.log('Services response:', servicesResponse);
-        if (servicesResponse.success) {
+        if (servicesResponse && servicesResponse.success) {
             renderUserServices(servicesResponse.services);
             updateStats(servicesResponse.services);
+        } else {
+            console.log('No services found or response failed');
+            renderUserServices([]);
+            updateStats([]);
         }
 
         // Load recent orders  
         console.log('Loading orders...');
-        const ordersResponse = await apiRequest('/api/user/orders.php');
+        const ordersResponse = await apiRequest('/api/user/orders.php', 'GET');
         console.log('Orders response:', ordersResponse);
-        if (ordersResponse.success) {
+        if (ordersResponse && ordersResponse.success) {
             renderRecentOrders(ordersResponse.orders);
+        } else {
+            console.log('No orders found or response failed');
+            renderRecentOrders([]);
         }
 
         // Load support tickets count
@@ -226,7 +243,12 @@ async function loadDashboardData() {
 
     } catch (error) {
         console.error('Error loading dashboard data:', error);
-        showNotification('Fehler beim Laden der Dashboard-Daten', 'error');
+        // Fallback wenn showNotification nicht existiert
+        if (typeof showNotification === 'function') {
+            showNotification('Fehler beim Laden der Dashboard-Daten', 'error');
+        } else {
+            alert('Fehler beim Laden der Dashboard-Daten: ' + error.message);
+        }
     }
 }
 
