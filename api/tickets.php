@@ -111,8 +111,8 @@ try {
             }
             
             $stmt = $db->prepare("
-                INSERT INTO tickets (user_id, category, priority, subject, message, status, created_at, updated_at) 
-                VALUES (?, ?, ?, ?, ?, 'open', NOW(), NOW())
+                INSERT INTO tickets (user_id, category, priority, subject, message, status) 
+                VALUES (?, ?, ?, ?, ?, 'open')
             ");
             
             if ($stmt->execute([$user_id, $category, $priority, $subject, $message])) {

@@ -115,8 +115,8 @@ try {
             
             // Insert reply
             $stmt = $db->prepare("
-                INSERT INTO ticket_replies (ticket_id, user_id, message, created_at) 
-                VALUES (?, ?, ?, datetime('now'))
+                INSERT INTO ticket_replies (ticket_id, user_id, message) 
+                VALUES (?, ?, ?)
             ");
             
             if ($stmt->execute([$ticket_id, $user_id, $message])) {
