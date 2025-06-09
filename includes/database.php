@@ -7,23 +7,24 @@ class Database {
     
     private function __construct() {
         try {
-            // Use provided PostgreSQL database
-            $host = $_ENV['PGHOST'] ?? 'localhost';
-            $dbname = $_ENV['PGDATABASE'] ?? 'spectrahost';
-            $username = $_ENV['PGUSER'] ?? 'postgres';
-            $password = $_ENV['PGPASSWORD'] ?? '';
-            $port = $_ENV['PGPORT'] ?? '5432';
+            // Use provided MySQL database
+            $host = $_ENV['MYSQL_HOST'] ?? 'localhost';
+            $dbname = $_ENV['MYSQL_DATABASE'] ?? 'spectrahost';
+            $username = $_ENV['MYSQL_USER'] ?? 'root';
+            $password = $_ENV['MYSQL_PASSWORD'] ?? '';
+            $port = $_ENV['MYSQL_PORT'] ?? '3306';
             
-            $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
+            $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
             $this->connection = new PDO($dsn, $username, $password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
             ]);
             
             // Database connection successful
         } catch (PDOException $e) {
-            error_log("PostgreSQL connection failed: " . $e->getMessage());
-            die('PostgreSQL-Datenbankverbindung fehlgeschlagen');
+            error_log("MySQL connection failed: " . $e->getMessage());
+            die('MySQL-Datenbankverbindung fehlgeschlagen');
         }
     }
     
