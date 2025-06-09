@@ -11,14 +11,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
+    // Support both JSON and form data
     $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input) {
+        $input = $_POST;
+    }
     
     if (!$input || !isset($input['email']) || !isset($input['password'])) {
         throw new Exception('Email und Passwort sind erforderlich');
-    }
-    
-    if (!isset($input['csrf_token']) || !verifyCSRFToken($input['csrf_token'])) {
-        throw new Exception('Ungültiger CSRF-Token');
     }
     
     $email = filter_var($input['email'], FILTER_VALIDATE_EMAIL);
@@ -26,7 +26,27 @@ try {
         throw new Exception('Ungültige E-Mail-Adresse');
     }
     
-    $user = $auth->login($email, $input['password']);
+    $database = Database::getInstance();
+    $stmt = $database->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$user || !password_verify($input['password'], $user['password'])) {
+        throw new Exception('Ungültige Anmeldedaten');
+    }
+    
+    // Start session and store user data
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $_SESSION['user'] = [
+        'id' => $user['id'],
+        'email' => $user['email'],
+        'first_name' => $user['first_name'],
+        'last_name' => $user['last_name'],
+        'role' => $user['role'] ?? 'user',
+        'balance' => $user['balance']
+    ];
     
     echo json_encode([
         'success' => true,
