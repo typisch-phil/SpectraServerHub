@@ -70,112 +70,99 @@ class Database {
             )",
             
             "CREATE TABLE IF NOT EXISTS services (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 type VARCHAR(50) NOT NULL,
                 description TEXT,
                 price DECIMAL(10,2) NOT NULL,
-                features JSON,
-                active BOOLEAN DEFAULT 1,
-                cpu_cores INT DEFAULT 0,
-                memory_gb INT DEFAULT 0,
-                storage_gb INT DEFAULT 0,
-                bandwidth_gb INT DEFAULT 0,
+                features JSONB,
+                active BOOLEAN DEFAULT true,
+                cpu_cores INTEGER DEFAULT 0,
+                memory_gb INTEGER DEFAULT 0,
+                storage_gb INTEGER DEFAULT 0,
+                bandwidth_gb INTEGER DEFAULT 0,
                 status VARCHAR(50) DEFAULT 'available',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            )",
             
             "CREATE TABLE IF NOT EXISTS user_services (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                service_id INT NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                service_id INTEGER NOT NULL REFERENCES services(id) ON DELETE CASCADE,
                 domain VARCHAR(255),
                 status VARCHAR(50) DEFAULT 'pending',
-                next_payment TIMESTAMP NULL,
+                next_payment TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )",
             
             "CREATE TABLE IF NOT EXISTS payments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                service_id INT,
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                service_id INTEGER REFERENCES services(id) ON DELETE SET NULL,
                 amount DECIMAL(10,2) NOT NULL,
                 currency VARCHAR(3) DEFAULT 'EUR',
                 payment_method VARCHAR(50),
                 payment_id VARCHAR(255),
                 status VARCHAR(50) DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE SET NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )",
             
             "CREATE TABLE IF NOT EXISTS sessions (
                 session_id VARCHAR(128) PRIMARY KEY,
-                user_id INT,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
                 data TEXT,
-                expires_at TIMESTAMP NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+                expires_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )",
             
             "CREATE TABLE IF NOT EXISTS servers (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_service_id INT NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_service_id INTEGER NOT NULL REFERENCES user_services(id) ON DELETE CASCADE,
                 server_name VARCHAR(255),
                 ip_address VARCHAR(45),
-                proxmox_vmid INT,
+                proxmox_vmid INTEGER,
                 root_password VARCHAR(255),
                 status VARCHAR(50) DEFAULT 'creating',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_service_id) REFERENCES user_services(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )",
             
             "CREATE TABLE IF NOT EXISTS tickets (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 subject TEXT NOT NULL,
                 message TEXT NOT NULL,
                 status VARCHAR(50) DEFAULT 'open',
                 priority VARCHAR(20) DEFAULT 'medium',
                 category VARCHAR(50) DEFAULT 'general',
-                assigned_to INT NULL,
+                assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )",
             
             "CREATE TABLE IF NOT EXISTS ticket_replies (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                ticket_id INT NOT NULL,
-                user_id INT NOT NULL,
+                id SERIAL PRIMARY KEY,
+                ticket_id INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 message TEXT NOT NULL,
-                is_internal BOOLEAN DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+                is_internal BOOLEAN DEFAULT false,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )",
             
             "CREATE TABLE IF NOT EXISTS ticket_attachments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                ticket_id INT NULL,
-                reply_id INT NULL,
+                id SERIAL PRIMARY KEY,
+                ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,
+                reply_id INTEGER REFERENCES ticket_replies(id) ON DELETE CASCADE,
                 filename VARCHAR(255) NOT NULL,
                 original_filename VARCHAR(255) NOT NULL,
                 file_path VARCHAR(500) NOT NULL,
-                file_size INT NOT NULL,
+                file_size INTEGER NOT NULL,
                 mime_type VARCHAR(100) NOT NULL,
-                uploaded_by INT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
-                FOREIGN KEY (reply_id) REFERENCES ticket_replies(id) ON DELETE CASCADE,
-                FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+                uploaded_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )"
         ];
         
         foreach ($tables as $sql) {
@@ -187,7 +174,8 @@ class Database {
         // Check if assigned_to column exists in tickets table
         $result = $this->connection->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'tickets' AND column_name = 'assigned_to'");
         if ($result->rowCount() == 0) {
-            $this->connection->exec("ALTER TABLE tickets ADD COLUMN assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL");
+            $this->connection->exec("ALTER TABLE tickets ADD COLUMN assigned_to INTEGER");
+            $this->connection->exec("ALTER TABLE tickets ADD CONSTRAINT fk_tickets_assigned_to FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL");
         }
         
         // Check if category column exists in tickets table
