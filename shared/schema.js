@@ -86,17 +86,7 @@ export const supportTickets = pgTable("support_tickets", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-export type Service = typeof services.$inferSelect;
-export type InsertService = typeof services.$inferInsert;
-export type UserService = typeof userServices.$inferSelect;
-export type InsertUserService = typeof userServices.$inferInsert;
-export type Order = typeof orders.$inferSelect;
-export type InsertOrder = typeof orders.$inferInsert;
-export type SupportTicket = typeof supportTickets.$inferSelect;
-export type InsertSupportTicket = typeof supportTickets.$inferInsert;
+// Type exports removed for JavaScript compatibility
 
 export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,

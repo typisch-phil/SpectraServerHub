@@ -31,7 +31,7 @@ export async function registerRoutes(app) {
   }));
 
   // Auth middleware
-  const requireAuth = (req: any, res: any, next: any) => {
+  const requireAuth = (req, res, next) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -86,7 +86,7 @@ export async function registerRoutes(app) {
     });
   });
 
-  app.get('/api/auth/user', requireAuth, async (req: any, res) => {
+  app.get('/api/auth/user', requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser(req.session.userId);
       if (!user) {
@@ -125,7 +125,7 @@ export async function registerRoutes(app) {
   });
 
   // User services routes
-  app.get('/api/user/services', requireAuth, async (req: any, res) => {
+  app.get('/api/user/services', requireAuth, async (req, res) => {
     try {
       const userServices = await storage.getUserServices(req.session.userId);
       res.json(userServices);
@@ -136,7 +136,7 @@ export async function registerRoutes(app) {
   });
 
   // Orders routes
-  app.post('/api/orders', requireAuth, async (req: any, res) => {
+  app.post('/api/orders', requireAuth, async (req, res) => {
     try {
       const orderData = insertOrderSchema.parse({
         ...req.body,
@@ -164,7 +164,7 @@ export async function registerRoutes(app) {
     }
   });
 
-  app.get('/api/user/orders', requireAuth, async (req: any, res) => {
+  app.get('/api/user/orders', requireAuth, async (req, res) => {
     try {
       const orders = await storage.getUserOrders(req.session.userId);
       res.json(orders);
@@ -175,7 +175,7 @@ export async function registerRoutes(app) {
   });
 
   // Support tickets routes
-  app.post('/api/support/tickets', requireAuth, async (req: any, res) => {
+  app.post('/api/support/tickets', requireAuth, async (req, res) => {
     try {
       const ticketData = insertSupportTicketSchema.parse({
         ...req.body,
@@ -193,7 +193,7 @@ export async function registerRoutes(app) {
     }
   });
 
-  app.get('/api/user/support/tickets', requireAuth, async (req: any, res) => {
+  app.get('/api/user/support/tickets', requireAuth, async (req, res) => {
     try {
       const tickets = await storage.getUserSupportTickets(req.session.userId);
       res.json(tickets);
@@ -224,7 +224,7 @@ export async function registerRoutes(app) {
   });
 
   // Server management routes (Mock Proxmox integration)
-  app.get('/api/servers/:id/status', requireAuth, async (req: any, res) => {
+  app.get('/api/servers/:id/status', requireAuth, async (req, res) => {
     try {
       const serverId = req.params.id;
       const status = await getProxmoxServerStatus(serverId);
@@ -235,7 +235,7 @@ export async function registerRoutes(app) {
     }
   });
 
-  app.post('/api/servers/:id/restart', requireAuth, async (req: any, res) => {
+  app.post('/api/servers/:id/restart', requireAuth, async (req, res) => {
     try {
       const serverId = req.params.id;
       const result = await restartProxmoxServer(serverId);
@@ -251,7 +251,7 @@ export async function registerRoutes(app) {
 }
 
 // Mock Mollie API functions
-async function createMolliePayment(amount: string, description: string) {
+async function createMolliePayment(amount, description) {
   // Mock Mollie payment creation
   return {
     id: `tr_${Date.now()}`,
@@ -267,7 +267,7 @@ async function createMolliePayment(amount: string, description: string) {
   };
 }
 
-async function getMolliePayment(paymentId: string) {
+async function getMolliePayment(paymentId) {
   // Mock Mollie payment retrieval
   return {
     id: paymentId,
@@ -277,7 +277,7 @@ async function getMolliePayment(paymentId: string) {
 }
 
 // Mock Proxmox API functions
-async function getProxmoxServerStatus(serverId: string) {
+async function getProxmoxServerStatus(serverId) {
   // Mock Proxmox server status
   return {
     vmid: serverId,
@@ -291,7 +291,7 @@ async function getProxmoxServerStatus(serverId: string) {
   };
 }
 
-async function restartProxmoxServer(serverId: string) {
+async function restartProxmoxServer(serverId) {
   // Mock Proxmox server restart
   await new Promise(resolve => setTimeout(resolve, 1000));
   return {

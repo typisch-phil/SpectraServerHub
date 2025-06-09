@@ -1,49 +1,52 @@
 import bcrypt from "bcryptjs";
-import { storage } from "./storage";
-import { registerSchema, loginSchema, type User } from "@shared/schema";
-import { z } from "zod";
+import { storage } from "./storage.js";
+import { registerSchema, loginSchema } from "../shared/schema.js";
 
-export async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, 12);
+export async function hashPassword(password) {
+  return await bcrypt.hash(password, 10);
 }
 
-export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+export async function verifyPassword(password, hashedPassword) {
   return await bcrypt.compare(password, hashedPassword);
 }
 
-export async function registerUser(data: z.infer<typeof registerSchema>): Promise<User> {
+export async function registerUser(data) {
+  const validatedData = registerSchema.parse(data);
+  
   // Check if user already exists
-  const existingUser = await storage.getUserByEmail(data.email);
+  const existingUser = await storage.getUserByEmail(validatedData.email);
   if (existingUser) {
-    throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits");
+    throw new Error("User already exists");
   }
-
+  
   // Hash password
-  const hashedPassword = await hashPassword(data.password);
-
+  const hashedPassword = await hashPassword(validatedData.password);
+  
   // Create user
   const user = await storage.createUser({
-    email: data.email,
+    email: validatedData.email,
     password: hashedPassword,
-    firstName: data.firstName,
-    lastName: data.lastName,
+    firstName: validatedData.firstName,
+    lastName: validatedData.lastName,
   });
-
+  
   return user;
 }
 
-export async function authenticateUser(data: z.infer<typeof loginSchema>): Promise<User> {
-  // Find user by email
-  const user = await storage.getUserByEmail(data.email);
+export async function authenticateUser(data) {
+  const validatedData = loginSchema.parse(data);
+  
+  // Get user by email
+  const user = await storage.getUserByEmail(validatedData.email);
   if (!user) {
-    throw new Error("Ungültige E-Mail-Adresse oder Passwort");
+    throw new Error("Invalid credentials");
   }
-
+  
   // Verify password
-  const isValidPassword = await verifyPassword(data.password, user.password);
-  if (!isValidPassword) {
-    throw new Error("Ungültige E-Mail-Adresse oder Passwort");
+  const isValid = await verifyPassword(validatedData.password, user.password);
+  if (!isValid) {
+    throw new Error("Invalid credentials");
   }
-
+  
   return user;
 }

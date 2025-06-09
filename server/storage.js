@@ -11,52 +11,29 @@ import { eq, desc } from "drizzle-orm";
 export class DatabaseStorage {
   // User operations
   async getUser(id) {
-  
-  // Service operations
-  getServices(): Promise<Service[]>;
-  getService(id: number): Promise<Service | undefined>;
-  createService(service: InsertService): Promise<Service>;
-  
-  // User service operations
-  getUserServices(userId: number): Promise<UserService[]>;
-  createUserService(userService: InsertUserService): Promise<UserService>;
-  updateUserServiceStatus(id: number, status: string): Promise<void>;
-  
-  // Order operations
-  createOrder(order: InsertOrder): Promise<Order>;
-  getOrder(id: number): Promise<Order | undefined>;
-  getUserOrders(userId: number): Promise<Order[]>;
-  updateOrderStatus(id: number, status: string, paymentId?: string): Promise<void>;
-  
-  // Support ticket operations
-  createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
-  getUserSupportTickets(userId: number): Promise<SupportTicket[]>;
-  updateSupportTicketStatus(id: number, status: string): Promise<void>;
-}
-
-export class DatabaseStorage implements IStorage {
-  // User operations
-  async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    return user || undefined;
   }
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
+  async getUserByEmail(email) {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUser(userData) {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .returning();
     return user;
   }
 
-  async createUser(userData: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(userData).returning();
-    return user;
-  }
-
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async upsertUser(userData) {
     const [user] = await db
       .insert(users)
       .values(userData)
       .onConflictDoUpdate({
-        target: users.email,
+        target: users.id,
         set: {
           ...userData,
           updatedAt: new Date(),
@@ -67,30 +44,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Service operations
-  async getServices(): Promise<Service[]> {
-    return await db.select().from(services).where(eq(services.active, true));
+  async getServices() {
+    return await db.select().from(services);
   }
 
-  async getService(id: number): Promise<Service | undefined> {
+  async getService(id) {
     const [service] = await db.select().from(services).where(eq(services.id, id));
-    return service;
+    return service || undefined;
   }
 
-  async createService(serviceData: InsertService): Promise<Service> {
-    const [service] = await db.insert(services).values(serviceData).returning();
+  async createService(serviceData) {
+    const [service] = await db
+      .insert(services)
+      .values(serviceData)
+      .returning();
     return service;
   }
 
   // User service operations
-  async getUserServices(userId: number): Promise<UserService[]> {
-    return await db
-      .select()
-      .from(userServices)
-      .where(eq(userServices.userId, userId))
-      .orderBy(desc(userServices.createdAt));
+  async getUserServices(userId) {
+    return await db.select().from(userServices).where(eq(userServices.userId, userId));
   }
 
-  async createUserService(userServiceData: InsertUserService): Promise<UserService> {
+  async createUserService(userServiceData) {
     const [userService] = await db
       .insert(userServices)
       .values(userServiceData)
@@ -98,7 +74,7 @@ export class DatabaseStorage implements IStorage {
     return userService;
   }
 
-  async updateUserServiceStatus(id: number, status: string): Promise<void> {
+  async updateUserServiceStatus(id, status) {
     await db
       .update(userServices)
       .set({ status, updatedAt: new Date() })
@@ -106,17 +82,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Order operations
-  async createOrder(orderData: InsertOrder): Promise<Order> {
-    const [order] = await db.insert(orders).values(orderData).returning();
+  async createOrder(orderData) {
+    const [order] = await db
+      .insert(orders)
+      .values(orderData)
+      .returning();
     return order;
   }
 
-  async getOrder(id: number): Promise<Order | undefined> {
+  async getOrder(id) {
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
-    return order;
+    return order || undefined;
   }
 
-  async getUserOrders(userId: number): Promise<Order[]> {
+  async getUserOrders(userId) {
     return await db
       .select()
       .from(orders)
@@ -124,21 +103,27 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(orders.createdAt));
   }
 
-  async updateOrderStatus(id: number, status: string, paymentId?: string): Promise<void> {
-    const updateData: any = { status, updatedAt: new Date() };
+  async updateOrderStatus(id, status, paymentId) {
+    const updateData = { status, updatedAt: new Date() };
     if (paymentId) {
       updateData.paymentId = paymentId;
     }
-    await db.update(orders).set(updateData).where(eq(orders.id, id));
+    await db
+      .update(orders)
+      .set(updateData)
+      .where(eq(orders.id, id));
   }
 
   // Support ticket operations
-  async createSupportTicket(ticketData: InsertSupportTicket): Promise<SupportTicket> {
-    const [ticket] = await db.insert(supportTickets).values(ticketData).returning();
+  async createSupportTicket(ticketData) {
+    const [ticket] = await db
+      .insert(supportTickets)
+      .values(ticketData)
+      .returning();
     return ticket;
   }
 
-  async getUserSupportTickets(userId: number): Promise<SupportTicket[]> {
+  async getUserSupportTickets(userId) {
     return await db
       .select()
       .from(supportTickets)
@@ -146,7 +131,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(supportTickets.createdAt));
   }
 
-  async updateSupportTicketStatus(id: number, status: string): Promise<void> {
+  async updateSupportTicketStatus(id, status) {
     await db
       .update(supportTickets)
       .set({ status, updatedAt: new Date() })
