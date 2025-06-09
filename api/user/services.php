@@ -1,12 +1,11 @@
 <?php
+require_once '../includes/session.php';
 require_once '../includes/config.php';
 require_once '../includes/database.php';
-require_once '../includes/auth.php';
 
 header('Content-Type: application/json');
 
-session_start();
-if (!isset($_SESSION['user'])) {
+if (!isLoggedIn()) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Nicht authentifiziert']);
     exit;

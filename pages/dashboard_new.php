@@ -1,20 +1,14 @@
 <?php
+require_once '../includes/session.php';
 require_once '../includes/config.php';
 require_once '../includes/database.php';
-require_once '../includes/auth.php';
 require_once '../includes/layout.php';
 
-// Remove function call, handle manually below
+requireLogin();
 
 $title = 'Dashboard - SpectraHost';
 $description = 'Verwalten Sie Ihre Services und Bestellungen';
 renderHeader($title, $description);
-
-// Check if user is logged in
-if (!isset($_SESSION['user'])) {
-    header('Location: /login');
-    exit;
-}
 
 $user = $_SESSION['user'];
 $user_id = $user['id'];
