@@ -63,23 +63,24 @@ try {
                 // Get all tickets for user or all tickets if admin
                 if ($user['role'] === 'admin') {
                     $stmt = $db->prepare("
-                        SELECT t.*, u.first_name, u.last_name, u.email,
+                        SELECT t.id, t.user_id, t.subject, t.message, t.status, t.priority, t.category, t.assigned_to, t.created_at, t.updated_at,
+                               u.first_name, u.last_name, u.email,
                                COUNT(r.id) as reply_count
                         FROM tickets t 
                         LEFT JOIN users u ON t.user_id = u.id 
                         LEFT JOIN ticket_replies r ON t.id = r.ticket_id
-                        GROUP BY t.id
+                        GROUP BY t.id, t.user_id, t.subject, t.message, t.status, t.priority, t.category, t.assigned_to, t.created_at, t.updated_at, u.first_name, u.last_name, u.email
                         ORDER BY t.updated_at DESC
                     ");
                     $stmt->execute();
                 } else {
                     $stmt = $db->prepare("
-                        SELECT t.*, 
+                        SELECT t.id, t.user_id, t.subject, t.message, t.status, t.priority, t.category, t.assigned_to, t.created_at, t.updated_at,
                                COUNT(r.id) as reply_count
                         FROM tickets t 
                         LEFT JOIN ticket_replies r ON t.id = r.ticket_id
                         WHERE t.user_id = ?
-                        GROUP BY t.id
+                        GROUP BY t.id, t.user_id, t.subject, t.message, t.status, t.priority, t.category, t.assigned_to, t.created_at, t.updated_at
                         ORDER BY t.updated_at DESC
                     ");
                     $stmt->execute([$user_id]);
