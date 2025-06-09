@@ -249,58 +249,277 @@ renderHeader($title, $description);
         </div>
     </div>
 
+    <!-- Configuration Modal -->
+    <div id="configModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="mt-3">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="modalTitle" class="text-lg font-medium text-gray-900 dark:text-white"></h3>
+                    <button onclick="closeConfigModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="modalContent" class="text-sm text-gray-500 dark:text-gray-400">
+                    <!-- Dynamic content will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        function configureProxmox() {
-            alert('Proxmox VE Konfiguration öffnen');
+        // Global functions for integration management
+        async function testIntegration(integration) {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Teste...';
+            button.disabled = true;
+
+            try {
+                const response = await fetch('/api/admin/integrations.php?action=test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ integration: integration })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('success', result.message);
+                    if (result.details) {
+                        console.log('Test Details:', result.details);
+                    }
+                } else {
+                    showNotification('error', result.message);
+                }
+            } catch (error) {
+                showNotification('error', 'Verbindungsfehler beim Testen');
+                console.error('Test error:', error);
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
         }
 
-        function testProxmox() {
-            alert('Proxmox VE Verbindung testen');
+        async function configureIntegration(integration) {
+            showConfigModal(integration);
         }
 
-        function configureMollie() {
-            alert('Mollie Zahlungseinstellungen öffnen');
+        function showConfigModal(integration) {
+            const modal = document.getElementById('configModal');
+            const title = document.getElementById('modalTitle');
+            const content = document.getElementById('modalContent');
+            
+            title.textContent = getIntegrationTitle(integration);
+            content.innerHTML = getConfigForm(integration);
+            
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
         }
 
-        function testMollie() {
-            alert('Mollie API-Verbindung testen');
+        function closeConfigModal() {
+            const modal = document.getElementById('configModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
         }
 
-        function configureEmail() {
-            alert('E-Mail SMTP-Einstellungen konfigurieren');
+        function getIntegrationTitle(integration) {
+            const titles = {
+                'proxmox': 'Proxmox VE Konfiguration',
+                'mollie': 'Mollie Zahlungseinstellungen',
+                'email': 'E-Mail SMTP Konfiguration',
+                'backup': 'Cloud Backup Einrichtung',
+                'monitoring': 'Server Monitoring Konfiguration',
+                'dns': 'DNS Management Konfiguration'
+            };
+            return titles[integration] || 'Integration Konfiguration';
         }
 
-        function testEmail() {
-            alert('Test-E-Mail senden');
+        function getConfigForm(integration) {
+            switch (integration) {
+                case 'proxmox':
+                    return `
+                        <form onsubmit="saveConfig('proxmox', event)">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Proxmox Host</label>
+                                    <input type="text" name="host" placeholder="proxmox.example.com" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Benutzername</label>
+                                    <input type="text" name="username" placeholder="root@pam" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Passwort/Token</label>
+                                    <input type="password" name="password" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Node</label>
+                                    <input type="text" name="node" placeholder="pve" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                </div>
+                                <div class="flex justify-end space-x-3 pt-4">
+                                    <button type="button" onclick="closeConfigModal()" class="px-4 py-2 text-gray-600 border rounded hover:bg-gray-50">Abbrechen</button>
+                                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Speichern</button>
+                                </div>
+                            </div>
+                        </form>
+                    `;
+                case 'mollie':
+                    return `
+                        <form onsubmit="saveConfig('mollie', event)">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Live API Key</label>
+                                    <input type="password" name="live_key" placeholder="live_..." class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Test API Key</label>
+                                    <input type="password" name="test_key" placeholder="test_..." class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Webhook URL</label>
+                                    <input type="url" name="webhook_url" placeholder="https://spectrahost.de/api/mollie/webhook" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                </div>
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="test_mode" class="mr-2">
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Test-Modus aktivieren</span>
+                                    </label>
+                                </div>
+                                <div class="flex justify-end space-x-3 pt-4">
+                                    <button type="button" onclick="closeConfigModal()" class="px-4 py-2 text-gray-600 border rounded hover:bg-gray-50">Abbrechen</button>
+                                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Speichern</button>
+                                </div>
+                            </div>
+                        </form>
+                    `;
+                case 'email':
+                    return `
+                        <form onsubmit="saveConfig('email', event)">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SMTP Server</label>
+                                    <input type="text" name="smtp_host" placeholder="smtp.gmail.com" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Port</label>
+                                    <input type="number" name="smtp_port" placeholder="587" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Benutzername</label>
+                                    <input type="email" name="smtp_username" placeholder="noreply@spectrahost.de" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Passwort</label>
+                                    <input type="password" name="smtp_password" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                </div>
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="smtp_ssl" checked class="mr-2">
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">SSL/TLS verwenden</span>
+                                    </label>
+                                </div>
+                                <div class="flex justify-end space-x-3 pt-4">
+                                    <button type="button" onclick="closeConfigModal()" class="px-4 py-2 text-gray-600 border rounded hover:bg-gray-50">Abbrechen</button>
+                                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Speichern</button>
+                                </div>
+                            </div>
+                        </form>
+                    `;
+                default:
+                    return `
+                        <div class="text-center py-8">
+                            <p class="text-gray-500 dark:text-gray-400">Konfiguration für ${integration} wird geladen...</p>
+                            <div class="mt-4">
+                                <button onclick="closeConfigModal()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Schließen</button>
+                            </div>
+                        </div>
+                    `;
+            }
         }
 
-        function configureBackup() {
-            alert('Cloud Backup einrichten');
+        async function saveConfig(integration, event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const config = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/api/admin/integrations.php?action=configure', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ integration: integration, config: config })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('success', result.message);
+                    closeConfigModal();
+                    // Refresh page to show updated status
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showNotification('error', result.message);
+                }
+            } catch (error) {
+                showNotification('error', 'Fehler beim Speichern der Konfiguration');
+                console.error('Save error:', error);
+            }
         }
 
-        function testBackup() {
-            alert('Backup-Verbindung testen');
+        async function loadMoreLogs() {
+            try {
+                const response = await fetch('/api/admin/integrations.php?action=logs');
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update logs display
+                    console.log('API Logs:', result.data);
+                    showNotification('success', 'Logs aktualisiert');
+                } else {
+                    showNotification('error', 'Fehler beim Laden der Logs');
+                }
+            } catch (error) {
+                showNotification('error', 'Verbindungsfehler beim Laden der Logs');
+                console.error('Load logs error:', error);
+            }
         }
 
-        function configureMonitoring() {
-            alert('Monitoring-System konfigurieren');
+        function showNotification(type, message) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            }`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} mr-2"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
         }
 
-        function testMonitoring() {
-            alert('Monitoring-Verbindung testen');
-        }
-
-        function configureDNS() {
-            alert('DNS Management konfigurieren');
-        }
-
-        function testDNS() {
-            alert('DNS API-Verbindung testen');
-        }
-
-        function loadMoreLogs() {
-            alert('Weitere API-Logs laden');
-        }
+        // Specific integration functions
+        function configureProxmox() { configureIntegration('proxmox'); }
+        function testProxmox() { testIntegration('proxmox'); }
+        function configureMollie() { configureIntegration('mollie'); }
+        function testMollie() { testIntegration('mollie'); }
+        function configureEmail() { configureIntegration('email'); }
+        function testEmail() { testIntegration('email'); }
+        function configureBackup() { configureIntegration('backup'); }
+        function testBackup() { testIntegration('backup'); }
+        function configureMonitoring() { configureIntegration('monitoring'); }
+        function testMonitoring() { testIntegration('monitoring'); }
+        function configureDNS() { configureIntegration('dns'); }
+        function testDNS() { testIntegration('dns'); }
 
         function logout() {
             window.location.href = '/api/logout.php';
