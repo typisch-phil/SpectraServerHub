@@ -56,7 +56,7 @@ export default function Dashboard() {
     return null;
   }
 
-  const getServiceIcon = (type: string) => {
+  const getServiceIcon = (type) => {
     switch (type) {
       case 'webspace': return Globe;
       case 'vserver': return Server;
@@ -66,7 +66,7 @@ export default function Dashboard() {
   };
 
   const activeServices = Array.isArray(userServices) ? userServices.length : 0;
-  const monthlyCost = Array.isArray(userServices) ? userServices.reduce((total: number, service: any) => {
+  const monthlyCost = Array.isArray(userServices) ? userServices.reduce((total, service) => {
     return total + parseFloat(service.price || '0');
   }, 0) : 0;
 
@@ -170,7 +170,7 @@ export default function Dashboard() {
               <CardContent>
                 {Array.isArray(userServices) && userServices.length > 0 ? (
                   <div className="space-y-4">
-                    {userServices.map((service: any) => {
+                    {userServices.map((service) => {
                       const IconComponent = getServiceIcon(service.type);
                       return (
                         <div key={service.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
@@ -211,7 +211,7 @@ export default function Dashboard() {
               <CardContent>
                 {Array.isArray(orders) && orders.length > 0 ? (
                   <div className="space-y-4">
-                    {orders.slice(0, 5).map((order: any) => (
+                    {orders.slice(0, 5).map((order) => (
                       <div key={order.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
                         <div>
                           <h3 className="font-medium text-foreground">Bestellung #{order.id}</h3>
