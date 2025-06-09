@@ -28,7 +28,42 @@ function getCurrentUser() {
     return $user;
 }
 
+function getSupportHours() {
+    return [
+        'monday' => '09:00 - 18:00',
+        'tuesday' => '09:00 - 18:00',
+        'wednesday' => '09:00 - 18:00',
+        'thursday' => '09:00 - 18:00',
+        'friday' => '09:00 - 18:00',
+        'saturday' => '10:00 - 16:00',
+        'sunday' => '10:00 - 16:00'
+    ];
+}
 
+function getSupportStatus() {
+    return isCurrentlyInSupportHours() ? 'online' : 'offline';
+}
+
+function isCurrentlyInSupportHours() {
+    $currentHour = (int)date('H');
+    $currentDay = strtolower(date('l'));
+    
+    $hours = getSupportHours();
+    if (!isset($hours[$currentDay])) {
+        return false;
+    }
+    
+    $timeRange = $hours[$currentDay];
+    if ($timeRange === 'Geschlossen') {
+        return false;
+    }
+    
+    list($start, $end) = explode(' - ', $timeRange);
+    $startHour = (int)explode(':', $start)[0];
+    $endHour = (int)explode(':', $end)[0];
+    
+    return $currentHour >= $startHour && $currentHour < $endHour;
+}
 
 function formatBytes($size, $precision = 2) {
     $base = log($size, 1024);
@@ -56,7 +91,10 @@ function timeAgo($datetime, $full = false) {
     
     foreach ($string as $k => &$v) {
         if ($diff->$k) {
-            $v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 'n' : '');
+            if ($diff->$k > 1) {
+                $v .= $diff->$k > 1 ? 'e' : '';
+            }
+            $v = $diff->$k . ' ' . $v;
         } else {
             unset($string[$k]);
         }
@@ -66,70 +104,50 @@ function timeAgo($datetime, $full = false) {
     return $string ? 'vor ' . implode(', ', $string) : 'gerade eben';
 }
 
-function getSupportStatus() {
-    try {
-        $database = Database::getInstance();
-        $db = $database->getConnection();
-        
-        $stmt = $db->prepare("SELECT setting_value FROM support_settings WHERE setting_key = 'support_online'");
-        $stmt->execute();
-        $result = $stmt->fetch();
-        
-        return $result ? (bool)$result['setting_value'] : true;
-    } catch (Exception $e) {
-        return true; // Default to online if can't determine
+function generateCSRFToken() {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
+    return $_SESSION['csrf_token'];
 }
 
-function getSupportHours() {
-    $defaultHours = [
-        'monday' => ['start' => '09:00', 'end' => '18:00'],
-        'tuesday' => ['start' => '09:00', 'end' => '18:00'],
-        'wednesday' => ['start' => '09:00', 'end' => '18:00'],
-        'thursday' => ['start' => '09:00', 'end' => '18:00'],
-        'friday' => ['start' => '09:00', 'end' => '18:00'],
-        'saturday' => ['start' => '10:00', 'end' => '16:00'],
-        'sunday' => ['start' => '', 'end' => '']
-    ];
-    
-    try {
-        $database = Database::getInstance();
-        $db = $database->getConnection();
-        
-        $stmt = $db->query("SELECT setting_key, setting_value FROM support_settings WHERE setting_key LIKE '%_start' OR setting_key LIKE '%_end'");
-        $settings = $stmt->fetchAll();
-        
-        $hours = $defaultHours;
-        foreach ($settings as $setting) {
-            $parts = explode('_', $setting['setting_key']);
-            if (count($parts) == 2) {
-                $day = $parts[0];
-                $type = $parts[1];
-                if (isset($hours[$day])) {
-                    $hours[$day][$type] = $setting['setting_value'];
-                }
-            }
-        }
-        
-        return $hours;
-    } catch (Exception $e) {
-        return $defaultHours;
-    }
+function validateCSRFToken($token) {
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
-function isCurrentlyInSupportHours() {
-    $hours = getSupportHours();
-    $currentDay = strtolower(date('l'));
-    $currentTime = date('H:i');
-    
-    if (!isset($hours[$currentDay]) || empty($hours[$currentDay]['start']) || empty($hours[$currentDay]['end'])) {
-        return false; // Closed on this day
-    }
-    
-    $startTime = $hours[$currentDay]['start'];
-    $endTime = $hours[$currentDay]['end'];
-    
-    return $currentTime >= $startTime && $currentTime <= $endTime;
+function sanitizeInput($input) {
+    return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+}
+
+function validateEmail($email) {
+    return filter_var($email, FILTER_VALIDATE_EMAIL);
+}
+
+function hashPassword($password) {
+    return password_hash($password, PASSWORD_DEFAULT);
+}
+
+function verifyPassword($password, $hash) {
+    return password_verify($password, $hash);
+}
+
+function redirectTo($url) {
+    header("Location: $url");
+    exit();
+}
+
+function flashMessage($type, $message) {
+    $_SESSION['flash'][$type] = $message;
+}
+
+function getFlashMessage($type) {
+    $message = $_SESSION['flash'][$type] ?? null;
+    unset($_SESSION['flash'][$type]);
+    return $message;
+}
+
+function hasFlashMessage($type) {
+    return isset($_SESSION['flash'][$type]);
 }
 
 ?>
