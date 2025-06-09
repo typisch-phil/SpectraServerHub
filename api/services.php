@@ -1,24 +1,33 @@
 <?php
+require_once '../includes/config.php';
+require_once '../includes/functions.php';
+
 header('Content-Type: application/json');
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/database.php';
 
 try {
-    $db = Database::getInstance();
-    
-    // Get all active services
-    $stmt = $db->prepare("SELECT * FROM services WHERE active = 1 ORDER BY type, price");
+    $stmt = $db->prepare("SELECT * FROM services WHERE active = 1 ORDER BY sort_order ASC, name ASC");
     $stmt->execute();
-    $services = $stmt->fetchAll();
+    $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Decode JSON features for each service
-    foreach ($services as &$service) {
-        $service['features'] = json_decode($service['features'], true);
-    }
+    // Format services for frontend
+    $formatted_services = array_map(function($service) {
+        return [
+            'id' => (int)$service['id'],
+            'name' => $service['name'],
+            'description' => $service['description'],
+            'type' => $service['type'],
+            'price' => (float)$service['price'],
+            'cpu_cores' => (int)$service['cpu_cores'],
+            'memory_gb' => (int)$service['memory_gb'],
+            'storage_gb' => (int)$service['storage_gb'],
+            'bandwidth_gb' => (int)$service['bandwidth_gb'],
+            'active' => (bool)$service['active']
+        ];
+    }, $services);
     
     echo json_encode([
         'success' => true,
-        'services' => $services
+        'services' => $formatted_services
     ]);
     
 } catch (Exception $e) {
