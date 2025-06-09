@@ -54,10 +54,9 @@ if ($stmt->fetchColumn() == 0) {
 
 // Get all tickets with user information
 $stmt = $database->prepare("
-    SELECT t.*, u.email, 
-           COALESCE(u.name, CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) as user_name
+    SELECT t.*, u.email, u.first_name, u.last_name
     FROM tickets t 
-    JOIN users u ON t.user_id = u.id 
+    LEFT JOIN users u ON t.user_id = u.id 
     ORDER BY t.created_at DESC
 ");
 $stmt->execute();
@@ -137,7 +136,7 @@ renderHeader($title, $description);
                                 <div class="text-sm text-gray-500 dark:text-gray-400"><?= htmlspecialchars(substr($ticket['message'], 0, 50)) ?>...</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900 dark:text-white"><?= htmlspecialchars($ticket['user_name'] ?? 'Unknown User') ?></div>
+                                <div class="text-sm text-gray-900 dark:text-white"><?= htmlspecialchars(trim($ticket['first_name'] . ' ' . $ticket['last_name']) ?: 'Unknown User') ?></div>
                                 <div class="text-sm text-gray-500 dark:text-gray-400"><?= htmlspecialchars($ticket['email']) ?></div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
