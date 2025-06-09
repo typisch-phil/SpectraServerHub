@@ -232,12 +232,14 @@ renderHeader($title, $description);
                                     <?php
                                     $statusColors = [
                                         'open' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                                        'pending' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                                        'in_progress' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                        'waiting_customer' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
                                         'closed' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                                     ];
                                     $statusTexts = [
                                         'open' => 'Offen',
-                                        'pending' => 'In Bearbeitung',
+                                        'in_progress' => 'In Bearbeitung',
+                                        'waiting_customer' => 'Wartet auf Kunde',
                                         'closed' => 'Geschlossen'
                                     ];
                                     ?>
@@ -249,15 +251,15 @@ renderHeader($title, $description);
                                     <?php
                                     $priorityColors = [
                                         'low' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                                        'normal' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+                                        'medium' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
                                         'high' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-                                        'urgent' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                        'critical' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                     ];
                                     $priorityTexts = [
                                         'low' => 'Niedrig',
-                                        'normal' => 'Normal',
+                                        'medium' => 'Mittel',
                                         'high' => 'Hoch',
-                                        'urgent' => 'Dringend'
+                                        'critical' => 'Kritisch'
                                     ];
                                     ?>
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $priorityColors[$ticket['priority']] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' ?>">
