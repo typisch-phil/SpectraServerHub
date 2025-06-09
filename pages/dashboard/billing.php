@@ -190,11 +190,14 @@ renderHeader('Billing - SpectraHost Dashboard');
                 
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zahlungsmethode</label>
-                    <select class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
-                        <option value="ideal">iDEAL</option>
-                        <option value="creditcard">Kreditkarte</option>
-                        <option value="banktransfer">Banküberweisung</option>
-                        <option value="paypal">PayPal</option>
+                    <div id="payment-methods-loading" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>Zahlungsmethoden werden geladen...
+                    </div>
+                    <div id="payment-methods-container" class="hidden space-y-3">
+                        <!-- Payment methods will be loaded here -->
+                    </div>
+                    <select id="payment-method-select" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white hidden" name="payment_method">
+                        <!-- Options will be populated dynamically -->
                     </select>
                 </div>
                 
@@ -214,6 +217,118 @@ renderHeader('Billing - SpectraHost Dashboard');
         function openAddBalanceModal() {
             document.getElementById('addBalanceModal').classList.remove('hidden');
             document.getElementById('addBalanceModal').classList.add('flex');
+            loadPaymentMethods();
+        }
+        
+        async function loadPaymentMethods() {
+            try {
+                const response = await fetch('/api/payment/mollie-methods.php');
+                const result = await response.json();
+                
+                const loadingDiv = document.getElementById('payment-methods-loading');
+                const containerDiv = document.getElementById('payment-methods-container');
+                const selectElement = document.getElementById('payment-method-select');
+                
+                if (result.success && result.methods.length > 0) {
+                    loadingDiv.classList.add('hidden');
+                    
+                    // Show visual payment method selection
+                    containerDiv.classList.remove('hidden');
+                    selectElement.classList.remove('hidden');
+                    
+                    // Clear existing options
+                    selectElement.innerHTML = '';
+                    containerDiv.innerHTML = '';
+                    
+                    let selectedMethod = null;
+                    
+                    result.methods.forEach((method, index) => {
+                        // Add option to select
+                        const option = document.createElement('option');
+                        option.value = method.id;
+                        option.textContent = method.description;
+                        selectElement.appendChild(option);
+                        
+                        // Create visual method card
+                        const methodCard = document.createElement('div');
+                        methodCard.className = `payment-method-card border-2 border-gray-200 dark:border-gray-600 rounded-lg p-3 cursor-pointer hover:border-blue-500 transition-colors ${index === 0 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900' : ''}`;
+                        methodCard.dataset.method = method.id;
+                        
+                        methodCard.innerHTML = `
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    ${method.image ? `<img src="${method.image}" alt="${method.description}" class="w-8 h-8 mr-3 rounded">` : `<div class="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded mr-3 flex items-center justify-center"><i class="fas fa-credit-card text-gray-500"></i></div>`}
+                                    <div>
+                                        <div class="font-medium text-gray-900 dark:text-white">${method.description}</div>
+                                        ${method.pricing ? `<div class="text-xs text-gray-500">Gebühr: €${method.pricing.fixed} + ${(parseFloat(method.pricing.variable) * 100).toFixed(1)}%</div>` : ''}
+                                    </div>
+                                </div>
+                                <div class="radio-indicator w-4 h-4 border-2 border-gray-300 rounded-full ${index === 0 ? 'border-blue-500 bg-blue-500' : ''}">
+                                    ${index === 0 ? '<div class="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>' : ''}
+                                </div>
+                            </div>
+                        `;
+                        
+                        methodCard.addEventListener('click', () => selectPaymentMethod(method.id));
+                        containerDiv.appendChild(methodCard);
+                        
+                        if (index === 0) {
+                            selectedMethod = method.id;
+                            selectElement.value = method.id;
+                        }
+                    });
+                    
+                } else {
+                    // Fallback to basic select
+                    loadingDiv.classList.add('hidden');
+                    selectElement.classList.remove('hidden');
+                    selectElement.innerHTML = `
+                        <option value="ideal">iDEAL</option>
+                        <option value="creditcard">Kreditkarte</option>
+                        <option value="banktransfer">Banküberweisung</option>
+                        <option value="paypal">PayPal</option>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error loading payment methods:', error);
+                
+                // Fallback to basic select
+                const loadingDiv = document.getElementById('payment-methods-loading');
+                const selectElement = document.getElementById('payment-method-select');
+                
+                loadingDiv.classList.add('hidden');
+                selectElement.classList.remove('hidden');
+                selectElement.innerHTML = `
+                    <option value="ideal">iDEAL</option>
+                    <option value="creditcard">Kreditkarte</option>
+                    <option value="banktransfer">Banküberweisung</option>
+                    <option value="paypal">PayPal</option>
+                `;
+            }
+        }
+        
+        function selectPaymentMethod(methodId) {
+            // Update visual selection
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                const indicator = card.querySelector('.radio-indicator');
+                if (card.dataset.method === methodId) {
+                    card.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900');
+                    card.classList.remove('border-gray-200', 'dark:border-gray-600');
+                    indicator.classList.add('border-blue-500', 'bg-blue-500');
+                    indicator.classList.remove('border-gray-300');
+                    indicator.innerHTML = '<div class="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>';
+                } else {
+                    card.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900');
+                    card.classList.add('border-gray-200', 'dark:border-gray-600');
+                    indicator.classList.remove('border-blue-500', 'bg-blue-500');
+                    indicator.classList.add('border-gray-300');
+                    indicator.innerHTML = '';
+                }
+            });
+            
+            // Update select value
+            document.getElementById('payment-method-select').value = methodId;
         }
 
         function closeModal() {
