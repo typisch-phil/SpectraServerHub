@@ -58,6 +58,9 @@ switch ($path) {
     case '/api/payment/webhook':
         include '../api/payment/webhook.php';
         break;
+    case '/api/debug-session':
+        include '../api/debug-session.php';
+        break;
     default:
         http_response_code(404);
         include '../pages/404.php';
