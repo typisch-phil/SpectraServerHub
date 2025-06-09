@@ -27,14 +27,9 @@ function requireAdmin() {
     }
 }
 
-function isLoggedIn() {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-    return isset($_SESSION['user']);
-}
+// Functions isLoggedIn() and getCurrentUser() are now defined in config.php
 
-function getCurrentUser() {
+function getSessionUser() {
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
