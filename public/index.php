@@ -11,11 +11,6 @@ $path = parse_url($request, PHP_URL_PATH);
 // Route handling
 switch ($path) {
     case '/':
-        // Redirect logged in users to dashboard
-        if (isset($_SESSION['user']) && $_SESSION['user']) {
-            header('Location: /dashboard');
-            exit;
-        }
         include '../pages/home.php';
         break;
     case '/login':
