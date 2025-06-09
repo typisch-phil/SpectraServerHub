@@ -32,8 +32,9 @@ try {
     $file = $_FILES['attachment'];
     
     // Check if user has access to this ticket
+    global $db;
     $user = getCurrentUser();
-    $ticketCheck = $pdo->prepare("SELECT user_id FROM tickets WHERE id = ?");
+    $ticketCheck = $db->prepare("SELECT user_id FROM tickets WHERE id = ?");
     $ticketCheck->execute([$ticket_id]);
     $ticket = $ticketCheck->fetch();
     
@@ -78,7 +79,7 @@ try {
     
     if (move_uploaded_file($file['tmp_name'], $filepath)) {
         // Store file info in database
-        $stmt = $pdo->prepare("
+        $stmt = $db->prepare("
             INSERT INTO ticket_attachments (ticket_id, reply_id, user_id, filename, original_filename, file_size, file_type, created_at) 
             VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
         ");

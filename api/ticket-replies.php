@@ -15,6 +15,9 @@ if (!isLoggedIn()) {
 $method = $_SERVER['REQUEST_METHOD'];
 $user_id = $_SESSION['user_id'];
 
+// Get database instance
+global $db;
+
 try {
     switch ($method) {
         case 'GET':
@@ -29,7 +32,7 @@ try {
             $user = getCurrentUser();
             
             // Check if user has access to this ticket
-            $ticketCheck = $database->prepare("SELECT user_id FROM tickets WHERE id = ?");
+            $ticketCheck = $db->prepare("SELECT user_id FROM tickets WHERE id = ?");
             $ticketCheck->execute([$ticket_id]);
             $ticket = $ticketCheck->fetch();
             
@@ -39,7 +42,7 @@ try {
                 exit;
             }
             
-            $stmt = $database->prepare("
+            $stmt = $db->prepare("
                 SELECT r.*, u.first_name, u.last_name, u.role,
                        GROUP_CONCAT(a.filename) as attachments
                 FROM ticket_replies r 
@@ -86,7 +89,7 @@ try {
             $user = getCurrentUser();
             
             // Check if user has access to this ticket
-            $ticketCheck = $database->prepare("SELECT user_id, status FROM tickets WHERE id = ?");
+            $ticketCheck = $db->prepare("SELECT user_id, status FROM tickets WHERE id = ?");
             $ticketCheck->execute([$ticket_id]);
             $ticket = $ticketCheck->fetch();
             
@@ -103,17 +106,17 @@ try {
             }
             
             // Insert reply
-            $stmt = $database->prepare("
+            $stmt = $db->prepare("
                 INSERT INTO ticket_replies (ticket_id, user_id, message, created_at) 
                 VALUES (?, ?, ?, datetime('now'))
             ");
             
             if ($stmt->execute([$ticket_id, $user_id, $message])) {
-                $reply_id = $database->lastInsertId();
+                $reply_id = $db->lastInsertId();
                 
                 // Update ticket status and timestamp
                 $new_status = ($user['role'] === 'admin') ? 'waiting_customer' : 'open';
-                $updateStmt = $database->prepare("
+                $updateStmt = $db->prepare("
                     UPDATE tickets 
                     SET status = ?, updated_at = datetime('now') 
                     WHERE id = ?

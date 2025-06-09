@@ -3,7 +3,7 @@ const path = require('path');
 
 console.log('Starting SpectraHost PHP Server...');
 
-const phpServer = spawn('php', ['-S', '0.0.0.0:5000', '-t', 'public'], {
+const phpServer = spawn('php', ['-S', '0.0.0.0:5000', 'router.php'], {
   cwd: __dirname,
   stdio: 'inherit'
 });
