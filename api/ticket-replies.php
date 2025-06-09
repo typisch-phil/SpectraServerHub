@@ -77,8 +77,13 @@ try {
             break;
             
         case 'POST':
-            // Create new reply
+            // Create new reply - support both JSON and FormData
             $input = json_decode(file_get_contents('php://input'), true);
+            
+            // If JSON parsing failed, try $_POST (FormData)
+            if (!$input) {
+                $input = $_POST;
+            }
             
             if (!$input || !isset($input['ticket_id']) || !isset($input['message'])) {
                 http_response_code(400);
