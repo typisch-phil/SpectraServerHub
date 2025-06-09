@@ -1,5 +1,9 @@
 <?php
+require_once '../includes/config.php';
+require_once '../includes/database.php';
 require_once '../includes/auth.php';
+require_once '../includes/layout.php';
+
 requireLogin();
 
 $title = 'Dashboard - SpectraHost';
@@ -9,20 +13,24 @@ renderHeader($title, $description);
 $user_id = $_SESSION['user']['id'];
 
 // Get user balance and stats
+$database = Database::getInstance();
+$user = getCurrentUser();
+$user_id = $user['id'];
+
 try {
-    $stmt = $db->prepare("SELECT balance FROM users WHERE id = ?");
+    $stmt = $database->prepare("SELECT balance FROM users WHERE id = ?");
     $stmt->execute([$user_id]);
     $user_balance = $stmt->fetchColumn() ?: 0.00;
     
-    $stmt = $db->prepare("SELECT COUNT(*) FROM user_services WHERE user_id = ? AND status = 'active'");
+    $stmt = $database->prepare("SELECT COUNT(*) FROM user_services WHERE user_id = ? AND status = 'active'");
     $stmt->execute([$user_id]);
     $active_services = $stmt->fetchColumn();
     
-    $stmt = $db->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ? AND status = 'pending'");
+    $stmt = $database->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ? AND status = 'pending'");
     $stmt->execute([$user_id]);
     $pending_orders = $stmt->fetchColumn();
     
-    $stmt = $db->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id = ? AND status IN ('open', 'answered')");
+    $stmt = $database->prepare("SELECT COUNT(*) FROM support_tickets WHERE user_id = ? AND status IN ('open', 'answered')");
     $stmt->execute([$user_id]);
     $open_tickets = $stmt->fetchColumn();
 } catch (Exception $e) {

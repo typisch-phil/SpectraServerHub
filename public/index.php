@@ -20,7 +20,10 @@ switch ($path) {
         include '../pages/register.php';
         break;
     case '/dashboard':
-        include '../pages/dashboard.php';
+        include '../pages/dashboard_new.php';
+        break;
+    case '/admin':
+        include '../pages/admin/dashboard.php';
         break;
     case '/order':
         include '../pages/order.php';
@@ -45,6 +48,12 @@ switch ($path) {
         break;
     case '/api/services':
         include '../api/services.php';
+        break;
+    case '/api/user/services':
+        include '../api/user/services.php';
+        break;
+    case '/api/user/add-balance':
+        include '../api/user/add-balance.php';
         break;
     case '/api/payment/webhook':
         include '../api/payment/webhook.php';
