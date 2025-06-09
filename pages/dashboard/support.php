@@ -219,9 +219,15 @@ renderHeader('Support - SpectraHost Dashboard');
                     <input type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="Kurze Beschreibung des Problems" required>
                 </div>
                 
-                <div class="mb-6">
+                <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nachricht</label>
-                    <textarea rows="6" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="Beschreiben Sie Ihr Problem so detailliert wie möglich..." required></textarea>
+                    <textarea id="ticket-message" rows="6" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="Beschreiben Sie Ihr Problem so detailliert wie möglich..." required></textarea>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Anhänge (optional)</label>
+                    <input type="file" id="ticket-attachments" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt,.doc,.docx,.zip" multiple>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Unterstützte Dateiformate: Bilder, PDF, Textdateien, Word-Dokumente, ZIP (max. 10MB pro Datei)</p>
                 </div>
                 
                 <div class="flex space-x-3">
