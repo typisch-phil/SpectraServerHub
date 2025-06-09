@@ -214,7 +214,11 @@ renderHeader($title, $description);
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         <?php foreach ($tickets as $ticket): ?>
-                        <tr>
+                        <tr class="ticket-row" data-ticket-id="<?= $ticket['id'] ?>" data-status="<?= $ticket['status'] ?>" data-priority="<?= $ticket['priority'] ?>">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="checkbox" class="ticket-checkbox rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" 
+                                       value="<?= $ticket['id'] ?>" onchange="updateSelectedCount()">
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">#<?= $ticket['id'] ?></td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium text-gray-900 dark:text-white"><?= htmlspecialchars($ticket['subject']) ?></div>
@@ -260,7 +264,16 @@ renderHeader($title, $description);
                                         <?= $priorityTexts[$ticket['priority']] ?? ucfirst($ticket['priority']) ?>
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300"><?= date('d.m.Y H:i', strtotime($ticket['created_at'])) ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-comments mr-1"></i>
+                                        <?= $ticket['reply_count'] ?? 0 ?>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                                    <div><?= date('d.m.Y', strtotime($ticket['created_at'])) ?></div>
+                                    <div class="text-xs text-gray-500"><?= date('H:i', strtotime($ticket['created_at'])) ?></div>
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex space-x-2">
                                         <button onclick="viewTicket(<?= $ticket['id'] ?>)" 
@@ -688,6 +701,157 @@ renderHeader($title, $description);
                 : '<i class="fas fa-moon text-gray-600"></i>';
         }
 
+        // Bulk Actions and Filtering
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAllTable');
+            const checkboxes = document.querySelectorAll('.ticket-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.ticket-checkbox:checked');
+            const count = checkboxes.length;
+            
+            document.getElementById('selectedCount').textContent = `${count} ausgewählt`;
+            document.getElementById('bulkActionBtn').disabled = count === 0;
+            
+            // Update select all checkbox state
+            const allCheckboxes = document.querySelectorAll('.ticket-checkbox');
+            const selectAllCheckbox = document.getElementById('selectAllTable');
+            
+            if (count === 0) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+            } else if (count === allCheckboxes.length) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = true;
+            } else {
+                selectAllCheckbox.indeterminate = true;
+                selectAllCheckbox.checked = false;
+            }
+        }
+
+        function executeBulkAction() {
+            const action = document.getElementById('bulkAction').value;
+            const selectedTickets = Array.from(document.querySelectorAll('.ticket-checkbox:checked')).map(cb => cb.value);
+            
+            if (!action || selectedTickets.length === 0) {
+                alert('Bitte wählen Sie eine Aktion und mindestens ein Ticket aus');
+                return;
+            }
+            
+            let confirmMessage = '';
+            let statusUpdate = '';
+            
+            switch (action) {
+                case 'mark-solved':
+                    confirmMessage = `${selectedTickets.length} Ticket(s) als gelöst markieren?`;
+                    statusUpdate = 'closed';
+                    break;
+                case 'mark-progress':
+                    confirmMessage = `${selectedTickets.length} Ticket(s) in Bearbeitung setzen?`;
+                    statusUpdate = 'in_progress';
+                    break;
+                case 'mark-waiting':
+                    confirmMessage = `${selectedTickets.length} Ticket(s) auf Kunde warten setzen?`;
+                    statusUpdate = 'waiting_customer';
+                    break;
+                case 'delete':
+                    confirmMessage = `${selectedTickets.length} Ticket(s) PERMANENT löschen? Diese Aktion kann nicht rückgängig gemacht werden!`;
+                    break;
+            }
+            
+            if (!confirm(confirmMessage)) return;
+            
+            if (action === 'delete') {
+                // Delete tickets
+                Promise.all(selectedTickets.map(ticketId => 
+                    fetch(`/api/tickets.php?id=${ticketId}`, { method: 'DELETE' })
+                        .then(response => response.json())
+                ))
+                .then(results => {
+                    const successful = results.filter(r => r.success).length;
+                    alert(`${successful} von ${selectedTickets.length} Tickets gelöscht`);
+                    setTimeout(() => location.reload(), 1000);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Fehler beim Löschen der Tickets');
+                });
+            } else {
+                // Update status
+                Promise.all(selectedTickets.map(ticketId => 
+                    fetch(`/api/tickets.php?id=${ticketId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: statusUpdate })
+                    }).then(response => response.json())
+                ))
+                .then(results => {
+                    const successful = results.filter(r => r.success).length;
+                    alert(`${successful} von ${selectedTickets.length} Tickets aktualisiert`);
+                    setTimeout(() => location.reload(), 1000);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Fehler beim Aktualisieren der Tickets');
+                });
+            }
+        }
+
+        function refreshTickets() {
+            location.reload();
+        }
+
+        // Filtering functionality
+        function initializeFilters() {
+            const statusFilter = document.getElementById('statusFilter');
+            const priorityFilter = document.getElementById('priorityFilter');
+            const searchFilter = document.getElementById('searchFilter');
+            
+            if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+            if (priorityFilter) priorityFilter.addEventListener('change', applyFilters);
+            if (searchFilter) searchFilter.addEventListener('input', applyFilters);
+        }
+
+        function applyFilters() {
+            const statusFilter = document.getElementById('statusFilter')?.value || '';
+            const priorityFilter = document.getElementById('priorityFilter')?.value || '';
+            const searchTerm = document.getElementById('searchFilter')?.value.toLowerCase() || '';
+            
+            const rows = document.querySelectorAll('.ticket-row');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const status = row.dataset.status;
+                const priority = row.dataset.priority;
+                const text = row.textContent.toLowerCase();
+                
+                const statusMatch = !statusFilter || status === statusFilter;
+                const priorityMatch = !priorityFilter || priority === priorityFilter;
+                const searchMatch = !searchTerm || text.includes(searchTerm);
+                
+                const visible = statusMatch && priorityMatch && searchMatch;
+                
+                row.style.display = visible ? '' : 'none';
+                if (visible) visibleCount++;
+            });
+            
+            const filteredCountEl = document.getElementById('filteredCount');
+            if (filteredCountEl) {
+                filteredCountEl.textContent = `Zeige ${visibleCount} von <?= count($tickets) ?> Tickets`;
+            }
+            
+            // Reset selections when filtering
+            document.querySelectorAll('.ticket-checkbox').forEach(cb => cb.checked = false);
+            updateSelectedCount();
+        }
+
         // Initialize theme on page load
         document.addEventListener('DOMContentLoaded', function() {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -699,6 +863,10 @@ renderHeader($title, $description);
             if (themeToggle) {
                 themeToggle.addEventListener('click', toggleTheme);
             }
+            
+            // Initialize filters
+            initializeFilters();
+            updateSelectedCount();
         });
     </script>
 </div>
