@@ -497,12 +497,23 @@ renderHeader($title, $description);
                         type === 'error' ? 'exclamation-triangle' : 
                         type === 'info' ? 'info-circle' : 'bell';
             
-            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${bgColor} max-w-md`;
+            // Create unique position for multiple notifications
+            const existingNotifications = document.querySelectorAll('.notification-item');
+            const topOffset = 16 + (existingNotifications.length * 120);
+            
+            notification.className = `notification-item fixed right-4 p-4 rounded-lg text-white z-50 ${bgColor} max-w-sm shadow-lg`;
+            notification.style.top = `${topOffset}px`;
+            
+            // Format multi-line messages properly
+            const formattedMessage = message.replace(/\n/g, '<br>');
+            
             notification.innerHTML = `
-                <div class="flex items-center">
-                    <i class="fas fa-${icon} mr-2"></i>
-                    <span class="text-sm">${message}</span>
-                    <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+                <div class="flex items-start">
+                    <i class="fas fa-${icon} mr-3 mt-1 flex-shrink-0"></i>
+                    <div class="flex-1">
+                        <div class="text-sm whitespace-pre-line">${formattedMessage}</div>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200 flex-shrink-0">
                         <i class="fas fa-times text-xs"></i>
                     </button>
                 </div>
@@ -510,11 +521,15 @@ renderHeader($title, $description);
             
             document.body.appendChild(notification);
             
+            // Auto-remove with longer duration for detailed messages
+            const duration = message.length > 200 ? 8000 : (type === 'info' ? 6000 : 4000);
             setTimeout(() => {
                 if (notification.parentNode) {
-                    notification.remove();
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => notification.remove(), 300);
                 }
-            }, type === 'info' ? 5000 : 3000);
+            }, duration);
         }
 
         // Specific integration functions using dedicated APIs
@@ -556,21 +571,70 @@ renderHeader($title, $description);
                         
                         // Show detailed results for successful tests
                         if (integration === 'proxmox' && result.details.nodes !== undefined) {
-                            showNotification('success', 
-                                `Proxmox: ${result.details.version} | ${result.details.nodes} Nodes | ${result.details.vms} VMs | ${result.details.response_time}`
-                            );
+                            const detailMsg = `🟢 Proxmox VE Connected
+                            Version: ${result.details.version} (${result.details.release})
+                            Infrastructure: ${result.details.nodes} Node(s), ${result.details.vms} VM(s)
+                            Response Time: ${result.details.response_time}
+                            Status: Ready for automated server deployment`;
+                            
+                            setTimeout(() => {
+                                showNotification('info', detailMsg);
+                            }, 1000);
+                            
                         } else if (integration === 'mollie' && result.details.profile_name) {
-                            showNotification('success', 
-                                `Mollie: ${result.details.profile_name} | ${result.details.available_methods.length} Methods | ${result.details.response_time}`
-                            );
+                            const mode = result.details.test_mode ? 'Test Mode' : 'Live Mode';
+                            const detailMsg = `🟢 Mollie Payment Gateway Connected
+                            Profile: ${result.details.profile_name} (${result.details.profile_email})
+                            Mode: ${mode}
+                            Payment Methods: ${result.details.available_methods.join(', ')}
+                            Recent Payments: ${result.details.recent_payments}
+                            Response Time: ${result.details.response_time}
+                            Status: Ready for payment processing`;
+                            
+                            setTimeout(() => {
+                                showNotification('info', detailMsg);
+                            }, 1000);
                         }
                     }
                 } else {
                     showNotification('error', result.message);
-                    if (result.details && result.details.suggestion) {
-                        setTimeout(() => {
-                            showNotification('info', result.details.suggestion);
-                        }, 2000);
+                    if (result.details) {
+                        let troubleshootMsg = '';
+                        
+                        if (integration === 'proxmox') {
+                            troubleshootMsg = `❌ Proxmox VE Connection Failed
+                            Error: ${result.details.error || 'Unknown error'}
+                            
+                            Troubleshooting Steps:
+                            1. Verify Proxmox host is reachable
+                            2. Check username and password
+                            3. Ensure API access is enabled
+                            4. Verify SSL certificate or disable SSL verification
+                            5. Check firewall settings (Port 8006)`;
+                            
+                        } else if (integration === 'mollie') {
+                            troubleshootMsg = `❌ Mollie API Connection Failed
+                            Error: ${result.details.error || 'Unknown error'}
+                            
+                            Troubleshooting Steps:
+                            1. Verify API key is correct (starts with live_ or test_)
+                            2. Check API key permissions in Mollie dashboard
+                            3. Ensure account is activated for payments
+                            4. Verify webhook URL is accessible
+                            5. Check network connectivity`;
+                        }
+                        
+                        if (troubleshootMsg) {
+                            setTimeout(() => {
+                                showNotification('error', troubleshootMsg);
+                            }, 2000);
+                        }
+                        
+                        if (result.details.suggestion) {
+                            setTimeout(() => {
+                                showNotification('info', result.details.suggestion);
+                            }, 4000);
+                        }
                     }
                 }
             } catch (error) {
