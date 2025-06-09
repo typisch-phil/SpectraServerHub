@@ -162,13 +162,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadServices() {
     try {
-        const response = await SpectraHost.apiRequest('/api/services');
+        const response = await apiRequest('/api/services');
         if (response.success) {
             renderServices(response.services);
         }
     } catch (error) {
         console.error('Error loading services:', error);
-        SpectraHost.showNotification('Fehler beim Laden der Services', 'error');
+        showNotification('Fehler beim Laden der Services', 'error');
     }
 }
 
@@ -290,7 +290,7 @@ function selectService(serviceId) {
     }
     
     updatePricing();
-    SpectraHost.openModal('orderModal');
+    openModal('orderModal');
 }
 
 function updatePricing() {
@@ -322,7 +322,7 @@ function updatePricing() {
     document.getElementById('yearly-price').textContent = 
         `€${(basePrice * 12 * 0.85).toFixed(2)} (15% Rabatt)`;
     
-    document.getElementById('total-amount').textContent = SpectraHost.formatCurrency(totalAmount);
+    document.getElementById('total-amount').textContent = formatCurrency(totalAmount);
 }
 
 async function handleOrderSubmit(e) {
@@ -334,11 +334,11 @@ async function handleOrderSubmit(e) {
     if (currentService.type === 'vps' || currentService.type === 'gameserver') {
         const serverName = document.getElementById('serverName').value.trim();
         if (!serverName) {
-            SpectraHost.showNotification('Bitte geben Sie einen Server-Namen ein', 'error');
+            showNotification('Bitte geben Sie einen Server-Namen ein', 'error');
             return;
         }
         if (!/^[a-zA-Z0-9-]+$/.test(serverName)) {
-            SpectraHost.showNotification('Server-Name darf nur Buchstaben, Zahlen und Bindestriche enthalten', 'error');
+            showNotification('Server-Name darf nur Buchstaben, Zahlen und Bindestriche enthalten', 'error');
             return;
         }
     }
@@ -346,29 +346,29 @@ async function handleOrderSubmit(e) {
     if (currentService.type === 'domain') {
         const domainName = document.getElementById('domainName').value.trim();
         if (!domainName) {
-            SpectraHost.showNotification('Bitte geben Sie einen Domain-Namen ein', 'error');
+            showNotification('Bitte geben Sie einen Domain-Namen ein', 'error');
             return;
         }
         if (!/^[a-zA-Z0-9-]+$/.test(domainName)) {
-            SpectraHost.showNotification('Domain-Name darf nur Buchstaben, Zahlen und Bindestriche enthalten', 'error');
+            showNotification('Domain-Name darf nur Buchstaben, Zahlen und Bindestriche enthalten', 'error');
             return;
         }
     }
     
-    SpectraHost.setLoading(btn, true);
+    setLoading(btn, true);
     
     try {
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData);
         
-        const result = await SpectraHost.apiRequest('/api/order', 'POST', data);
+        const result = await apiRequest('/api/order', 'POST', data);
         
         if (result.paymentUrl) {
             // Redirect to payment
             window.location.href = result.paymentUrl;
         } else {
-            SpectraHost.showNotification('Bestellung erfolgreich erstellt!', 'success');
-            SpectraHost.closeModal();
+            showNotification('Bestellung erfolgreich erstellt!', 'success');
+            closeModal();
             
             // Redirect to dashboard after success
             setTimeout(() => {
@@ -377,10 +377,10 @@ async function handleOrderSubmit(e) {
         }
         
     } catch (error) {
-        SpectraHost.showNotification(error.message, 'error');
+        showNotification(error.message, 'error');
     }
     
-    SpectraHost.setLoading(btn, false);
+    setLoading(btn, false);
 }
 </script>
 

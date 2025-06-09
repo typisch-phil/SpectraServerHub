@@ -283,6 +283,88 @@ function renderFooter() {
                 element.textContent = element.originalText || element.textContent;
             }
         }
+        
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('de-DE', {
+                style: 'currency',
+                currency: 'EUR'
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            return new Intl.DateTimeFormat('de-DE', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }).format(new Date(dateString));
+        }
+
+        function formatDateTime(dateString) {
+            return new Intl.DateTimeFormat('de-DE', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(new Date(dateString));
+        }
+        
+        function getStatusClass(status) {
+            const classes = {
+                'active': 'bg-green-100 text-green-800',
+                'pending': 'bg-yellow-100 text-yellow-800',
+                'suspended': 'bg-red-100 text-red-800',
+                'terminated': 'bg-gray-100 text-gray-800',
+                'paid': 'bg-green-100 text-green-800',
+                'failed': 'bg-red-100 text-red-800',
+                'cancelled': 'bg-gray-100 text-gray-800'
+            };
+            return classes[status] || 'bg-gray-100 text-gray-800';
+        }
+        
+        function getStatusText(status) {
+            const texts = {
+                'active': 'Aktiv',
+                'pending': 'Ausstehend',
+                'suspended': 'Gesperrt',
+                'terminated': 'Beendet',
+                'paid': 'Bezahlt',
+                'failed': 'Fehlgeschlagen',
+                'cancelled': 'Storniert'
+            };
+            return texts[status] || status;
+        }
+        
+        // Modal functions
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeModal() {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                modal.classList.add('hidden');
+            });
+            document.body.style.overflow = '';
+        }
+        
+        // Close modal with escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+        
+        // Close modal when clicking overlay
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>
