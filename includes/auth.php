@@ -42,14 +42,15 @@ class Auth {
         $stmt = $this->db->prepare("UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
         $stmt->execute([$user['id']]);
         
-        // Set session
+        // Set session - map is_admin to role for compatibility
         $_SESSION['user'] = [
             'id' => $user['id'],
             'email' => $user['email'],
             'first_name' => $user['first_name'],
             'last_name' => $user['last_name'],
-            'role' => $user['role'],
-            'balance' => $user['balance']
+            'role' => $user['is_admin'] ? 'admin' : 'user',
+            'balance' => $user['balance'],
+            'is_admin' => $user['is_admin']
         ];
         $_SESSION['login_time'] = time();
         

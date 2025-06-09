@@ -55,7 +55,8 @@ class Database {
             $this->createTables();
             $this->insertDefaultData();
         } else {
-            $this->updateSchema();
+            // Database already exists, ensure compatibility
+            $this->ensureCompatibility();
         }
     }
     
@@ -188,21 +189,56 @@ class Database {
         }
     }
     
-    private function updateSchema() {
-        // Get database name from environment
-        $dbname = $_ENV['MYSQL_DATABASE'] ?? 'spectrahost';
-        
-        // Check if assigned_to column exists in tickets table
-        $result = $this->connection->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '$dbname' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'assigned_to'");
-        if ($result->rowCount() == 0) {
-            $this->connection->exec("ALTER TABLE tickets ADD COLUMN assigned_to INT NULL");
-            $this->connection->exec("ALTER TABLE tickets ADD CONSTRAINT fk_tickets_assigned_to FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL");
-        }
-        
-        // Check if category column exists in tickets table  
-        $result = $this->connection->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '$dbname' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'category'");
-        if ($result->rowCount() == 0) {
-            $this->connection->exec("ALTER TABLE tickets ADD COLUMN category VARCHAR(50) DEFAULT 'general'");
+    private function ensureCompatibility() {
+        // Ensure compatibility with existing MySQL database structure
+        try {
+            // Create tickets table if it doesn't exist (since we have support_tickets)
+            $result = $this->connection->query("SHOW TABLES LIKE 'tickets'");
+            if ($result->rowCount() == 0) {
+                $this->connection->exec("
+                    CREATE TABLE IF NOT EXISTS tickets (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id INT NOT NULL,
+                        subject TEXT NOT NULL,
+                        message TEXT NOT NULL,
+                        status VARCHAR(50) DEFAULT 'open',
+                        priority VARCHAR(20) DEFAULT 'medium',
+                        category VARCHAR(50) DEFAULT 'general',
+                        assigned_to INT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                        FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                ");
+            }
+            
+            // Create ticket_replies table
+            $result = $this->connection->query("SHOW TABLES LIKE 'ticket_replies'");
+            if ($result->rowCount() == 0) {
+                $this->connection->exec("
+                    CREATE TABLE IF NOT EXISTS ticket_replies (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        ticket_id INT NOT NULL,
+                        user_id INT NOT NULL,
+                        message TEXT NOT NULL,
+                        is_internal BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                ");
+            }
+            
+            // Ensure users table has role column
+            $dbname = $_ENV['MYSQL_DATABASE'];
+            $result = $this->connection->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '$dbname' AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'");
+            if ($result->rowCount() == 0) {
+                $this->connection->exec("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'");
+            }
+            
+        } catch (Exception $e) {
+            error_log("Database compatibility check failed: " . $e->getMessage());
         }
     }
     
