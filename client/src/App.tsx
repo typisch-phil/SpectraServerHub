@@ -20,6 +20,8 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/contact" component={Contact} />
+      <Route path="/impressum" component={Impressum} />
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />

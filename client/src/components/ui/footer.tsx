@@ -1,4 +1,5 @@
 import { Facebook, Twitter, Linkedin } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Footer() {
   return (
@@ -37,7 +38,7 @@ export default function Footer() {
               <li><a href="#" className="hover:text-white transition-colors duration-200">Hilfe-Center</a></li>
               <li><a href="#" className="hover:text-white transition-colors duration-200">Dokumentation</a></li>
               <li><a href="#" className="hover:text-white transition-colors duration-200">Status</a></li>
-              <li><a href="#" className="hover:text-white transition-colors duration-200">Kontakt</a></li>
+              <li><Link href="/contact"><span className="hover:text-white transition-colors duration-200 cursor-pointer">Kontakt</span></Link></li>
             </ul>
           </div>
           
@@ -47,7 +48,7 @@ export default function Footer() {
               <li><a href="#" className="hover:text-white transition-colors duration-200">Über uns</a></li>
               <li><a href="#" className="hover:text-white transition-colors duration-200">Karriere</a></li>
               <li><a href="#" className="hover:text-white transition-colors duration-200">Datenschutz</a></li>
-              <li><a href="#" className="hover:text-white transition-colors duration-200">AGB</a></li>
+              <li><Link href="/impressum"><span className="hover:text-white transition-colors duration-200 cursor-pointer">Impressum</span></Link></li>
             </ul>
           </div>
         </div>

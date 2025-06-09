@@ -37,12 +37,11 @@ export default function Nav() {
                 >
                   Features
                 </button>
-                <button 
-                  onClick={() => scrollToSection('contact')}
-                  className="text-gray-600 hover:text-primary transition-colors duration-200"
-                >
-                  Contact
-                </button>
+                <Link href="/contact">
+                  <span className="text-gray-600 hover:text-primary transition-colors duration-200 cursor-pointer">
+                    Kontakt
+                  </span>
+                </Link>
               </div>
             </div>
           </div>
