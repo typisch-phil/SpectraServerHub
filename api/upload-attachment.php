@@ -81,7 +81,7 @@ try {
         // Store file info in database
         $stmt = $db->prepare("
             INSERT INTO ticket_attachments (ticket_id, reply_id, user_id, filename, original_filename, file_size, file_type, created_at) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
         ");
         
         if ($stmt->execute([$ticket_id, $reply_id, $user_id, $filename, $file['name'], $file['size'], $file['type']])) {

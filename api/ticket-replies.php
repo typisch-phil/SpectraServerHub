@@ -133,7 +133,7 @@ try {
                 $new_status = ($user['role'] === 'admin') ? 'waiting_customer' : 'open';
                 $updateStmt = $db->prepare("
                     UPDATE tickets 
-                    SET status = ?, updated_at = datetime('now') 
+                    SET status = ?, updated_at = NOW() 
                     WHERE id = ?
                 ");
                 $updateStmt->execute([$new_status, $ticket_id]);

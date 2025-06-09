@@ -23,7 +23,7 @@ if (isset($_POST['create_ticket'])) {
     
     $stmt = $db->prepare("
         INSERT INTO tickets (user_id, category, priority, subject, message, status, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, ?, 'open', datetime('now'), datetime('now'))
+        VALUES (?, ?, ?, ?, ?, 'open', NOW(), NOW())
     ");
     
     if ($stmt->execute([$user['id'], $category, $priority, $subject, $message])) {
