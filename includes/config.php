@@ -69,4 +69,52 @@ if (!file_exists(TICKET_ATTACHMENTS_PATH)) {
 if (!file_exists(dirname(LOG_FILE))) {
     mkdir(dirname(LOG_FILE), 0755, true);
 }
+
+// Database Connection
+try {
+    $dsn = DB_TYPE . ':host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+    $db = new PDO($dsn, DB_USER, DB_PASS, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+    ]);
+} catch (PDOException $e) {
+    // For development, show error. In production, log it.
+    if (APP_ENV === 'development') {
+        die('Database connection failed: ' . $e->getMessage());
+    } else {
+        error_log('Database connection failed: ' . $e->getMessage());
+        die('Database connection failed. Please contact support.');
+    }
+}
+
+// Session Management
+if (session_status() == PHP_SESSION_NONE) {
+    session_name(SESSION_NAME);
+    session_start();
+}
+
+// Helper Functions
+function isLoggedIn() {
+    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+}
+
+function getCurrentUser() {
+    if (!isLoggedIn()) {
+        return null;
+    }
+    return $_SESSION['user'] ?? null;
+}
+
+function generateCSRFToken() {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verifyCSRFToken($token) {
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
 ?>
