@@ -37,7 +37,8 @@ try {
                 // Get specific ticket
                 $ticket_id = intval($_GET['id']);
                 
-                $query = "SELECT t.*, u.first_name, u.last_name, u.email 
+                $query = "SELECT t.*, u.first_name, u.last_name, u.email,
+                                CONCAT(u.first_name, ' ', u.last_name) as customer_name
                          FROM tickets t 
                          LEFT JOIN users u ON t.user_id = u.id 
                          WHERE t.id = ?";
@@ -54,11 +55,47 @@ try {
                 $ticket = $stmt->fetch();
                 if (!$ticket) {
                     http_response_code(404);
-                    echo json_encode(['error' => 'Ticket not found']);
+                    echo json_encode(['success' => false, 'error' => 'Ticket not found']);
                     exit;
                 }
                 
-                echo json_encode($ticket);
+                $result = [
+                    'success' => true,
+                    'ticket' => $ticket
+                ];
+                
+                // Include replies if requested
+                if (isset($_GET['include_replies']) && $_GET['include_replies']) {
+                    $reply_query = "SELECT r.*, u.first_name, u.last_name,
+                                          CONCAT(u.first_name, ' ', u.last_name) as author_name
+                                   FROM ticket_replies r
+                                   LEFT JOIN users u ON r.user_id = u.id
+                                   WHERE r.ticket_id = ?
+                                   ORDER BY r.created_at ASC";
+                    
+                    $reply_stmt = $db->prepare($reply_query);
+                    $reply_stmt->execute([$ticket_id]);
+                    $replies = $reply_stmt->fetchAll();
+                    
+                    $result['replies'] = $replies;
+                }
+                
+                // Include attachments if any
+                $attachment_query = "SELECT * FROM ticket_attachments 
+                                   WHERE ticket_id = ? OR reply_id IN (
+                                       SELECT id FROM ticket_replies WHERE ticket_id = ?
+                                   )
+                                   ORDER BY created_at ASC";
+                
+                $attachment_stmt = $db->prepare($attachment_query);
+                $attachment_stmt->execute([$ticket_id, $ticket_id]);
+                $attachments = $attachment_stmt->fetchAll();
+                
+                if ($attachments) {
+                    $result['attachments'] = $attachments;
+                }
+                
+                echo json_encode($result);
             } else {
                 // Get all tickets for user or all tickets if admin
                 if ($user['role'] === 'admin') {

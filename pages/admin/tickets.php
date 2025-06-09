@@ -410,6 +410,71 @@ renderHeader($title, $description);
             </div>
         </div>
     </div>
+
+    <!-- Image Viewer Modal -->
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
+        <div class="max-w-4xl max-h-screen p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
+                <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                    <h3 id="imageModalTitle" class="text-lg font-medium text-gray-900 dark:text-white">Bild anzeigen</h3>
+                    <button onclick="closeImageModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-4">
+                    <img id="imageModalImg" src="" alt="" class="max-w-full max-h-96 mx-auto">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Modal -->
+    <div id="assignmentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full mx-4">
+            <form id="assignmentForm" onsubmit="handleAssignmentSubmit(event)">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Ticket zuweisen</h3>
+                        <button type="button" onclick="closeAssignmentModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <input type="hidden" id="assignTicketId" name="ticket_id">
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zuweisung</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="assignment" value="self" checked class="text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Mir zuweisen</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="assignment" value="unassign" class="text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Zuweisung entfernen</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="assignmentNote" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notiz (optional)</label>
+                        <textarea id="assignmentNote" name="note" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                  placeholder="Grund für Zuweisung..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="px-6 py-3 bg-gray-50 dark:bg-gray-700 flex justify-end space-x-3">
+                    <button type="button" onclick="closeAssignmentModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500">
+                        Abbrechen
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                        Zuweisen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -788,6 +853,200 @@ function applyFilters() {
     });
 }
 
+// Image Modal Functions
+function showImageModal(imagePath, filename) {
+    document.getElementById('imageModalTitle').textContent = filename;
+    document.getElementById('imageModalImg').src = imagePath;
+    document.getElementById('imageModalImg').alt = filename;
+    document.getElementById('imageModal').classList.remove('hidden');
+    document.getElementById('imageModal').classList.add('flex');
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').classList.add('hidden');
+    document.getElementById('imageModal').classList.remove('flex');
+}
+
+// Assignment Functions
+function assignTicket(ticketId) {
+    document.getElementById('assignTicketId').value = ticketId;
+    document.getElementById('assignmentNote').value = '';
+    document.querySelector('input[name="assignment"][value="self"]').checked = true;
+    
+    document.getElementById('assignmentModal').classList.remove('hidden');
+    document.getElementById('assignmentModal').classList.add('flex');
+}
+
+function closeAssignmentModal() {
+    document.getElementById('assignmentModal').classList.add('hidden');
+    document.getElementById('assignmentModal').classList.remove('flex');
+}
+
+function handleAssignmentSubmit(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const ticketId = formData.get('ticket_id');
+    const assignment = formData.get('assignment');
+    const note = formData.get('note');
+    
+    const assignedTo = assignment === 'self' ? <?php echo $user['id']; ?> : null;
+    
+    fetch(`/api/tickets.php?id=${ticketId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ assigned_to: assignedTo })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Add internal note if provided
+            if (note && note.trim()) {
+                const actionText = assignment === 'self' ? 'zugewiesen' : 'Zuweisung entfernt';
+                return fetch('/api/ticket-replies.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ticket_id: ticketId,
+                        message: `Ticket ${actionText}\nNotiz: ${note}`,
+                        is_internal: 1
+                    })
+                });
+            }
+            
+            return Promise.resolve({ ok: true, json: () => ({ success: true }) });
+        } else {
+            throw new Error(result.error || 'Fehler beim Zuweisen des Tickets');
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        throw new Error('Fehler beim Hinzufügen der Notiz');
+    })
+    .then(() => {
+        closeAssignmentModal();
+        showNotification('Ticket erfolgreich zugewiesen', 'success');
+        setTimeout(() => location.reload(), 1000);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Fehler: ' + error.message, 'error');
+    });
+}
+
+// Enhanced viewTicket function with attachments and actions
+function viewTicketEnhanced(ticketId) {
+    fetch(`/api/tickets.php?id=${ticketId}&include_replies=true`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const ticket = data.ticket;
+                document.getElementById('viewTicketTitle').textContent = `#${ticket.id} - ${ticket.subject}`;
+                
+                let content = `
+                    <div class="space-y-4">
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="font-medium text-gray-900 dark:text-white">${ticket.customer_name}</span>
+                                <span class="text-sm text-gray-500 dark:text-gray-400">${new Date(ticket.created_at).toLocaleString('de-DE')}</span>
+                            </div>
+                            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${ticket.message}</p>
+                        </div>
+                `;
+                
+                if (data.replies && data.replies.length > 0) {
+                    data.replies.forEach(reply => {
+                        const bgColor = reply.is_internal ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
+                        content += `
+                            <div class="${bgColor} border p-4 rounded-lg">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="font-medium text-gray-900 dark:text-white">${reply.author_name}</span>
+                                    <span class="text-sm text-gray-500 dark:text-gray-400">${new Date(reply.created_at).toLocaleString('de-DE')}</span>
+                                </div>
+                                <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${reply.message}</p>
+                                ${reply.is_internal ? '<span class="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Interne Notiz</span>' : ''}
+                            </div>
+                        `;
+                    });
+                }
+                
+                // Add attachments if any
+                if (data.attachments && data.attachments.length > 0) {
+                    content += `
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                            <h4 class="font-medium text-gray-900 dark:text-white mb-3">Anhänge</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    `;
+                    
+                    data.attachments.forEach(attachment => {
+                        if (attachment.mime_type && attachment.mime_type.startsWith('image/')) {
+                            content += `
+                                <div class="relative">
+                                    <img src="${attachment.file_path}" alt="${attachment.original_filename}" 
+                                         class="w-full h-24 object-cover rounded-lg cursor-pointer"
+                                         onclick="showImageModal('${attachment.file_path}', '${attachment.original_filename}')">
+                                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b-lg truncate">
+                                        ${attachment.original_filename}
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            content += `
+                                <a href="${attachment.file_path}" download="${attachment.original_filename}"
+                                   class="flex items-center space-x-2 p-2 bg-white dark:bg-gray-600 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-500">
+                                    <i class="fas fa-file text-gray-500"></i>
+                                    <span class="text-sm truncate">${attachment.original_filename}</span>
+                                </a>
+                            `;
+                        }
+                    });
+                    
+                    content += `</div></div>`;
+                }
+                
+                content += '</div>';
+                document.getElementById('viewTicketContent').innerHTML = content;
+                
+                // Update modal footer with action buttons
+                const modalFooter = document.querySelector('#viewModal .flex.justify-end');
+                modalFooter.innerHTML = `
+                    <button onclick="assignTicket(${ticket.id})" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 mr-2">
+                        <i class="fas fa-user-plus mr-1"></i>Zuweisen
+                    </button>
+                    <button onclick="replyToTicket(${ticket.id}); closeViewModal();" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 mr-2">
+                        <i class="fas fa-reply mr-1"></i>Antworten
+                    </button>
+                    <button onclick="updateTicketStatus(${ticket.id}, '${ticket.status}'); closeViewModal();" class="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 mr-2">
+                        <i class="fas fa-edit mr-1"></i>Status ändern
+                    </button>
+                    <button onclick="closeViewModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
+                        Schließen
+                    </button>
+                `;
+                
+                document.getElementById('viewModal').classList.remove('hidden');
+                document.getElementById('viewModal').classList.add('flex');
+            } else {
+                showNotification('Fehler beim Laden des Tickets: ' + (data.error || 'Unbekannter Fehler'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Fehler beim Laden des Tickets', 'error');
+        });
+}
+
+// Override the original viewTicket function
+function viewTicket(ticketId) {
+    viewTicketEnhanced(ticketId);
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     // Theme initialization
@@ -811,6 +1070,8 @@ document.addEventListener('DOMContentLoaded', function() {
             closeReplyModal();
             closeStatusModal();
             closeBulkActionsModal();
+            closeImageModal();
+            closeAssignmentModal();
         }
     });
 });
