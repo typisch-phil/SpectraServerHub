@@ -1,10 +1,18 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once '../includes/layout.php';
 require_once '../includes/auth.php';
+require_once '../includes/functions.php';
 
-// Require authentication
-$auth->requireLogin();
-$user = $auth->getCurrentUser();
+// Check if user is logged in
+if (!isLoggedIn()) {
+    header('Location: /login');
+    exit;
+}
+
+$user = getCurrentUser();
 
 renderHeader('Dashboard - SpectraHost');
 ?>
@@ -177,6 +185,9 @@ async function loadDashboardData() {
             renderRecentOrders(ordersResponse.orders);
         }
 
+        // Load support tickets count
+        await loadTicketStats();
+
     } catch (error) {
         console.error('Error loading dashboard data:', error);
         showNotification('Fehler beim Laden der Dashboard-Daten', 'error');
@@ -280,7 +291,6 @@ function updateStats(services) {
     
     document.getElementById('active-services-count').textContent = activeServices;
     document.getElementById('pending-orders-count').textContent = pendingOrders;
-    document.getElementById('support-tickets-count').textContent = '0'; // TODO: Implement
     
     // Find next expiration date
     const activeSvcs = services.filter(s => s.status === 'active');
@@ -291,6 +301,32 @@ function updateStats(services) {
         document.getElementById('next-payment').textContent = formatDate(nextExpiry.expires_at);
     } else {
         document.getElementById('next-payment').textContent = '-';
+    }
+}
+
+async function loadTicketStats() {
+    try {
+        const response = await fetch('/api/tickets.php', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const tickets = await response.json();
+            const openTickets = tickets.filter(ticket => 
+                ticket.status === 'open' || ticket.status === 'waiting_customer'
+            ).length;
+            
+            document.getElementById('support-tickets-count').textContent = openTickets;
+        } else {
+            document.getElementById('support-tickets-count').textContent = '0';
+        }
+    } catch (error) {
+        console.error('Error loading ticket stats:', error);
+        document.getElementById('support-tickets-count').textContent = '0';
     }
 }
 
