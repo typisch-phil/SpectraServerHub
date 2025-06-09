@@ -227,6 +227,90 @@ function renderFooter() {
             }
         });
         
+        // Check login status and update navigation
+        async function updateNavigation() {
+            try {
+                const response = await fetch('/api/user/status');
+                const data = await response.json();
+                
+                const desktopNav = document.querySelector('.hidden.md\\:flex .space-x-8');
+                const mobileNav = document.querySelector('#mobile-menu .space-y-2');
+                
+                if (!desktopNav || !mobileNav) return;
+                
+                // Clear existing auth-related navigation
+                const authElements = desktopNav.querySelectorAll('[href*="login"], [href*="register"], [href*="dashboard"], [href*="admin"], button[onclick*="logout"]');
+                authElements.forEach(el => el.remove());
+                
+                const mobileAuthElements = mobileNav.querySelectorAll('[href*="login"], [href*="register"], [href*="dashboard"], [href*="admin"], button[onclick*="logout"]');
+                mobileAuthElements.forEach(el => el.remove());
+                
+                if (data.isLoggedIn) {
+                    // Add authenticated navigation
+                    const dashboardLink = document.createElement('a');
+                    dashboardLink.href = '/dashboard';
+                    dashboardLink.className = 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors';
+                    dashboardLink.innerHTML = '<i class="fas fa-tachometer-alt mr-1"></i>Dashboard';
+                    
+                    if (data.user && data.user.role === 'admin') {
+                        const adminLink = document.createElement('a');
+                        adminLink.href = '/admin';
+                        adminLink.className = 'text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors';
+                        adminLink.innerHTML = '<i class="fas fa-cog mr-1"></i>Admin Panel';
+                        desktopNav.appendChild(adminLink);
+                        
+                        const mobileAdminLink = adminLink.cloneNode(true);
+                        mobileAdminLink.className = 'block py-2 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400';
+                        mobileNav.appendChild(mobileAdminLink);
+                    }
+                    
+                    const logoutBtn = document.createElement('button');
+                    logoutBtn.onclick = logout;
+                    logoutBtn.className = 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors';
+                    logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt mr-1"></i>Abmelden';
+                    
+                    desktopNav.appendChild(dashboardLink);
+                    desktopNav.appendChild(logoutBtn);
+                    
+                    const mobileDashboardLink = dashboardLink.cloneNode(true);
+                    mobileDashboardLink.className = 'block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400';
+                    
+                    const mobileLogoutBtn = document.createElement('button');
+                    mobileLogoutBtn.onclick = logout;
+                    mobileLogoutBtn.className = 'w-full text-left py-2 text-red-500 hover:text-red-600';
+                    mobileLogoutBtn.innerHTML = '<i class="fas fa-sign-out-alt mr-1"></i>Abmelden';
+                    
+                    mobileNav.appendChild(mobileDashboardLink);
+                    mobileNav.appendChild(mobileLogoutBtn);
+                } else {
+                    // Add guest navigation
+                    const loginLink = document.createElement('a');
+                    loginLink.href = '/login';
+                    loginLink.className = 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors';
+                    loginLink.textContent = 'Anmelden';
+                    
+                    const registerLink = document.createElement('a');
+                    registerLink.href = '/register';
+                    registerLink.className = 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors';
+                    registerLink.textContent = 'Registrieren';
+                    
+                    desktopNav.appendChild(loginLink);
+                    desktopNav.appendChild(registerLink);
+                    
+                    const mobileLoginLink = loginLink.cloneNode(true);
+                    mobileLoginLink.className = 'block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400';
+                    
+                    const mobileRegisterLink = registerLink.cloneNode(true);
+                    mobileRegisterLink.className = 'block py-2 text-blue-500 hover:text-blue-600';
+                    
+                    mobileNav.appendChild(mobileLoginLink);
+                    mobileNav.appendChild(mobileRegisterLink);
+                }
+            } catch (error) {
+                console.error('Failed to update navigation:', error);
+            }
+        }
+
         // Logout function
         async function logout() {
             try {

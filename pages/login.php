@@ -111,12 +111,10 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             messageDiv.className = 'mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded';
             messageDiv.textContent = result.message;
             
-            // Redirect after success
-            setTimeout(() => {
-                const urlParams = new URLSearchParams(window.location.search);
-                const redirect = urlParams.get('redirect') || '/dashboard';
-                window.location.href = redirect;
-            }, 1000);
+            // Redirect immediately after success
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect') || '/dashboard';
+            window.location.href = redirect;
         } else {
             messageDiv.className = 'mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded';
             messageDiv.textContent = result.error;
