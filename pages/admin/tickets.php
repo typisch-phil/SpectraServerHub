@@ -54,7 +54,8 @@ if ($stmt->fetchColumn() == 0) {
 
 // Get all tickets with user information
 $stmt = $database->prepare("
-    SELECT t.*, u.name, u.email 
+    SELECT t.*, u.email, 
+           COALESCE(u.name, CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) as user_name
     FROM tickets t 
     JOIN users u ON t.user_id = u.id 
     ORDER BY t.created_at DESC
@@ -136,7 +137,7 @@ renderHeader($title, $description);
                                 <div class="text-sm text-gray-500 dark:text-gray-400"><?= htmlspecialchars(substr($ticket['message'], 0, 50)) ?>...</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900 dark:text-white"><?= htmlspecialchars($ticket['name'] ?? 'Unknown User') ?></div>
+                                <div class="text-sm text-gray-900 dark:text-white"><?= htmlspecialchars($ticket['user_name'] ?? 'Unknown User') ?></div>
                                 <div class="text-sm text-gray-500 dark:text-gray-400"><?= htmlspecialchars($ticket['email']) ?></div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -202,17 +203,52 @@ renderHeader($title, $description);
             const statuses = ['open', 'pending', 'closed'];
             const statusTexts = {'open': 'Offen', 'pending': 'In Bearbeitung', 'closed': 'Geschlossen'};
             
-            let options = '';
-            statuses.forEach(status => {
-                const selected = status === currentStatus ? 'selected' : '';
-                options += `<option value="${status}" ${selected}>${statusTexts[status]}</option>`;
-            });
-            
             const newStatus = prompt(`Status für Ticket #${ticketId} ändern:\n\nNeuen Status wählen:`, currentStatus);
             if (newStatus && statuses.includes(newStatus)) {
                 alert(`Ticket #${ticketId} Status geändert zu: ${statusTexts[newStatus]}`);
             }
         }
+
+        function logout() {
+            window.location.href = '/api/logout';
+        }
+
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.classList.remove('dark', 'light');
+            html.classList.add(newTheme);
+            
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            const themeToggle = document.getElementById('theme-toggle');
+            const isDark = document.documentElement.classList.contains('dark');
+            themeToggle.innerHTML = isDark 
+                ? '<i class="fas fa-sun text-yellow-500"></i>'
+                : '<i class="fas fa-moon text-gray-600"></i>';
+        }
+
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.classList.add(savedTheme);
+            updateThemeIcon();
+            
+            // Add event listener to theme toggle button
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', toggleTheme);
+            }
+        });
     </script>
+</div>
+
+<?php renderFooter(); ?>
 </body>
 </html>
