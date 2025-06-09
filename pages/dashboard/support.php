@@ -110,8 +110,26 @@ renderHeader('Support - SpectraHost Dashboard');
                 </div>
             </div>
 
-            <!-- FAQ Section -->
+            <!-- Tickets Section -->
             <div class="lg:col-span-2">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md mb-8">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Meine Support-Tickets</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Verwalten Sie Ihre Support-Anfragen</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div id="tickets-container">
+                            <!-- Tickets will be loaded here by JavaScript -->
+                            <div class="text-center py-8">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                                <p class="text-gray-500 dark:text-gray-400 mt-2">Lade Tickets...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Section -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md" id="faq">
                     <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                         <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Häufig gestellte Fragen</h2>
@@ -406,14 +424,7 @@ renderHeader('Support - SpectraHost Dashboard');
             }
         }
 
-        document.getElementById('ticketForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Here you would send the ticket data to your backend
-            alert('Ticket wurde erfolgreich erstellt! Sie erhalten eine Bestätigung per E-Mail.');
-            closeModal();
-            this.reset();
-        });
+
 
         // Close modal with escape key
         document.addEventListener('keydown', function(e) {
