@@ -1,12 +1,28 @@
 <?php
-require_once '../includes/session.php';
-requireLogin();
-requireAdmin();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/../../includes/database.php';
+require_once __DIR__ . '/../../includes/layout.php';
 
-$db = Database::getInstance();
+// Check if user is logged in and is admin
+if (!isset($_SESSION['user_id'])) {
+    header('Location: /login');
+    exit;
+}
+
+$database = Database::getInstance();
+$stmt = $database->prepare("SELECT role FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$user = $stmt->fetch();
+
+if (!$user || $user['role'] !== 'admin') {
+    header('Location: /dashboard');
+    exit;
+}
 
 // Create tickets table if not exists and add sample data
-$db->getConnection()->exec("
+$database->getConnection()->exec("
     CREATE TABLE IF NOT EXISTS tickets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -21,7 +37,7 @@ $db->getConnection()->exec("
 ");
 
 // Check if tickets exist, if not add sample data
-$stmt = $db->prepare("SELECT COUNT(*) FROM tickets");
+$stmt = $database->prepare("SELECT COUNT(*) FROM tickets");
 $stmt->execute();
 if ($stmt->fetchColumn() == 0) {
     $sampleTickets = [
@@ -30,91 +46,105 @@ if ($stmt->fetchColumn() == 0) {
         [1, 'Backup Anfrage', 'Benötige ein Backup meiner Website vom letzten Freitag.', 'closed', 'low']
     ];
     
-    $stmt = $db->prepare("INSERT INTO tickets (user_id, subject, message, status, priority) VALUES (?, ?, ?, ?, ?)");
+    $stmt = $database->prepare("INSERT INTO tickets (user_id, subject, message, status, priority) VALUES (?, ?, ?, ?, ?)");
     foreach ($sampleTickets as $ticket) {
         $stmt->execute($ticket);
     }
 }
 
 // Get all tickets with user information
-$stmt = $db->prepare("
-    SELECT t.*, u.first_name, u.last_name, u.email 
+$stmt = $database->prepare("
+    SELECT t.*, u.name, u.email 
     FROM tickets t 
     JOIN users u ON t.user_id = u.id 
     ORDER BY t.created_at DESC
 ");
 $stmt->execute();
 $tickets = $stmt->fetchAll();
+
+$title = 'Support-Tickets - SpectraHost Admin';
+$description = 'Verwalten Sie Kundenanfragen und Support-Tickets';
+renderHeader($title, $description);
 ?>
 
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket-System - SpectraHost Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-gray-50">
-    <div class="min-h-screen">
-        <!-- Navigation -->
-        <nav class="bg-white shadow-lg">
-            <div class="max-w-7xl mx-auto px-4">
-                <div class="flex justify-between items-center h-16">
-                    <div class="flex items-center">
-                        <a href="/admin" class="text-blue-600 hover:text-blue-800">
-                            <i class="fas fa-arrow-left mr-2"></i>Admin Dashboard
-                        </a>
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Admin Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-blue-600 dark:text-blue-400">SpectraHost</a>
+                    <div class="ml-8 flex space-x-4">
+                        <a href="/admin" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Admin Panel</a>
+                        <a href="/admin/users" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Benutzer</a>
+                        <a href="/admin/tickets" class="text-blue-600 dark:text-blue-400 font-medium border-b-2 border-blue-600 pb-1">Tickets</a>
+                        <a href="/admin/services" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Services</a>
+                        <a href="/admin/invoices" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Rechnungen</a>
+                        <a href="/admin/integrations" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Integrationen</a>
                     </div>
-                    <h1 class="text-xl font-bold">Ticket-System</h1>
-                    <div>
-                        <a href="/api/logout" class="text-red-600 hover:text-red-800">
-                            <i class="fas fa-sign-out-alt mr-1"></i>Abmelden
-                        </a>
-                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                        <i class="fas fa-user mr-2"></i>Zum Dashboard
+                    </a>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-sign-out-alt mr-1"></i>Abmelden
+                    </button>
+                    
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-moon dark:hidden"></i>
+                        <i class="fas fa-sun hidden dark:inline"></i>
+                    </button>
                 </div>
             </div>
-        </nav>
+        </div>
+    </nav>
 
-        <!-- Main Content -->
-        <div class="max-w-7xl mx-auto py-6 px-4">
-            <div class="bg-white rounded-lg shadow">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Support-Tickets</h2>
-                </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Betreff</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kunde</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priorität</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Erstellt</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <?php foreach ($tickets as $ticket): ?>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#<?= $ticket['id'] ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900"><?= htmlspecialchars($ticket['subject']) ?></div>
-                                    <div class="text-sm text-gray-500"><?= htmlspecialchars(substr($ticket['message'], 0, 50)) ?>...</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900"><?= htmlspecialchars($ticket['first_name'] . ' ' . $ticket['last_name']) ?></div>
-                                    <div class="text-sm text-gray-500"><?= htmlspecialchars($ticket['email']) ?></div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Support-Tickets</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">Verwalten Sie Kundenanfragen und Support-Tickets</p>
+        </div>
+
+        <!-- Tickets Table -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Support-Tickets</h2>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Betreff</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kunde</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Priorität</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Erstellt</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        <?php foreach ($tickets as $ticket): ?>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">#<?= $ticket['id'] ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white"><?= htmlspecialchars($ticket['subject']) ?></div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400"><?= htmlspecialchars(substr($ticket['message'], 0, 50)) ?>...</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900 dark:text-white"><?= htmlspecialchars($ticket['name'] ?? 'Unknown User') ?></div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400"><?= htmlspecialchars($ticket['email']) ?></div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
                                     <?php
                                     $statusColors = [
-                                        'open' => 'bg-red-100 text-red-800',
-                                        'pending' => 'bg-yellow-100 text-yellow-800',
-                                        'closed' => 'bg-green-100 text-green-800'
+                                        'open' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                                        'pending' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                                        'closed' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                                     ];
                                     $statusTexts = [
                                         'open' => 'Offen',
@@ -122,17 +152,17 @@ $tickets = $stmt->fetchAll();
                                         'closed' => 'Geschlossen'
                                     ];
                                     ?>
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $statusColors[$ticket['status']] ?? 'bg-gray-100 text-gray-800' ?>">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $statusColors[$ticket['status']] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' ?>">
                                         <?= $statusTexts[$ticket['status']] ?? ucfirst($ticket['status']) ?>
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <?php
                                     $priorityColors = [
-                                        'low' => 'bg-blue-100 text-blue-800',
-                                        'normal' => 'bg-gray-100 text-gray-800',
-                                        'high' => 'bg-orange-100 text-orange-800',
-                                        'urgent' => 'bg-red-100 text-red-800'
+                                        'low' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                        'normal' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+                                        'high' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+                                        'urgent' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                     ];
                                     $priorityTexts = [
                                         'low' => 'Niedrig',
@@ -141,16 +171,16 @@ $tickets = $stmt->fetchAll();
                                         'urgent' => 'Dringend'
                                     ];
                                     ?>
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $priorityColors[$ticket['priority']] ?? 'bg-gray-100 text-gray-800' ?>">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $priorityColors[$ticket['priority']] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' ?>">
                                         <?= $priorityTexts[$ticket['priority']] ?? ucfirst($ticket['priority']) ?>
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= date('d.m.Y H:i', strtotime($ticket['created_at'])) ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300"><?= date('d.m.Y H:i', strtotime($ticket['created_at'])) ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <button onclick="viewTicket(<?= $ticket['id'] ?>)" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                    <button onclick="viewTicket(<?= $ticket['id'] ?>)" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3">
                                         <i class="fas fa-eye"></i>
                                     </button>
-                                    <button onclick="updateStatus(<?= $ticket['id'] ?>, '<?= $ticket['status'] ?>')" class="text-green-600 hover:text-green-900">
+                                    <button onclick="updateStatus(<?= $ticket['id'] ?>, '<?= $ticket['status'] ?>')" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                 </td>
