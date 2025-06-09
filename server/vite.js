@@ -17,7 +17,6 @@ export async function setupVite(app, server) {
     },
   });
 
-  app.use(vite.ssrLoadModule);
   app.use(vite.middlewares);
 }
 
