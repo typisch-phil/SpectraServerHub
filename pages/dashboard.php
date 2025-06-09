@@ -385,6 +385,57 @@ async function controlServer(serviceId, action) {
         showNotification(error.message, 'error');
     }
 }
+
+// Helper functions for formatting
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('de-DE');
+}
+
+function formatDateTime(dateString) {
+    return new Date(dateString).toLocaleString('de-DE');
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('de-DE', {
+        style: 'currency',
+        currency: 'EUR'
+    }).format(amount);
+}
+
+function getStatusClass(status) {
+    const classes = {
+        'active': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+        'pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+        'suspended': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+        'terminated': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
+        'paid': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+        'failed': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+        'cancelled': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+    };
+    return classes[status] || 'bg-gray-100 text-gray-800';
+}
+
+function getStatusText(status) {
+    const texts = {
+        'active': 'Aktiv',
+        'pending': 'Ausstehend',
+        'suspended': 'Gesperrt',
+        'terminated': 'Beendet',
+        'paid': 'Bezahlt',
+        'failed': 'Fehlgeschlagen',
+        'cancelled': 'Storniert'
+    };
+    return texts[status] || status;
+}
+
+function showNotification(message, type = 'info') {
+    // Simple notification for now
+    if (type === 'error') {
+        alert('Fehler: ' + message);
+    } else {
+        alert(message);
+    }
+}
 </script>
 
 <?php renderFooter(); ?>
