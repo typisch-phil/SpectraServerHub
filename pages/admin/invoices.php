@@ -141,8 +141,8 @@ renderHeader($title, $description);
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zahlungsart</label>
                     <select id="methodFilter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                         <option value="">Alle Arten</option>
+                        <option value="mollie">Mollie</option>
                         <option value="paypal">PayPal</option>
-                        <option value="stripe">Stripe</option>
                         <option value="manual">Manuell</option>
                         <option value="bank_transfer">Überweisung</option>
                     </select>
@@ -287,7 +287,7 @@ renderHeader($title, $description);
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                             <option value="manual">Manuell</option>
                             <option value="paypal">PayPal</option>
-                            <option value="stripe">Stripe</option>
+                            <option value="mollie">Mollie</option>
                             <option value="bank_transfer">Überweisung</option>
                         </select>
                     </div>
@@ -545,7 +545,7 @@ function getStatusBadge(status) {
 function getMethodBadge(method) {
     const badges = {
         'paypal': '<span class="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded-full text-xs font-medium">PayPal</span>',
-        'stripe': '<span class="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-2 py-1 rounded-full text-xs font-medium">Stripe</span>',
+        'mollie': '<span class="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-2 py-1 rounded-full text-xs font-medium">Mollie</span>',
         'manual': '<span class="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 rounded-full text-xs font-medium">Manuell</span>',
         'bank_transfer': '<span class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded-full text-xs font-medium">Überweisung</span>'
     };
@@ -619,7 +619,7 @@ function openCreateInvoiceModal() {
     document.getElementById('invoiceId').value = '';
     document.getElementById('currency').value = 'EUR';
     document.getElementById('status').value = 'pending';
-    document.getElementById('paymentMethod').value = 'manual';
+    document.getElementById('paymentMethod').value = 'mollie';
     
     document.getElementById('invoiceModal').classList.remove('hidden');
 }

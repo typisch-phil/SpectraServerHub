@@ -153,7 +153,7 @@ try {
                 $input['service_id'] ?? null,
                 floatval($input['amount']),
                 $input['currency'] ?? 'EUR',
-                $input['payment_method'] ?? 'manual',
+                $input['payment_method'] ?? 'mollie',
                 $input['payment_id'] ?? 'MANUAL_' . uniqid(),
                 $input['status'] ?? 'pending'
             ]);
