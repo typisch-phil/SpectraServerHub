@@ -1,8 +1,9 @@
 <?php
 require_once __DIR__ . '/../includes/layout.php';
+require_once __DIR__ . '/../includes/auth.php';
 
 // Redirect if already logged in
-if (isset($_SESSION['user_id'])) {
+if (isLoggedIn()) {
     header('Location: /dashboard');
     exit;
 }

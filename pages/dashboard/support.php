@@ -277,6 +277,7 @@ renderHeader('Support - SpectraHost Dashboard');
                     headers: {
                         'Content-Type': 'application/json',
                     },
+                    credentials: 'same-origin',
                     body: JSON.stringify({
                         category: category,
                         priority: priority,

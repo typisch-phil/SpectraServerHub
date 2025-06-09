@@ -57,9 +57,7 @@ class Auth {
     }
     
     public function isLoggedIn() {
-        return isset($_SESSION['user_id']) && 
-               isset($_SESSION['login_time']) && 
-               (time() - $_SESSION['login_time']) < SESSION_TIMEOUT;
+        return isset($_SESSION['user']) && is_array($_SESSION['user']) && isset($_SESSION['user']['id']);
     }
     
     public function requireLogin() {
@@ -74,9 +72,7 @@ class Auth {
             return null;
         }
         
-        $stmt = $this->db->prepare("SELECT * FROM users WHERE id = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        return $stmt->fetch();
+        return $_SESSION['user'];
     }
     
     public function requireAdmin() {
