@@ -47,10 +47,10 @@ try {
                     <a href="/" class="text-xl font-bold text-blue-600 dark:text-blue-400">SpectraHost</a>
                     <div class="ml-8 flex space-x-4">
                         <a href="/dashboard" class="text-blue-600 dark:text-blue-400 font-medium border-b-2 border-blue-600 pb-1">Dashboard</a>
-                        <a href="#" onclick="showSection('services')" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Meine Services</a>
-                        <a href="#" onclick="showSection('invoices')" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Rechnungen</a>
-                        <a href="#" onclick="showSection('tickets')" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Support</a>
-                        <a href="#" onclick="showSection('profile')" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Profil</a>
+                        <a href="/dashboard/services" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Meine Services</a>
+                        <a href="/dashboard/billing" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Billing</a>
+                        <a href="/dashboard/support" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Support</a>
+                        <a href="/order" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Bestellen</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">

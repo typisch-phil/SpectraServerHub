@@ -20,7 +20,16 @@ switch ($path) {
         include '../pages/register.php';
         break;
     case '/dashboard':
-        include '../pages/dashboard_new.php';
+        include '../pages/dashboard/index.php';
+        break;
+    case '/dashboard/services':
+        include '../pages/dashboard/services.php';
+        break;
+    case '/dashboard/billing':
+        include '../pages/dashboard/billing.php';
+        break;
+    case '/dashboard/support':
+        include '../pages/dashboard/support.php';
         break;
     case '/admin':
         include '../pages/admin/dashboard.php';
