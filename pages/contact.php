@@ -240,7 +240,7 @@ document.getElementById('contactForm').addEventListener('submit', async function
         statusDiv.textContent = 'Fehler beim Senden der Nachricht. Bitte versuchen Sie es erneut.';
     }
     
-    SpectraHost.setLoading(btn, false);
+    setLoading(btn, false);
 });
 
 function toggleFAQ(button) {

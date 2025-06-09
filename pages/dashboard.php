@@ -140,7 +140,7 @@ renderHeader('Dashboard - SpectraHost');
         <div class="modal-panel">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold" id="modal-title">Server Verwaltung</h3>
-                <button onclick="SpectraHost.closeModal()" class="text-gray-400 hover:text-gray-600">
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -150,7 +150,7 @@ renderHeader('Dashboard - SpectraHost');
             </div>
             
             <div class="flex justify-end space-x-3 mt-6">
-                <button onclick="SpectraHost.closeModal()" class="btn-outline">Abbrechen</button>
+                <button onclick="closeModal()" class="btn-outline">Abbrechen</button>
                 <button id="modal-action-btn" class="btn-primary">Ausführen</button>
             </div>
         </div>

@@ -46,7 +46,7 @@ renderHeader('Service bestellen - SpectraHost');
         <div class="modal-panel max-w-2xl">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-semibold">Service bestellen</h3>
-                <button onclick="SpectraHost.closeModal()" class="text-gray-400 hover:text-gray-600">
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -125,7 +125,7 @@ renderHeader('Service bestellen - SpectraHost');
                 </div>
                 
                 <div class="flex justify-end space-x-3">
-                    <button type="button" onclick="SpectraHost.closeModal()" class="btn-outline">
+                    <button type="button" onclick="closeModal()" class="btn-outline">
                         Abbrechen
                     </button>
                     <button type="submit" id="order-btn" class="btn-primary">
