@@ -5,6 +5,11 @@ require_once __DIR__ . '/../includes/auth.php';
 
 header('Content-Type: application/json');
 
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Check if user is logged in
 if (!isLoggedIn()) {
     http_response_code(401);
@@ -13,10 +18,13 @@ if (!isLoggedIn()) {
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
-$user_id = $_SESSION['user_id'];
 
 // Get database instance
 global $db;
+
+// Get user ID from session
+$user = getCurrentUser();
+$user_id = $user ? $user['id'] : null;
 
 try {
     switch ($method) {

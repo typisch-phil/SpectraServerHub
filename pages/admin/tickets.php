@@ -52,6 +52,8 @@ if ($stmt->fetchColumn() == 0) {
     }
 }
 
+global $db;
+
 // Get all tickets with user information and reply count
 $stmt = $db->prepare("
     SELECT t.*, u.email, u.first_name, u.last_name,
@@ -216,13 +218,43 @@ renderHeader($title, $description);
             alert('Ticket Details anzeigen: #' + ticketId);
         }
 
+        async function updateTicketStatus(ticketId, status) {
+            try {
+                const response = await fetch(`/api/tickets.php?id=${ticketId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        status: status
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('Fehler: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Ein Fehler ist aufgetreten.');
+            }
+        }
+        
         function updateStatus(ticketId, currentStatus) {
-            const statuses = ['open', 'pending', 'closed'];
-            const statusTexts = {'open': 'Offen', 'pending': 'In Bearbeitung', 'closed': 'Geschlossen'};
+            const statuses = ['open', 'in_progress', 'waiting_customer', 'closed'];
+            const statusTexts = {
+                'open': 'Offen', 
+                'in_progress': 'In Bearbeitung', 
+                'waiting_customer': 'Wartet auf Kunde',
+                'closed': 'Geschlossen'
+            };
             
-            const newStatus = prompt(`Status für Ticket #${ticketId} ändern:\n\nNeuen Status wählen:`, currentStatus);
+            const newStatus = prompt(`Status für Ticket #${ticketId} ändern:\n\nVerfügbare Status: ${Object.values(statusTexts).join(', ')}\n\nNeuen Status eingeben:`, currentStatus);
             if (newStatus && statuses.includes(newStatus)) {
-                alert(`Ticket #${ticketId} Status geändert zu: ${statusTexts[newStatus]}`);
+                updateTicketStatus(ticketId, newStatus);
             }
         }
 
