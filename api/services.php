@@ -7,7 +7,7 @@ try {
     $db = Database::getInstance();
     
     // Get all active services
-    $stmt = $db->prepare("SELECT * FROM services WHERE status = 'active' ORDER BY type, price");
+    $stmt = $db->prepare("SELECT * FROM services WHERE active = 1 ORDER BY type, price");
     $stmt->execute();
     $services = $stmt->fetchAll();
     
