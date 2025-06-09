@@ -57,17 +57,17 @@ renderHeader('Dashboard - SpectraHost');
                 </div>
             </div>
             
-            <div class="card">
+            <a href="/dashboard/support" class="card hover:shadow-lg transition-shadow">
                 <div class="flex items-center">
                     <div class="w-10 h-10 bg-yellow-100 dark:bg-yellow-900 rounded-lg flex items-center justify-center mr-4">
                         <i class="fas fa-ticket-alt text-yellow-600"></i>
                     </div>
                     <div>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Support Tickets</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Offene Tickets</p>
                         <p class="text-2xl font-bold" id="support-tickets-count">-</p>
                     </div>
                 </div>
-            </div>
+            </a>
             
             <div class="card">
                 <div class="flex items-center">
@@ -196,14 +196,18 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadDashboardData() {
     try {
         // Load user services
-        const servicesResponse = await apiRequest('/api/user/services');
+        console.log('Loading services...');
+        const servicesResponse = await apiRequest('/api/user/services.php');
+        console.log('Services response:', servicesResponse);
         if (servicesResponse.success) {
             renderUserServices(servicesResponse.services);
             updateStats(servicesResponse.services);
         }
 
-        // Load recent orders
-        const ordersResponse = await apiRequest('/api/user/orders');
+        // Load recent orders  
+        console.log('Loading orders...');
+        const ordersResponse = await apiRequest('/api/user/orders.php');
+        console.log('Orders response:', ordersResponse);
         if (ordersResponse.success) {
             renderRecentOrders(ordersResponse.orders);
         }
