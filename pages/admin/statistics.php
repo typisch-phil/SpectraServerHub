@@ -49,10 +49,51 @@ try {
     
     $stmt = $pdo->query("SELECT COUNT(*) as count FROM user_services WHERE status = 'active'");
     $activeServices = $stmt->fetch()['count'];
+    
+    // Get monthly revenue data for chart (last 6 months)
+    $stmt = $pdo->query("
+        SELECT 
+            DATE_FORMAT(created_at, '%Y-%m') as month,
+            SUM(amount) as revenue
+        FROM payments 
+        WHERE status = 'paid' 
+        AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ORDER BY month ASC
+    ");
+    $monthlyRevenue = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Get user growth data (last 6 months)
+    $stmt = $pdo->query("
+        SELECT 
+            DATE_FORMAT(created_at, '%Y-%m') as month,
+            COUNT(*) as new_users
+        FROM users 
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ORDER BY month ASC
+    ");
+    $monthlyUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Get service distribution
+    $stmt = $pdo->query("
+        SELECT 
+            s.type,
+            COUNT(us.id) as count
+        FROM services s
+        LEFT JOIN user_services us ON s.id = us.service_id AND us.status = 'active'
+        WHERE s.active = 1
+        GROUP BY s.type
+        ORDER BY count DESC
+    ");
+    $serviceDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     // Set default values if queries fail
     $userCount = $serviceCount = $ticketCount = $paymentCount = $pendingPayments = $activeServices = 0;
     $totalRevenue = $thisMonthRevenue = 0.00;
+    $monthlyRevenue = [];
+    $monthlyUsers = [];
+    $serviceDistribution = [];
     error_log("Statistics query error: " . $e->getMessage());
 }
 
@@ -162,24 +203,42 @@ renderHeader($title, $description);
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <!-- Revenue Chart -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Umsatzentwicklung</h3>
-                <div class="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Umsatzentwicklung</h3>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Letzte 6 Monate</div>
+                </div>
+                <div class="h-64">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
                     <div class="text-center">
-                        <i class="fas fa-chart-line text-4xl text-gray-400 mb-2"></i>
-                        <p class="text-gray-500 dark:text-gray-400">Umsatz-Chart wird hier angezeigt</p>
-                        <p class="text-sm text-gray-400 dark:text-gray-500">Chart.js Integration erforderlich</p>
+                        <p class="text-gray-500 dark:text-gray-400">Diesen Monat</p>
+                        <p class="text-lg font-semibold text-green-600 dark:text-green-400">€<?= number_format($thisMonthRevenue, 2) ?></p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-gray-500 dark:text-gray-400">Bezahlte Rechnungen</p>
+                        <p class="text-lg font-semibold text-blue-600 dark:text-blue-400"><?= number_format($paymentCount) ?></p>
                     </div>
                 </div>
             </div>
 
             <!-- User Growth Chart -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Nutzerwachstum</h3>
-                <div class="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Nutzerwachstum</h3>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Neue Registrierungen</div>
+                </div>
+                <div class="h-64">
+                    <canvas id="userChart"></canvas>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
                     <div class="text-center">
-                        <i class="fas fa-chart-area text-4xl text-gray-400 mb-2"></i>
-                        <p class="text-gray-500 dark:text-gray-400">Benutzer-Wachstum Chart</p>
-                        <p class="text-sm text-gray-400 dark:text-gray-500">Chart.js Integration erforderlich</p>
+                        <p class="text-gray-500 dark:text-gray-400">Gesamt Benutzer</p>
+                        <p class="text-lg font-semibold text-blue-600 dark:text-blue-400"><?= number_format($userCount) ?></p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-gray-500 dark:text-gray-400">Aktive Services</p>
+                        <p class="text-lg font-semibold text-green-600 dark:text-green-400"><?= number_format($activeServices) ?></p>
                     </div>
                 </div>
             </div>
@@ -343,7 +402,15 @@ renderHeader($title, $description);
         </div>
     </div>
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <script>
+        // Prepare chart data from PHP
+        const monthlyRevenueData = <?= json_encode($monthlyRevenue) ?>;
+        const monthlyUsersData = <?= json_encode($monthlyUsers) ?>;
+        const serviceDistributionData = <?= json_encode($serviceDistribution) ?>;
+
         function logout() {
             window.location.href = '/api/logout';
         }
@@ -369,7 +436,86 @@ renderHeader($title, $description);
                 : '<i class="fas fa-moon text-gray-600"></i>';
         }
 
-        // Initialize theme on page load
+        // Initialize charts
+        function initializeCharts() {
+            // Revenue Chart
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: monthlyRevenueData.map(item => {
+                        const date = new Date(item.month + '-01');
+                        return date.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+                    }),
+                    datasets: [{
+                        label: 'Umsatz (€)',
+                        data: monthlyRevenueData.map(item => parseFloat(item.revenue)),
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '€' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // User Growth Chart
+            const userCtx = document.getElementById('userChart').getContext('2d');
+            new Chart(userCtx, {
+                type: 'bar',
+                data: {
+                    labels: monthlyUsersData.map(item => {
+                        const date = new Date(item.month + '-01');
+                        return date.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+                    }),
+                    datasets: [{
+                        label: 'Neue Benutzer',
+                        data: monthlyUsersData.map(item => parseInt(item.new_users)),
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        borderColor: 'rgb(16, 185, 129)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize theme and charts on page load
         document.addEventListener('DOMContentLoaded', function() {
             const savedTheme = localStorage.getItem('theme') || 'light';
             document.documentElement.classList.add(savedTheme);
@@ -380,6 +526,9 @@ renderHeader($title, $description);
             if (themeToggle) {
                 themeToggle.addEventListener('click', toggleTheme);
             }
+
+            // Initialize charts
+            initializeCharts();
         });
     </script>
 </div>
