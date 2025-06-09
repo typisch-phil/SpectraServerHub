@@ -804,26 +804,8 @@ function refreshTickets() {
 }
 
 function logout() {
-    fetch('/api/logout.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.href = '/';
-        } else {
-            // Fallback: redirect directly
-            window.location.href = '/api/logout.php';
-        }
-    })
-    .catch(error => {
-        console.error('Logout error:', error);
-        // Fallback: redirect directly
-        window.location.href = '/api/logout.php';
-    });
+    // Direct redirect approach for immediate logout
+    window.location.href = '/api/logout.php';
 }
 
 // Theme Functions
