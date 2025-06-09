@@ -57,14 +57,14 @@ function createMolliePayment() {
     try {
         // Create payment record in database first
         $stmt = $db->prepare("
-            INSERT INTO payments (user_id, amount, payment_method, status, type, description, created_at) 
-            VALUES (?, ?, ?, 'pending', 'balance_topup', ?, NOW())
+            INSERT INTO payments (user_id, amount, payment_method, status, type, currency, created_at) 
+            VALUES (?, ?, ?, 'pending', 'balance_topup', 'EUR', NOW())
         ");
-        $description = "Guthaben aufladen - €" . number_format($amount, 2);
-        $stmt->execute([$user_id, $amount, $payment_method, $description]);
+        $stmt->execute([$user_id, $amount, $payment_method]);
         $payment_id = $db->lastInsertId();
         
         // Create Mollie payment
+        $description = "Guthaben aufladen - €" . number_format($amount, 2);
         $mollie_data = [
             'amount' => [
                 'currency' => 'EUR',
