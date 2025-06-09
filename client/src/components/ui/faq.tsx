@@ -42,13 +42,13 @@ const faqs = [
 
 export default function FAQ() {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-background">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
             Häufig gestellte Fragen
           </h2>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-muted-foreground">
             Hier finden Sie Antworten auf die wichtigsten Fragen rund um unsere Hosting-Services
           </p>
         </div>
@@ -58,12 +58,12 @@ export default function FAQ() {
             <AccordionItem 
               key={index} 
               value={`item-${index}`}
-              className="border border-gray-200 rounded-lg px-6 hover:shadow-md transition-shadow duration-200"
+              className="border border-border rounded-lg px-6 hover:shadow-md transition-shadow duration-200"
             >
-              <AccordionTrigger className="text-left font-semibold text-gray-900 hover:text-primary">
+              <AccordionTrigger className="text-left font-semibold text-foreground hover:text-primary">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="text-gray-700 leading-relaxed">
+              <AccordionContent className="text-muted-foreground leading-relaxed">
                 {faq.answer}
               </AccordionContent>
             </AccordionItem>
@@ -71,7 +71,7 @@ export default function FAQ() {
         </Accordion>
 
         <div className="text-center mt-12">
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             Haben Sie weitere Fragen? Unser Support-Team hilft Ihnen gerne weiter.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

@@ -30,18 +30,18 @@ const testimonials = [
 
 export default function Testimonials() {
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-20 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Was unsere Kunden sagen</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Was unsere Kunden sagen</h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Über 50.000 zufriedene Kunden vertrauen auf unsere Hosting-Lösungen
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {testimonials.map((testimonial, index) => (
-            <Card key={index} className="relative bg-white hover:shadow-xl transition-shadow duration-300">
+            <Card key={index} className="relative bg-card hover:shadow-xl transition-shadow duration-300">
               <CardContent className="p-8">
                 <div className="absolute top-4 right-4">
                   <Quote className="w-8 h-8 text-primary/20" />
@@ -53,7 +53,7 @@ export default function Testimonials() {
                   ))}
                 </div>
                 
-                <p className="text-gray-700 mb-6 text-lg leading-relaxed">
+                <p className="text-muted-foreground mb-6 text-lg leading-relaxed">
                   "{testimonial.content}"
                 </p>
                 
@@ -64,8 +64,8 @@ export default function Testimonials() {
                     className="w-12 h-12 rounded-full mr-4 object-cover"
                   />
                   <div>
-                    <div className="font-semibold text-gray-900">{testimonial.name}</div>
-                    <div className="text-gray-600 text-sm">{testimonial.role}</div>
+                    <div className="font-semibold text-foreground">{testimonial.name}</div>
+                    <div className="text-muted-foreground text-sm">{testimonial.role}</div>
                     <div className="text-primary text-sm font-medium">{testimonial.company}</div>
                   </div>
                 </div>
