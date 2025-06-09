@@ -1,9 +1,14 @@
 <?php
-session_start();
 require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
 header('Content-Type: application/json');
+
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 if (!isLoggedIn()) {
     http_response_code(401);
@@ -19,6 +24,10 @@ if (!$user) {
 }
 
 try {
+    // Get database instance
+    $database = Database::getInstance();
+    $pdo = $database->getConnection();
+    
     // Get user's tickets
     $stmt = $pdo->prepare("
         SELECT 
