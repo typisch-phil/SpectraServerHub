@@ -1,0 +1,158 @@
+import {
+  users,
+  services,
+  userServices,
+  orders,
+  supportTickets,
+  type User,
+  type UpsertUser,
+  type Service,
+  type InsertService,
+  type UserService,
+  type InsertUserService,
+  type Order,
+  type InsertOrder,
+  type SupportTicket,
+  type InsertSupportTicket,
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc } from "drizzle-orm";
+
+export interface IStorage {
+  // User operations (required for Replit Auth)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
+  // Service operations
+  getServices(): Promise<Service[]>;
+  getService(id: number): Promise<Service | undefined>;
+  createService(service: InsertService): Promise<Service>;
+  
+  // User service operations
+  getUserServices(userId: string): Promise<UserService[]>;
+  createUserService(userService: InsertUserService): Promise<UserService>;
+  updateUserServiceStatus(id: number, status: string): Promise<void>;
+  
+  // Order operations
+  createOrder(order: InsertOrder): Promise<Order>;
+  getOrder(id: number): Promise<Order | undefined>;
+  getUserOrders(userId: string): Promise<Order[]>;
+  updateOrderStatus(id: number, status: string, paymentId?: string): Promise<void>;
+  
+  // Support ticket operations
+  createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
+  getUserSupportTickets(userId: string): Promise<SupportTicket[]>;
+  updateSupportTicketStatus(id: number, status: string): Promise<void>;
+}
+
+export class DatabaseStorage implements IStorage {
+  // User operations
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  // Service operations
+  async getServices(): Promise<Service[]> {
+    return await db.select().from(services).where(eq(services.active, true));
+  }
+
+  async getService(id: number): Promise<Service | undefined> {
+    const [service] = await db.select().from(services).where(eq(services.id, id));
+    return service;
+  }
+
+  async createService(serviceData: InsertService): Promise<Service> {
+    const [service] = await db.insert(services).values(serviceData).returning();
+    return service;
+  }
+
+  // User service operations
+  async getUserServices(userId: string): Promise<UserService[]> {
+    return await db
+      .select()
+      .from(userServices)
+      .where(eq(userServices.userId, userId))
+      .orderBy(desc(userServices.createdAt));
+  }
+
+  async createUserService(userServiceData: InsertUserService): Promise<UserService> {
+    const [userService] = await db
+      .insert(userServices)
+      .values(userServiceData)
+      .returning();
+    return userService;
+  }
+
+  async updateUserServiceStatus(id: number, status: string): Promise<void> {
+    await db
+      .update(userServices)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(userServices.id, id));
+  }
+
+  // Order operations
+  async createOrder(orderData: InsertOrder): Promise<Order> {
+    const [order] = await db.insert(orders).values(orderData).returning();
+    return order;
+  }
+
+  async getOrder(id: number): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    return order;
+  }
+
+  async getUserOrders(userId: string): Promise<Order[]> {
+    return await db
+      .select()
+      .from(orders)
+      .where(eq(orders.userId, userId))
+      .orderBy(desc(orders.createdAt));
+  }
+
+  async updateOrderStatus(id: number, status: string, paymentId?: string): Promise<void> {
+    const updateData: any = { status, updatedAt: new Date() };
+    if (paymentId) {
+      updateData.paymentId = paymentId;
+    }
+    await db.update(orders).set(updateData).where(eq(orders.id, id));
+  }
+
+  // Support ticket operations
+  async createSupportTicket(ticketData: InsertSupportTicket): Promise<SupportTicket> {
+    const [ticket] = await db.insert(supportTickets).values(ticketData).returning();
+    return ticket;
+  }
+
+  async getUserSupportTickets(userId: string): Promise<SupportTicket[]> {
+    return await db
+      .select()
+      .from(supportTickets)
+      .where(eq(supportTickets.userId, userId))
+      .orderBy(desc(supportTickets.createdAt));
+  }
+
+  async updateSupportTicketStatus(id: number, status: string): Promise<void> {
+    await db
+      .update(supportTickets)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(supportTickets.id, id));
+  }
+}
+
+export const storage = new DatabaseStorage();
