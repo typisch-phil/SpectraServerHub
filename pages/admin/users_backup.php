@@ -21,6 +21,11 @@ if (!$user || $user['role'] !== 'admin') {
     exit;
 }
 
+// Get all users
+$stmt = $database->prepare("SELECT * FROM users ORDER BY created_at DESC");
+$stmt->execute();
+$users = $stmt->fetchAll();
+
 $title = 'Benutzerverwaltung - SpectraHost Admin';
 $description = 'Verwalten Sie Benutzerkonten und Zugriffsrechte';
 renderHeader($title, $description);
@@ -506,15 +511,13 @@ function formatDate(dateString) {
 }
 
 function showSuccess(message) {
+    // Simple implementation - can be enhanced with a proper toast system
     alert('Erfolg: ' + message);
 }
 
 function showError(message) {
+    // Simple implementation - can be enhanced with a proper toast system
     alert('Fehler: ' + message);
-}
-
-function logout() {
-    window.location.href = '/api/logout';
 }
 
 // Add real-time search
@@ -541,3 +544,68 @@ document.getElementById('userSearch').addEventListener('input', function() {
 </script>
 
 <?php renderFooter(); ?>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function editUser(userId) {
+            // TODO: Implement user editing
+            alert('Benutzer bearbeiten: ' + userId);
+        }
+
+        function deleteUser(userId) {
+            if (confirm('Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?')) {
+                // TODO: Implement user deletion
+                alert('Benutzer löschen: ' + userId);
+            }
+        }
+
+        function logout() {
+            window.location.href = '/api/logout';
+        }
+
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.classList.remove('dark', 'light');
+            html.classList.add(newTheme);
+            
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            const themeToggle = document.getElementById('theme-toggle');
+            const isDark = document.documentElement.classList.contains('dark');
+            themeToggle.innerHTML = isDark 
+                ? '<i class="fas fa-sun text-yellow-500"></i>'
+                : '<i class="fas fa-moon text-gray-600"></i>';
+        }
+
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.classList.add(savedTheme);
+            updateThemeIcon();
+            
+            // Add event listener to theme toggle button
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', toggleTheme);
+            }
+        });
+    </script>
+</div>
+
+<?php renderFooter(); ?>
+</body>
+</html>
