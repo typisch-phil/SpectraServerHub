@@ -185,7 +185,7 @@ renderHeader('Billing - SpectraHost Dashboard');
             <form id="addBalanceForm">
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Betrag (EUR)</label>
-                    <input type="number" min="10" max="1000" step="0.01" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="z.B. 50.00" required>
+                    <input type="number" name="amount" id="amount" min="10" max="1000" step="0.01" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="z.B. 50.00" required>
                 </div>
                 
                 <div class="mb-6">
@@ -319,13 +319,19 @@ renderHeader('Billing - SpectraHost Dashboard');
 
         document.getElementById('addBalanceForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const amount = this.querySelector('input[type="number"]').value;
-            const method = this.querySelector('select').value;
+            const amount = this.querySelector('input[name="amount"]').value;
+            const method = this.querySelector('input[name="payment_method"]').value;
             const submitBtn = this.querySelector('button[type="submit"]');
             
             // Validate amount
             if (amount < 10 || amount > 1000) {
                 showNotification('Betrag muss zwischen €10 und €1000 liegen', 'error');
+                return;
+            }
+            
+            // Validate payment method selection
+            if (!method) {
+                showNotification('Bitte wählen Sie eine Zahlungsmethode aus', 'error');
                 return;
             }
             
