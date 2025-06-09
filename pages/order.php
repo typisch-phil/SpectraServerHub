@@ -94,12 +94,89 @@ renderHeader('Service bestellen - SpectraHost');
                     </div>
                 </div>
                 
-                <!-- Server Name (for VPS/Game Servers) -->
-                <div class="mb-6" id="server-name-field" style="display: none;">
-                    <label for="serverName" class="form-label">Server Name</label>
-                    <input type="text" id="serverName" name="serverName" class="form-input" 
-                           placeholder="Geben Sie einen Namen für Ihren Server ein">
-                    <p class="mt-1 text-sm text-gray-500">Nur Buchstaben, Zahlen und Bindestriche erlaubt</p>
+                <!-- Server Configuration (for VPS/Game Servers) -->
+                <div class="mb-6" id="server-config-field" style="display: none;">
+                    <div class="border border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                        <h4 class="font-semibold mb-4">Server-Konfiguration</h4>
+                        
+                        <!-- Server Name -->
+                        <div class="mb-4">
+                            <label for="serverName" class="form-label">Hostname</label>
+                            <input type="text" id="serverName" name="serverName" class="form-input" 
+                                   placeholder="mein-server" pattern="[a-zA-Z0-9-]+" required>
+                            <p class="mt-1 text-sm text-gray-500">Nur Buchstaben, Zahlen und Bindestriche erlaubt (z.B. web-server-01)</p>
+                        </div>
+                        
+                        <!-- Operating System -->
+                        <div class="mb-4">
+                            <label for="osType" class="form-label">Betriebssystem</label>
+                            <select id="osType" name="osType" class="form-input">
+                                <option value="l26">Ubuntu 22.04 LTS</option>
+                                <option value="l26">Ubuntu 20.04 LTS</option>
+                                <option value="l26">Debian 12</option>
+                                <option value="l26">Debian 11</option>
+                                <option value="l26">CentOS 9 Stream</option>
+                                <option value="w11">Windows Server 2022</option>
+                                <option value="w10">Windows Server 2019</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Server Specifications Display -->
+                        <div class="grid grid-cols-3 gap-4 mb-4">
+                            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                                <div class="text-sm text-gray-500">CPU Kerne</div>
+                                <div class="text-lg font-semibold" id="cpu-display">-</div>
+                            </div>
+                            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                                <div class="text-sm text-gray-500">RAM</div>
+                                <div class="text-lg font-semibold" id="memory-display">-</div>
+                            </div>
+                            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                                <div class="text-sm text-gray-500">Storage</div>
+                                <div class="text-lg font-semibold" id="storage-display">-</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Root Password -->
+                        <div class="mb-4">
+                            <label for="rootPassword" class="form-label">Root/Administrator Passwort</label>
+                            <div class="relative">
+                                <input type="password" id="rootPassword" name="rootPassword" class="form-input pr-10" 
+                                       placeholder="Starkes Passwort eingeben" minlength="8" required>
+                                <button type="button" onclick="togglePassword('rootPassword')" 
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                    <i class="fas fa-eye text-gray-400"></i>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <button type="button" onclick="generatePassword()" 
+                                        class="text-sm text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-key mr-1"></i>Sicheres Passwort generieren
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Auto-Start Option -->
+                        <div class="mb-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="autoStart" name="autoStart" checked class="mr-2">
+                                <span class="text-sm">Server automatisch starten nach Erstellung</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Deployment Status (hidden initially) -->
+                        <div id="deployment-status" class="hidden mt-4 p-3 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                                <span class="text-sm">Server wird in Proxmox VE erstellt...</span>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-600">
+                                <div>VMID: <span id="vm-id">-</span></div>
+                                <div>Node: <span id="vm-node">-</span></div>
+                                <div>Status: <span id="vm-status">Wird erstellt</span></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Domain Name (for domains) -->
@@ -280,11 +357,18 @@ function selectService(serviceId) {
     `;
     
     // Show/hide conditional fields
-    document.getElementById('server-name-field').style.display = 
+    document.getElementById('server-config-field').style.display = 
         ['vps', 'gameserver'].includes(service.type) ? 'block' : 'none';
     
     document.getElementById('domain-name-field').style.display = 
         service.type === 'domain' ? 'block' : 'none';
+    
+    // Update server specifications display
+    if (['vps', 'gameserver'].includes(service.type)) {
+        document.getElementById('cpu-display').textContent = service.cpu_cores + ' Cores';
+        document.getElementById('memory-display').textContent = service.memory_gb + ' GB';
+        document.getElementById('storage-display').textContent = service.storage_gb + ' GB';
+    }
     
     if (service.type === 'domain') {
         const extension = service.name.includes('.de') ? '.de' : '.com';
@@ -383,6 +467,129 @@ async function handleOrderSubmit(e) {
     }
     
     setLoading(btn, false);
+}
+
+async function createServerAutomatically(orderId, orderData) {
+    try {
+        // Show deployment status
+        const deploymentStatus = document.getElementById('deployment-status');
+        if (deploymentStatus) {
+            deploymentStatus.classList.remove('hidden');
+        }
+        
+        const serverData = {
+            action: 'create_server',
+            service_id: orderData.serviceId,
+            hostname: orderData.serverName,
+            cpu: currentService.cpu_cores,
+            memory: currentService.memory_gb * 1024, // Convert to MB
+            storage: currentService.storage_gb,
+            os_type: orderData.osType || 'l26',
+            root_password: orderData.rootPassword,
+            auto_start: orderData.autoStart === 'on'
+        };
+        
+        const response = await fetch('/api/server/create.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(serverData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Update deployment status with server details
+            if (document.getElementById('vm-id')) {
+                document.getElementById('vm-id').textContent = result.data.vmid;
+                document.getElementById('vm-node').textContent = result.data.node;
+                document.getElementById('vm-status').textContent = 'Erfolgreich erstellt';
+            }
+            
+            showNotification(`Server ${result.data.hostname} wird erstellt (VM-ID: ${result.data.vmid})`, 'success');
+            
+            // Auto-start server if requested
+            if (serverData.auto_start) {
+                setTimeout(() => startServer(result.data.vmid, result.data.node), 3000);
+            }
+            
+        } else {
+            showNotification('Server-Erstellung fehlgeschlagen: ' + result.error, 'error');
+            console.error('Server creation failed:', result);
+        }
+        
+    } catch (error) {
+        showNotification('Fehler bei der Server-Erstellung: ' + error.message, 'error');
+        console.error('Server creation error:', error);
+    }
+}
+
+async function startServer(vmid, node) {
+    try {
+        const response = await fetch('/api/server/create.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'start_server',
+                vmid: vmid,
+                node: node
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`Server VM-${vmid} wird gestartet`, 'info');
+            if (document.getElementById('vm-status')) {
+                document.getElementById('vm-status').textContent = 'Wird gestartet';
+            }
+        } else {
+            showNotification('Server-Start fehlgeschlagen: ' + result.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Server start error:', error);
+    }
+}
+
+// Password utility functions
+function generatePassword() {
+    const length = 16;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let password = "";
+    
+    // Ensure at least one character from each category
+    password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)];
+    password += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)];
+    password += "0123456789"[Math.floor(Math.random() * 10)];
+    password += "!@#$%^&*"[Math.floor(Math.random() * 8)];
+    
+    // Fill the rest randomly
+    for (let i = password.length; i < length; i++) {
+        password += charset[Math.floor(Math.random() * charset.length)];
+    }
+    
+    // Shuffle the password
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    
+    document.getElementById('rootPassword').value = password;
+    showNotification('Sicheres Passwort generiert', 'success');
+}
+
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const button = field.nextElementSibling.querySelector('i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        button.className = 'fas fa-eye-slash text-gray-400';
+    } else {
+        field.type = 'password';
+        button.className = 'fas fa-eye text-gray-400';
+    }
 }
 </script>
 
