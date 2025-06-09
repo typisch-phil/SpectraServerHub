@@ -64,13 +64,13 @@ renderHeader('Dashboard - SpectraHost');
                             <i class="fas fa-ticket-alt text-yellow-600"></i>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Offene Tickets</p>
-                            <p class="text-2xl font-bold" id="support-tickets-count">-</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Meine Tickets</p>
+                            <p class="text-2xl font-bold" id="my-tickets-count">-</p>
                         </div>
                     </div>
                     <a href="/dashboard/support" class="text-blue-500 hover:text-blue-600 text-sm">Alle anzeigen</a>
                 </div>
-                <div id="open-tickets-list" class="space-y-2">
+                <div id="my-tickets-list" class="space-y-2">
                     <div class="text-center py-4">
                         <div class="loading mx-auto mb-2"></div>
                         <p class="text-sm text-gray-500">Tickets werden geladen...</p>
@@ -238,8 +238,8 @@ async function loadDashboardData() {
             renderRecentOrders([]);
         }
 
-        // Load support tickets count
-        await loadTicketStats();
+        // Load user tickets
+        await loadUserTickets();
 
     } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -362,51 +362,49 @@ function updateStats(services) {
     }
 }
 
-async function loadTicketStats() {
+async function loadUserTickets() {
     try {
-        console.log('Loading ticket stats...');
-        const response = await fetch('/api/tickets.php', {
-            method: 'GET',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+        console.log('Loading user tickets...');
+        const response = await apiRequest('/api/user/tickets.php', 'GET');
+        console.log('User tickets response:', response);
         
-        console.log('Ticket API response status:', response.status);
-        
-        if (response.ok) {
-            const tickets = await response.json();
-            console.log('Received tickets:', tickets);
-            
-            const openTickets = tickets.filter(ticket => 
+        if (response && response.success) {
+            const openTickets = response.tickets.filter(ticket => 
                 ticket.status === 'open' || ticket.status === 'waiting_customer'
             );
             
-            console.log('Open tickets count:', openTickets.length);
-            
-            document.getElementById('support-tickets-count').textContent = openTickets.length;
-            renderOpenTicketsList(openTickets);
+            document.getElementById('my-tickets-count').textContent = openTickets.length;
+            renderMyTicketsList(response.tickets);
         } else {
-            console.log('API response not ok, setting to 0');
-            document.getElementById('support-tickets-count').textContent = '0';
-            renderOpenTicketsList([]);
+            console.log('No tickets found or response failed');
+            document.getElementById('my-tickets-count').textContent = '0';
+            renderMyTicketsList([]);
         }
     } catch (error) {
-        console.error('Error loading ticket stats:', error);
-        document.getElementById('support-tickets-count').textContent = '0';
-        renderOpenTicketsList([]);
+        console.error('Error loading user tickets:', error);
+        document.getElementById('my-tickets-count').textContent = '0';
+        renderMyTicketsList([]);
     }
 }
 
-function renderOpenTicketsList(tickets) {
-    const container = document.getElementById('open-tickets-list');
+function renderMyTicketsList(allTickets) {
+    const container = document.getElementById('my-tickets-list');
     
-    if (tickets.length === 0) {
+    // Show only open tickets and first 3 tickets for preview
+    const openTickets = allTickets.filter(ticket => 
+        ticket.status === 'open' || ticket.status === 'waiting_customer'
+    );
+    
+    const displayTickets = openTickets.length > 0 ? openTickets.slice(0, 3) : allTickets.slice(0, 3);
+    
+    if (allTickets.length === 0) {
         container.innerHTML = `
             <div class="text-center py-4">
                 <i class="fas fa-check-circle text-3xl text-green-300 mb-2"></i>
-                <p class="text-sm text-gray-500">Keine offenen Tickets</p>
+                <p class="text-sm text-gray-500">Keine Tickets vorhanden</p>
+                <a href="/contact" class="text-blue-500 hover:text-blue-600 text-xs mt-2 inline-block">
+                    Neues Ticket erstellen
+                </a>
             </div>
         `;
         return;
@@ -415,7 +413,8 @@ function renderOpenTicketsList(tickets) {
     const statusColors = {
         'open': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
         'waiting_customer': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-        'in_progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+        'in_progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+        'closed': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
     };
     
     const priorityColors = {
@@ -425,11 +424,11 @@ function renderOpenTicketsList(tickets) {
         'critical': 'text-red-500'
     };
     
-    container.innerHTML = tickets.slice(0, 3).map(ticket => `
-        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer" onclick="window.location.href='/dashboard/support'">
+    container.innerHTML = displayTickets.map(ticket => `
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer" onclick="window.location.href='/dashboard/support?ticket=${ticket.id}'">
             <div class="flex justify-between items-start mb-2">
-                <h4 class="font-medium text-sm truncate">${ticket.subject}</h4>
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusColors[ticket.status] || 'bg-gray-100 text-gray-800'}">
+                <h4 class="font-medium text-sm truncate pr-2">${ticket.subject}</h4>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusColors[ticket.status] || 'bg-gray-100 text-gray-800'} flex-shrink-0">
                     ${getStatusText(ticket.status)}
                 </span>
             </div>
@@ -439,17 +438,17 @@ function renderOpenTicketsList(tickets) {
                     ${ticket.priority ? ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1) : 'Normal'}
                 </span>
                 <span>
-                    ${formatDate(ticket.created_at)}
+                    #${ticket.id} • ${formatDate(ticket.created_at)}
                 </span>
             </div>
         </div>
     `).join('');
     
-    if (tickets.length > 3) {
+    if (allTickets.length > 3) {
         container.innerHTML += `
-            <div class="text-center pt-2">
+            <div class="text-center pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">
                 <a href="/dashboard/support" class="text-blue-500 hover:text-blue-600 text-sm">
-                    ${tickets.length - 3} weitere Tickets anzeigen
+                    ${allTickets.length - 3} weitere Tickets anzeigen
                 </a>
             </div>
         `;
