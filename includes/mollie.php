@@ -8,7 +8,26 @@ class MollieAPI {
         $this->apiKey = $apiKey;
     }
     
-    public function createPayment($amount, $description, $redirectUrl, $webhookUrl) {
+    public function createPayment($amount, $description, $redirectUrl, $webhookUrl, $metadata = []) {
+        // Demo-Modus für Entwicklung
+        if (strpos($this->apiKey, 'test_') === 0 || $this->apiKey === 'demo_key') {
+            return [
+                'id' => 'tr_demo_' . uniqid(),
+                'status' => 'open',
+                'amount' => [
+                    'currency' => 'EUR',
+                    'value' => number_format($amount, 2, '.', '')
+                ],
+                'description' => $description,
+                '_links' => [
+                    'checkout' => [
+                        'href' => '/demo/payment?amount=' . urlencode($amount) . '&description=' . urlencode($description)
+                    ]
+                ],
+                'metadata' => $metadata
+            ];
+        }
+        
         $data = [
             'amount' => [
                 'currency' => 'EUR',
@@ -17,7 +36,7 @@ class MollieAPI {
             'description' => $description,
             'redirectUrl' => $redirectUrl,
             'webhookUrl' => $webhookUrl,
-            'method' => 'ideal'
+            'metadata' => $metadata
         ];
         
         return $this->makeRequest('payments', 'POST', $data);
