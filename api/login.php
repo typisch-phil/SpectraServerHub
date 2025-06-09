@@ -45,7 +45,7 @@ try {
         'first_name' => $user['first_name'],
         'last_name' => $user['last_name'],
         'role' => $user['role'] ?? 'user',
-        'balance' => $user['balance']
+        'balance' => $user['balance'] ?? 0.00
     ];
     
     echo json_encode([
