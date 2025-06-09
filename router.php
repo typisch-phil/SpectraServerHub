@@ -64,17 +64,7 @@ $routes = [
 if (isset($routes[$request_uri])) {
     $file_path = $routes[$request_uri];
     if (file_exists($file_path)) {
-        // Change working directory to match the file location for proper includes
-        $original_cwd = getcwd();
-        $file_dir = dirname($file_path);
-        if ($file_dir !== '.') {
-            chdir($file_dir);
-        }
-        
-        include basename($file_path);
-        
-        // Restore original working directory
-        chdir($original_cwd);
+        include $file_path;
         exit;
     }
 }

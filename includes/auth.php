@@ -102,6 +102,27 @@ function verifyCSRFToken($token) {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
+// Global wrapper functions for API compatibility
+function isLoggedIn() {
+    $auth = new Auth();
+    return $auth->isLoggedIn();
+}
+
+function getCurrentUser() {
+    $auth = new Auth();
+    return $auth->getCurrentUser();
+}
+
+function requireLogin() {
+    $auth = new Auth();
+    return $auth->requireLogin();
+}
+
+function requireAdmin() {
+    $auth = new Auth();
+    return $auth->requireAdmin();
+}
+
 $auth = new Auth();
 
 // Note: Global helper functions moved to includes/session.php
