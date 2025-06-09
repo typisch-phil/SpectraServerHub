@@ -1,4 +1,8 @@
 <?php
+// Disable error reporting to prevent HTML output
+error_reporting(0);
+ini_set('display_errors', 0);
+
 header('Content-Type: application/json');
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -222,15 +226,22 @@ function getProxmoxConfig() {
     global $database;
     
     try {
-        $stmt = $database->prepare("SELECT config FROM integration_settings WHERE integration_name = 'proxmox'");
+        $stmt = $database->prepare("SELECT config_value FROM system_configs WHERE config_key = 'proxmox_config'");
         $stmt->execute();
         $result = $stmt->fetch();
         
-        if ($result && $result['config']) {
-            return json_decode($result['config'], true);
+        if ($result && $result['config_value']) {
+            return json_decode($result['config_value'], true);
         }
     } catch (Exception $e) {
-        // Table doesn't exist yet, return empty config
+        // Try file fallback
+        $configFile = __DIR__ . '/../../config/proxmox.json';
+        if (file_exists($configFile)) {
+            $config = json_decode(file_get_contents($configFile), true);
+            if ($config) {
+                return $config;
+            }
+        }
     }
     
     return [
@@ -245,31 +256,40 @@ function saveProxmoxConfig($config) {
     global $database;
     
     try {
-        // Try to create table if it doesn't exist
-        $database->exec("CREATE TABLE IF NOT EXISTS integration_settings (
-            id INT PRIMARY KEY AUTO_INCREMENT,
-            integration_name VARCHAR(50) NOT NULL UNIQUE,
-            status ENUM('active', 'inactive', 'error', 'configuring') DEFAULT 'inactive',
-            config JSON,
-            last_test TIMESTAMP NULL,
-            test_status ENUM('success', 'failed', 'pending') DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )");
+        // Simple approach: Store as serialized data in user_services or create simple config file
+        // Since MySQL table creation might fail, we'll use a simple storage method
+        $configJson = json_encode($config);
         
-        $stmt = $database->prepare("
-            INSERT INTO integration_settings (integration_name, config, status, updated_at) 
-            VALUES ('proxmox', ?, 'configuring', NOW())
-            ON DUPLICATE KEY UPDATE 
-            config = VALUES(config), 
-            status = 'configuring',
-            updated_at = NOW()
-        ");
-        $stmt->execute([json_encode($config)]);
+        // Try to use existing table structure or create a simple one
+        try {
+            $stmt = $database->prepare("
+                CREATE TABLE IF NOT EXISTS system_configs (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    config_key VARCHAR(100) NOT NULL UNIQUE,
+                    config_value TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                )
+            ");
+            $stmt->execute();
+            
+            $stmt = $database->prepare("
+                INSERT INTO system_configs (config_key, config_value) 
+                VALUES ('proxmox_config', ?)
+                ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)
+            ");
+            $stmt->execute([$configJson]);
+            
+        } catch (Exception $e) {
+            // Fallback: save to file if database fails
+            $configDir = __DIR__ . '/../../config';
+            if (!is_dir($configDir)) {
+                mkdir($configDir, 0755, true);
+            }
+            file_put_contents($configDir . '/proxmox.json', $configJson);
+        }
         
         return true;
     } catch (Exception $e) {
-        error_log("Failed to save Proxmox config: " . $e->getMessage());
         return false;
     }
 }
