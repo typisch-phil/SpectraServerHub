@@ -63,7 +63,7 @@ renderHeader($title, $description);
                         <h1 class="text-xl font-bold text-gray-900 dark:text-white">SpectraHost Admin</h1>
                     </div>
                     <div class="hidden md:ml-6 md:flex md:space-x-8">
-                        <a href="/admin/dashboard" class="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white px-3 py-2 text-sm font-medium">Dashboard</a>
+                        <a href="/admin" class="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white px-3 py-2 text-sm font-medium">Dashboard</a>
                         <a href="/admin/tickets" class="text-blue-600 dark:text-blue-400 px-3 py-2 text-sm font-medium border-b-2 border-blue-600">Tickets</a>
                         <a href="/admin/users" class="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white px-3 py-2 text-sm font-medium">Benutzer</a>
                         <a href="/admin/services" class="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white px-3 py-2 text-sm font-medium">Services</a>
