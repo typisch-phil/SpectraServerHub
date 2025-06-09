@@ -434,11 +434,23 @@ renderHeader('Support - SpectraHost Dashboard');
                 
             } catch (error) {
                 console.error('Error loading tickets:', error);
+                const ticketsContainer = document.getElementById('tickets-container');
+                if (ticketsContainer) {
+                    ticketsContainer.innerHTML = `
+                        <div class="text-center py-12">
+                            <i class="fas fa-exclamation-triangle text-4xl text-red-300 mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Fehler beim Laden der Tickets</h3>
+                            <p class="text-gray-500 dark:text-gray-400">Bitte laden Sie die Seite neu.</p>
+                            <button onclick="loadTickets()" class="mt-4 btn-primary">Erneut versuchen</button>
+                        </div>
+                    `;
+                }
             }
         }
 
         // Load tickets on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, starting to load tickets...');
             loadTickets();
         });
 
