@@ -322,7 +322,9 @@ renderHeader('Support - SpectraHost Dashboard');
         // Load and display tickets
         async function loadTickets() {
             try {
-                const response = await fetch('/api/tickets.php');
+                const response = await fetch('/api/tickets.php', {
+                    credentials: 'same-origin'
+                });
                 const tickets = await response.json();
                 
                 const ticketsContainer = document.getElementById('tickets-container');
