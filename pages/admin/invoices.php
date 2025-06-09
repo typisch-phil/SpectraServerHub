@@ -416,7 +416,7 @@ async function loadInvoices() {
 // Load users for dropdown
 async function loadUsers() {
     try {
-        const response = await fetch('/api/admin/users.php', {
+        const response = await fetch('/api/admin/users_simple.php', {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json'
@@ -442,7 +442,7 @@ async function loadUsers() {
 // Load services for dropdown
 async function loadServices() {
     try {
-        const response = await fetch('/api/admin/services.php', {
+        const response = await fetch('/api/admin/services_simple.php', {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json'
@@ -627,7 +627,7 @@ function openCreateInvoiceModal() {
 // Edit invoice
 async function editInvoice(invoiceId) {
     try {
-        const response = await fetch(`/api/admin/invoices.php?id=${invoiceId}`, {
+        const response = await fetch(`/api/admin/invoices_simple.php?id=${invoiceId}`, {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json'
@@ -682,7 +682,7 @@ document.getElementById('invoiceForm').addEventListener('submit', async function
     try {
         const isEdit = invoiceData.id && invoiceData.id !== '';
         const method = isEdit ? 'PUT' : 'POST';
-        const url = '/api/admin/invoices.php';
+        const url = '/api/admin/invoices_simple.php';
         
         const response = await fetch(url, {
             method: method,
@@ -726,7 +726,7 @@ async function confirmAction() {
     if (!currentInvoiceId) return;
     
     try {
-        const response = await fetch('/api/admin/invoices.php', {
+        const response = await fetch('/api/admin/invoices_simple.php', {
             method: 'DELETE',
             credentials: 'include',
             headers: {
@@ -769,7 +769,7 @@ async function filterInvoices() {
         if (startDate) params.append('start_date', startDate);
         if (endDate) params.append('end_date', endDate);
         
-        const url = '/api/admin/invoices.php' + (params.toString() ? '?' + params.toString() : '');
+        const url = '/api/admin/invoices_simple.php' + (params.toString() ? '?' + params.toString() : '');
         const response = await fetch(url, {
             credentials: 'include',
             headers: {
