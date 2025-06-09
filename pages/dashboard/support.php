@@ -1,5 +1,6 @@
 <?php
-require_once '../../includes/session.php';
+require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/layout.php';
 requireLogin();
 
 $db = Database::getInstance();

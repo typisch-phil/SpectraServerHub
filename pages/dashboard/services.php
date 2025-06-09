@@ -1,5 +1,6 @@
 <?php
-require_once '../../includes/session.php';
+require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/layout.php';
 requireLogin();
 
 $db = Database::getInstance();
@@ -16,69 +17,9 @@ $stmt = $db->prepare("
 $stmt->execute([$user_id]);
 $user_services = $stmt->fetchAll();
 
-$pageTitle = "Meine Services - SpectraHost";
-$pageDescription = "Verwalten Sie Ihre aktiven Hosting-Services und Server.";
+renderDashboardHeader("Meine Services", "Verwalten Sie Ihre aktiven Hosting-Services und Server.");
+renderDashboardNavigation('services');
 ?>
-
-<!DOCTYPE html>
-<html lang="de" class="scroll-smooth">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle; ?></title>
-    <meta name="description" content="<?php echo $pageDescription; ?>">
-    <meta name="robots" content="noindex, nofollow">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='%233b82f6'/><stop offset='100%' stop-color='%236366f1'/></linearGradient></defs><rect width='32' height='32' rx='6' fill='url(%23g)'/><text x='16' y='22' text-anchor='middle' fill='white' font-family='Arial' font-size='18' font-weight='bold'>S</text></svg>">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#eff6ff',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
-    
-    <!-- Navigation -->
-    <nav class="bg-white dark:bg-gray-800 shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <a href="/" class="flex items-center space-x-2">
-                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">S</span>
-                        </div>
-                        <span class="text-xl font-bold text-gray-900 dark:text-white">SpectraHost</span>
-                    </a>
-                </div>
-                
-                <div class="flex items-center space-x-4">
-                    <a href="/dashboard" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">Dashboard</a>
-                    <a href="/api/logout" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
-                        Abmelden
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
@@ -183,26 +124,26 @@ $pageDescription = "Verwalten Sie Ihre aktiven Hosting-Services und Server.";
         }
     </script>
 
-    <?php
-    function getStatusClass($status) {
-        $classes = [
-            'active' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-            'pending' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-            'suspended' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-            'terminated' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-        ];
-        return $classes[$status] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-    }
-    
-    function getStatusText($status) {
-        $texts = [
-            'active' => 'Aktiv',
-            'pending' => 'Ausstehend',
-            'suspended' => 'Gesperrt',
-            'terminated' => 'Beendet'
-        ];
-        return $texts[$status] ?? $status;
-    }
-    ?>
-</body>
-</html>
+<?php
+renderDashboardFooter();
+
+function getStatusClass($status) {
+    $classes = [
+        'active' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+        'pending' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+        'suspended' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+        'terminated' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+    ];
+    return $classes[$status] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+}
+
+function getStatusText($status) {
+    $texts = [
+        'active' => 'Aktiv',
+        'pending' => 'Ausstehend',
+        'suspended' => 'Gesperrt',
+        'terminated' => 'Beendet'
+    ];
+    return $texts[$status] ?? $status;
+}
+?>
