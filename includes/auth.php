@@ -43,9 +43,14 @@ class Auth {
         $stmt->execute([$user['id']]);
         
         // Set session
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['user_email'] = $user['email'];
-        $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
+        $_SESSION['user'] = [
+            'id' => $user['id'],
+            'email' => $user['email'],
+            'first_name' => $user['first_name'],
+            'last_name' => $user['last_name'],
+            'role' => $user['role'],
+            'balance' => $user['balance']
+        ];
         $_SESSION['login_time'] = time();
         
         return $user;
