@@ -87,24 +87,45 @@ renderHeader('Support - SpectraHost Dashboard');
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Support-Zeiten</h3>
                     
                     <div class="space-y-2 text-sm">
+                        <?php
+                        $supportHours = getSupportHours();
+                        $dayNames = [
+                            'monday' => 'Montag',
+                            'tuesday' => 'Dienstag',
+                            'wednesday' => 'Mittwoch', 
+                            'thursday' => 'Donnerstag',
+                            'friday' => 'Freitag',
+                            'saturday' => 'Samstag',
+                            'sunday' => 'Sonntag'
+                        ];
+                        
+                        foreach ($supportHours as $day => $hours):
+                            if (empty($hours['start']) || empty($hours['end'])):
+                        ?>
                         <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Montag - Freitag:</span>
-                            <span class="font-medium">9:00 - 18:00</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Samstag:</span>
-                            <span class="font-medium">10:00 - 16:00</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Sonntag:</span>
+                            <span class="text-gray-600 dark:text-gray-400"><?= $dayNames[$day] ?>:</span>
                             <span class="font-medium">Geschlossen</span>
                         </div>
+                        <?php else: ?>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400"><?= $dayNames[$day] ?>:</span>
+                            <span class="font-medium"><?= $hours['start'] ?> - <?= $hours['end'] ?></span>
+                        </div>
+                        <?php 
+                            endif;
+                        endforeach; 
+                        ?>
                     </div>
                     
                     <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <div class="flex items-center">
-                            <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Support ist online</span>
+                            <?php 
+                            $isOnline = getSupportStatus() && isCurrentlyInSupportHours();
+                            ?>
+                            <div class="w-3 h-3 <?= $isOnline ? 'bg-green-500' : 'bg-red-500' ?> rounded-full mr-2"></div>
+                            <span class="text-sm text-gray-600 dark:text-gray-400">
+                                Support ist <?= $isOnline ? 'online' : 'offline' ?>
+                            </span>
                         </div>
                     </div>
                 </div>

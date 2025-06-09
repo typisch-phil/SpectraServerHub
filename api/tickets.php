@@ -178,7 +178,7 @@ try {
                 exit;
             }
             
-            $updates[] = 'updated_at = datetime(\'now\')';
+            $updates[] = 'updated_at = CURRENT_TIMESTAMP';
             $params[] = $ticket_id;
             
             $sql = "UPDATE tickets SET " . implode(', ', $updates) . " WHERE id = ?";
