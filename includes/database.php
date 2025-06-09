@@ -222,7 +222,7 @@ class Database {
                         ticket_id INT NOT NULL,
                         user_id INT NOT NULL,
                         message TEXT NOT NULL,
-                        is_internal BOOLEAN DEFAULT FALSE,
+                        is_internal TINYINT(1) DEFAULT 0,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
