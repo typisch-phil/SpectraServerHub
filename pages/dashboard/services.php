@@ -4,7 +4,7 @@ require_once __DIR__ . '/layout.php';
 requireLogin();
 
 $db = Database::getInstance();
-$user_id = $_SESSION['user_id'];
+$user_id = $_SESSION['user']['id'];
 
 // Get user's services
 $stmt = $db->prepare("
