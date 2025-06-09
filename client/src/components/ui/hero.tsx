@@ -24,8 +24,23 @@ export default function Hero() {
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto animate-slide-up">
-            Hochperformante Server, zuverlässige Infrastruktur und erstklassiger Support für deine digitalen Projekte
+            Hochperformante Server, zuverlässige Infrastruktur und erstklassiger Support für deine digitalen Projekte. 
+            Seit 2015 vertrauen über 50.000 Kunden auf unsere bewährte Hosting-Lösung.
           </p>
+          <div className="flex flex-wrap justify-center gap-8 mb-8 text-white/80 animate-fade-in">
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+              <span>99.98% Uptime</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
+              <span>24/7 Deutscher Support</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-purple-400 rounded-full mr-2"></div>
+              <span>ISO 27001 Zertifiziert</span>
+            </div>
+          </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up">
             <Link href="/order">
               <Button size="lg" className="text-lg font-semibold hover:scale-105 transition-transform duration-300">

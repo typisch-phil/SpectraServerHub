@@ -9,6 +9,8 @@ import Dashboard from "@/pages/dashboard";
 import Order from "@/pages/order";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import Contact from "@/pages/contact";
+import Impressum from "@/pages/impressum";
 import NotFound from "@/pages/not-found";
 
 function Router() {
