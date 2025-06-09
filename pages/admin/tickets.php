@@ -52,12 +52,32 @@ if ($stmt->fetchColumn() == 0) {
     }
 }
 
-// Get all tickets with user information
+// Get all tickets with user information and reply count
 $stmt = $database->prepare("
-    SELECT t.*, u.email, u.first_name, u.last_name
+    SELECT t.*, u.email, u.first_name, u.last_name,
+           a.first_name as assigned_first_name, a.last_name as assigned_last_name,
+           COUNT(r.id) as reply_count
     FROM tickets t 
     LEFT JOIN users u ON t.user_id = u.id 
-    ORDER BY t.created_at DESC
+    LEFT JOIN users a ON t.assigned_to = a.id
+    LEFT JOIN ticket_replies r ON t.id = r.ticket_id
+    GROUP BY t.id
+    ORDER BY 
+        CASE t.status 
+            WHEN 'open' THEN 1 
+            WHEN 'waiting_customer' THEN 2 
+            WHEN 'in_progress' THEN 3 
+            WHEN 'closed' THEN 4 
+            ELSE 5 
+        END,
+        CASE t.priority 
+            WHEN 'critical' THEN 1 
+            WHEN 'high' THEN 2 
+            WHEN 'medium' THEN 3 
+            WHEN 'low' THEN 4 
+            ELSE 5 
+        END,
+        t.updated_at DESC
 ");
 $stmt->execute();
 $tickets = $stmt->fetchAll();

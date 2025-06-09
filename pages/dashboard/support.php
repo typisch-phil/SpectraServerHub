@@ -194,7 +194,7 @@ renderHeader('Support - SpectraHost Dashboard');
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kategorie</label>
-                        <select class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" required>
+                        <select id="ticket-category" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" required>
                             <option value="">Bitte wählen...</option>
                             <option value="technical">Technisches Problem</option>
                             <option value="billing">Abrechnung</option>
@@ -205,7 +205,7 @@ renderHeader('Support - SpectraHost Dashboard');
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priorität</label>
-                        <select class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" required>
+                        <select id="ticket-priority" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" required>
                             <option value="low">Niedrig</option>
                             <option value="medium" selected>Mittel</option>
                             <option value="high">Hoch</option>
@@ -216,7 +216,7 @@ renderHeader('Support - SpectraHost Dashboard');
                 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Betreff</label>
-                    <input type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="Kurze Beschreibung des Problems" required>
+                    <input type="text" id="ticket-subject" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="Kurze Beschreibung des Problems" required>
                 </div>
                 
                 <div class="mb-4">
@@ -255,6 +255,140 @@ renderHeader('Support - SpectraHost Dashboard');
                 modal.classList.remove('flex');
             });
         }
+
+        // Handle ticket form submission
+        document.getElementById('ticketForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const category = document.getElementById('ticket-category').value;
+            const priority = document.getElementById('ticket-priority').value;
+            const subject = document.getElementById('ticket-subject').value.trim();
+            const message = document.getElementById('ticket-message').value.trim();
+            
+            if (!subject || !message) {
+                alert('Bitte füllen Sie alle Pflichtfelder aus.');
+                return;
+            }
+            
+            try {
+                // Create ticket
+                const response = await fetch('/api/tickets.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        category: category,
+                        priority: priority,
+                        subject: subject,
+                        message: message
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Handle file uploads if any
+                    const files = document.getElementById('ticket-attachments').files;
+                    if (files.length > 0) {
+                        for (let file of files) {
+                            const formData = new FormData();
+                            formData.append('attachment', file);
+                            formData.append('ticket_id', result.ticket_id);
+                            
+                            await fetch('/api/upload-attachment.php', {
+                                method: 'POST',
+                                body: formData
+                            });
+                        }
+                    }
+                    
+                    alert('Ticket erfolgreich erstellt!');
+                    closeModal();
+                    loadTickets(); // Reload tickets
+                    
+                    // Reset form
+                    document.getElementById('ticketForm').reset();
+                } else {
+                    alert('Fehler: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Ein Fehler ist aufgetreten.');
+            }
+        });
+
+        // Load and display tickets
+        async function loadTickets() {
+            try {
+                const response = await fetch('/api/tickets.php');
+                const tickets = await response.json();
+                
+                const ticketsContainer = document.getElementById('tickets-container');
+                if (!ticketsContainer) return;
+                
+                if (tickets.length === 0) {
+                    ticketsContainer.innerHTML = `
+                        <div class="text-center py-12">
+                            <i class="fas fa-ticket-alt text-4xl text-gray-300 mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Keine Tickets gefunden</h3>
+                            <p class="text-gray-500 dark:text-gray-400">Erstellen Sie Ihr erstes Support-Ticket.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const statusColors = {
+                    'open': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                    'waiting_customer': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                    'in_progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                    'closed': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                };
+                
+                const priorityColors = {
+                    'low': 'text-gray-600',
+                    'medium': 'text-blue-600',
+                    'high': 'text-orange-600',
+                    'critical': 'text-red-600'
+                };
+                
+                ticketsContainer.innerHTML = tickets.map(ticket => `
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer" onclick="window.location.href='/ticket-detail?id=${ticket.id}'">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2">
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mr-3">
+                                        #${ticket.id} ${ticket.subject}
+                                    </h3>
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusColors[ticket.status] || 'bg-gray-100 text-gray-800'}">
+                                        ${ticket.status.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())}
+                                    </span>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-500 dark:text-gray-400 space-x-4">
+                                    <span>Kategorie: ${ticket.category.charAt(0).toUpperCase() + ticket.category.slice(1)}</span>
+                                    <span class="${priorityColors[ticket.priority] || 'text-gray-600'}">
+                                        <i class="fas fa-flag mr-1"></i>${ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}
+                                    </span>
+                                    <span>${new Date(ticket.created_at).toLocaleDateString('de-DE')} ${new Date(ticket.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</span>
+                                    ${ticket.reply_count > 0 ? `<span><i class="fas fa-reply mr-1"></i>${ticket.reply_count} Antworten</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <i class="fas fa-chevron-right text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading tickets:', error);
+            }
+        }
+
+        // Load tickets on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTickets();
+        });
 
         function toggleFaq(id) {
             const content = document.getElementById(`content-${id}`);
