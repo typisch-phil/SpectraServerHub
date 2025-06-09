@@ -31,7 +31,7 @@ export default function Register() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof registerSchema>) => {
+    mutationFn: async (data) => {
       const response = await apiRequest("POST", "/api/auth/register", data);
       return response.json();
     },
@@ -43,7 +43,7 @@ export default function Register() {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setLocation("/dashboard");
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Registrierung fehlgeschlagen",
         description: error.message || "Bitte überprüfen Sie Ihre Eingaben",
@@ -52,7 +52,7 @@ export default function Register() {
     },
   });
 
-  const onSubmit = (data: z.infer<typeof registerSchema>) => {
+  const onSubmit = (data) => {
     registerMutation.mutate(data);
   };
 

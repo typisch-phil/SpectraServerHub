@@ -32,7 +32,7 @@ export default function Order() {
   });
 
   const orderMutation = useMutation({
-    mutationFn: async (orderData: any) => {
+    mutationFn: async (orderData) => {
       const response = await apiRequest("POST", "/api/orders", orderData);
       return response.json();
     },
@@ -66,7 +66,7 @@ export default function Order() {
     },
   });
 
-  const getServiceIcon = (type: string) => {
+  const getServiceIcon = (type) => {
     switch (type) {
       case 'webspace': return Globe;
       case 'vserver': return Server;
@@ -169,7 +169,7 @@ export default function Order() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {services?.map((service: any) => {
+                {services?.map((service) => {
                   const IconComponent = getServiceIcon(service.type);
                   const isSelected = selectedService?.id === service.id;
                   
@@ -197,7 +197,7 @@ export default function Order() {
                         
                         {service.features && (
                           <ul className="space-y-1 mb-4">
-                            {service.features.slice(0, 3).map((feature: string, index: number) => (
+                            {service.features.slice(0, 3).map((feature, index) => (
                               <li key={index} className="flex items-center text-sm text-gray-600">
                                 <Check className="w-3 h-3 text-green-500 mr-2" />
                                 {feature}

@@ -30,7 +30,7 @@ export default function Login() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof loginSchema>) => {
+    mutationFn: async (data) => {
       const response = await apiRequest("POST", "/api/auth/login", data);
       return response.json();
     },
@@ -42,7 +42,7 @@ export default function Login() {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setLocation("/dashboard");
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Anmeldung fehlgeschlagen",
         description: error.message || "Bitte überprüfen Sie Ihre Zugangsdaten",
@@ -51,7 +51,7 @@ export default function Login() {
     },
   });
 
-  const onSubmit = (data: z.infer<typeof loginSchema>) => {
+  const onSubmit = (data) => {
     loginMutation.mutate(data);
   };
 
