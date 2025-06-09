@@ -1,12 +1,28 @@
 <?php
-require_once '../includes/session.php';
-requireLogin();
-requireAdmin();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/../../includes/database.php';
+require_once __DIR__ . '/../../includes/layout.php';
 
-$db = Database::getInstance();
+// Check if user is logged in and is admin
+if (!isset($_SESSION['user_id'])) {
+    header('Location: /login');
+    exit;
+}
+
+$database = Database::getInstance();
+$stmt = $database->prepare("SELECT role FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$user = $stmt->fetch();
+
+if (!$user || $user['role'] !== 'admin') {
+    header('Location: /dashboard');
+    exit;
+}
 
 // Get payments as invoices
-$stmt = $db->prepare("
+$stmt = $database->prepare("
     SELECT p.*, u.first_name, u.last_name, u.email, s.name as service_name
     FROM payments p 
     JOIN users u ON p.user_id = u.id 
@@ -15,43 +31,56 @@ $stmt = $db->prepare("
 ");
 $stmt->execute();
 $invoices = $stmt->fetchAll();
+
+$title = 'Rechnungen - SpectraHost Admin';
+$description = 'Verwalten Sie Rechnungen und Zahlungen';
+renderHeader($title, $description);
 ?>
 
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rechnungen - SpectraHost Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-gray-50">
-    <div class="min-h-screen">
-        <!-- Navigation -->
-        <nav class="bg-white shadow-lg">
-            <div class="max-w-7xl mx-auto px-4">
-                <div class="flex justify-between items-center h-16">
-                    <div class="flex items-center">
-                        <a href="/admin" class="text-blue-600 hover:text-blue-800">
-                            <i class="fas fa-arrow-left mr-2"></i>Admin Dashboard
-                        </a>
-                    </div>
-                    <h1 class="text-xl font-bold">Rechnungen & Zahlungen</h1>
-                    <div>
-                        <a href="/api/logout" class="text-red-600 hover:text-red-800">
-                            <i class="fas fa-sign-out-alt mr-1"></i>Abmelden
-                        </a>
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Admin Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-blue-600 dark:text-blue-400">SpectraHost</a>
+                    <div class="ml-8 flex space-x-4">
+                        <a href="/admin" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Admin Panel</a>
+                        <a href="/admin/users" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Benutzer</a>
+                        <a href="/admin/tickets" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Tickets</a>
+                        <a href="/admin/services" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Services</a>
+                        <a href="/admin/invoices" class="text-blue-600 dark:text-blue-400 font-medium border-b-2 border-blue-600 pb-1">Rechnungen</a>
+                        <a href="/admin/integrations" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Integrationen</a>
                     </div>
                 </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                        <i class="fas fa-user mr-2"></i>Zum Dashboard
+                    </a>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-sign-out-alt mr-1"></i>Abmelden
+                    </button>
+                    
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-moon dark:hidden"></i>
+                        <i class="fas fa-sun hidden dark:inline"></i>
+                    </button>
+                </div>
             </div>
-        </nav>
+        </div>
+    </nav>
 
-        <!-- Main Content -->
-        <div class="max-w-7xl mx-auto py-6 px-4">
-            <!-- Statistics Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                <div class="bg-white rounded-lg shadow p-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Rechnungen & Zahlungen</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">Verwalten Sie Rechnungen und Zahlungshistorie</p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
                             <i class="fas fa-euro-sign text-green-600 text-2xl"></i>
@@ -63,51 +92,52 @@ $invoices = $stmt->fetchAll();
                     </div>
                 </div>
                 
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-file-invoice text-blue-600 text-2xl"></i>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm text-gray-500">Offene Rechnungen</p>
-                            <p class="text-lg font-semibold text-gray-900">12</p>
-                        </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-file-invoice text-blue-600 text-2xl"></i>
                     </div>
-                </div>
-                
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-check-circle text-green-600 text-2xl"></i>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm text-gray-500">Bezahlte Rechnungen</p>
-                            <p class="text-lg font-semibold text-gray-900">78</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm text-gray-500">Überfällige Rechnungen</p>
-                            <p class="text-lg font-semibold text-gray-900">3</p>
-                        </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Offene Rechnungen</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white">12</p>
                     </div>
                 </div>
             </div>
-
-            <div class="bg-white rounded-lg shadow">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Alle Zahlungen</h2>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Bezahlte Rechnungen</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white">78</p>
+                    </div>
                 </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Überfällige Rechnungen</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white">3</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoices Table -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Alle Zahlungen</h2>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kunde</th>
