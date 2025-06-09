@@ -39,7 +39,7 @@ class Auth {
         }
         
         // Update last login
-        $stmt = $this->db->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
+        $stmt = $this->db->prepare("UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
         $stmt->execute([$user['id']]);
         
         // Set session
