@@ -1,9 +1,5 @@
 <?php
 
-function isLoggedIn() {
-    return isset($_SESSION['user']) && is_array($_SESSION['user']) && isset($_SESSION['user']['id']);
-}
-
 function isAdmin() {
     if (!isLoggedIn()) {
         return false;
@@ -12,20 +8,6 @@ function isAdmin() {
     $user = $_SESSION['user'];
     return isset($user['role']) && $user['role'] === 'admin' || 
            isset($user['is_admin']) && $user['is_admin'] == 1;
-}
-
-function getCurrentUser() {
-    if (!isLoggedIn()) {
-        return null;
-    }
-    
-    $user = $_SESSION['user'];
-    // Map is_admin to role for compatibility
-    if (isset($user['is_admin'])) {
-        $user['role'] = $user['is_admin'] ? 'admin' : 'user';
-    }
-    
-    return $user;
 }
 
 function getSupportHours() {
