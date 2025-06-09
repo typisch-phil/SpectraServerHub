@@ -165,21 +165,21 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadDashboardData() {
     try {
         // Load user services
-        const servicesResponse = await SpectraHost.apiRequest('/api/user/services');
+        const servicesResponse = await apiRequest('/api/user/services');
         if (servicesResponse.success) {
             renderUserServices(servicesResponse.services);
             updateStats(servicesResponse.services);
         }
 
         // Load recent orders
-        const ordersResponse = await SpectraHost.apiRequest('/api/user/orders');
+        const ordersResponse = await apiRequest('/api/user/orders');
         if (ordersResponse.success) {
             renderRecentOrders(ordersResponse.orders);
         }
 
     } catch (error) {
         console.error('Error loading dashboard data:', error);
-        SpectraHost.showNotification('Fehler beim Laden der Dashboard-Daten', 'error');
+        showNotification('Fehler beim Laden der Dashboard-Daten', 'error');
     }
 }
 
@@ -205,7 +205,7 @@ function renderUserServices(services) {
                     <h4 class="text-lg font-semibold">${service.server_name}</h4>
                     <p class="text-sm text-gray-600 dark:text-gray-400">${service.service_name}</p>
                     <div class="mt-2">
-                        ${SpectraHost.getStatusBadge(service.status)}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(service.status)}">${getStatusText(service.status)}</span>
                     </div>
                 </div>
                 
@@ -243,7 +243,7 @@ function renderUserServices(services) {
                 </div>
                 <div>
                     <span class="text-gray-500">Läuft ab:</span>
-                    <span class="font-medium">${SpectraHost.formatDate(service.expires_at)}</span>
+                    <span class="font-medium">${formatDate(service.expires_at)}</span>
                 </div>
             </div>
         </div>
@@ -263,11 +263,11 @@ function renderRecentOrders(orders) {
             <div class="flex justify-between items-start">
                 <div>
                     <p class="font-medium text-sm">${order.service_name}</p>
-                    <p class="text-xs text-gray-500">${SpectraHost.formatDateTime(order.created_at)}</p>
+                    <p class="text-xs text-gray-500">${formatDateTime(order.created_at)}</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-sm font-medium">${SpectraHost.formatCurrency(order.total_amount)}</p>
-                    ${SpectraHost.getStatusBadge(order.status)}
+                    <p class="text-sm font-medium">${formatCurrency(order.total_amount)}</p>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(order.status)}">${getStatusText(order.status)}</span>
                 </div>
             </div>
         </div>
@@ -288,7 +288,7 @@ function updateStats(services) {
         const nextExpiry = activeSvcs.reduce((earliest, service) => {
             return new Date(service.expires_at) < new Date(earliest.expires_at) ? service : earliest;
         });
-        document.getElementById('next-payment').textContent = SpectraHost.formatDate(nextExpiry.expires_at);
+        document.getElementById('next-payment').textContent = formatDate(nextExpiry.expires_at);
     } else {
         document.getElementById('next-payment').textContent = '-';
     }
@@ -306,8 +306,8 @@ async function controlServer(serviceId, action) {
     }
     
     try {
-        const result = await SpectraHost.apiRequest(`/api/servers/${serviceId}/${action}`, 'POST');
-        SpectraHost.showNotification(result.message, 'success');
+        const result = await apiRequest(`/api/servers/${serviceId}/${action}`, 'POST');
+        showNotification(result.message, 'success');
         
         // Reload services after action
         setTimeout(() => {
@@ -315,7 +315,7 @@ async function controlServer(serviceId, action) {
         }, 2000);
         
     } catch (error) {
-        SpectraHost.showNotification(error.message, 'error');
+        showNotification(error.message, 'error');
     }
 }
 </script>

@@ -33,9 +33,6 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
         }
     </script>
     
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="/css/style.css">
-    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -171,8 +168,122 @@ function renderFooter() {
         </div>
     </footer>
     
-    <!-- Scripts -->
-    <script src="/js/main.js"></script>
+    <!-- Inline JavaScript -->
+    <script>
+        // Theme management
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.getElementById('theme-toggle');
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            // Initialize theme
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const savedTheme = localStorage.getItem('theme');
+            
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            }
+            
+            // Theme toggle
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    document.documentElement.classList.toggle('dark');
+                    const isDark = document.documentElement.classList.contains('dark');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                });
+            }
+            
+            // Mobile menu
+            if (mobileMenuBtn && mobileMenu) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+                
+                document.addEventListener('click', function(e) {
+                    if (!mobileMenuBtn.contains(e.target) && !mobileMenu.contains(e.target)) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            }
+        });
+        
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
+        
+        // Utility functions
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${getAlertClass(type)}`;
+            notification.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-lg">&times;</button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+        
+        function getAlertClass(type) {
+            const classes = {
+                'success': 'bg-green-100 border border-green-400 text-green-700',
+                'error': 'bg-red-100 border border-red-400 text-red-700',
+                'warning': 'bg-yellow-100 border border-yellow-400 text-yellow-700',
+                'info': 'bg-blue-100 border border-blue-400 text-blue-700'
+            };
+            return classes[type] || classes.info;
+        }
+        
+        async function apiRequest(endpoint, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' }
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            const response = await fetch(endpoint, options);
+            const result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.error || 'Request failed');
+            }
+            
+            return result;
+        }
+        
+        function setLoading(element, loading = true) {
+            if (loading) {
+                element.disabled = true;
+                element.originalText = element.textContent;
+                element.textContent = 'Lädt...';
+            } else {
+                element.disabled = false;
+                element.textContent = element.originalText || element.textContent;
+            }
+        }
+    </script>
 </body>
 </html>
 <?php

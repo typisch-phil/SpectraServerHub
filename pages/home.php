@@ -256,9 +256,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadServices() {
     try {
-        const response = await fetch('/api/services');
-        const data = await response.json();
-        
+        const data = await apiRequest('/api/services');
         if (data.success) {
             renderServices(data.services);
         }

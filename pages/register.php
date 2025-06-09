@@ -104,7 +104,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         return;
     }
     
-    SpectraHost.setLoading(btn, true);
+    setLoading(btn, true);
     messageDiv.className = 'mt-4 hidden';
     
     try {
@@ -112,7 +112,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         const data = Object.fromEntries(formData);
         delete data.confirmPassword; // Remove confirm password from data
         
-        const result = await SpectraHost.apiRequest('/api/register', 'POST', data);
+        const result = await apiRequest('/api/register', 'POST', data);
         
         messageDiv.className = 'mt-4 alert alert-success';
         messageDiv.textContent = result.message;
@@ -127,7 +127,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         messageDiv.textContent = error.message;
     }
     
-    SpectraHost.setLoading(btn, false);
+    setLoading(btn, false);
 });
 </script>
 
