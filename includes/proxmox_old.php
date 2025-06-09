@@ -1,5 +1,4 @@
 <?php
-
 class ProxmoxAPI {
     private $host;
     private $username;
@@ -7,77 +6,55 @@ class ProxmoxAPI {
     private $ticket;
     private $csrf;
     
-    public function __construct($host, $username, $password) {
-        $this->host = $host;
-        $this->username = $username;
-        $this->password = $password;
+    public function __construct() {
+        $this->host = PROXMOX_HOST;
+        $this->username = PROXMOX_USER;
+        $this->password = PROXMOX_PASS;
     }
     
-    private function authenticate() {
-        // Demo-Modus für Entwicklung
-        if ($this->host === 'demo.proxmox.com' || empty($this->password)) {
-            $this->ticket = 'demo_ticket_' . uniqid();
-            $this->csrf = 'demo_csrf_' . uniqid();
-            return true;
-        }
-        
+    public function authenticate() {
         $data = [
             'username' => $this->username,
             'password' => $this->password
         ];
         
-        try {
-            $response = $this->makeRequest('/access/ticket', 'POST', $data, false);
-            
-            if (isset($response['data'])) {
-                $this->ticket = $response['data']['ticket'];
-                $this->csrf = $response['data']['CSRFPreventionToken'];
-                return true;
-            }
-        } catch (Exception $e) {
-            // Fallback für Demo
-            $this->ticket = 'demo_ticket_' . uniqid();
-            $this->csrf = 'demo_csrf_' . uniqid();
+        $response = $this->makeRequest('/access/ticket', 'POST', $data, false);
+        
+        if (isset($response['data'])) {
+            $this->ticket = $response['data']['ticket'];
+            $this->csrf = $response['data']['CSRFPreventionToken'];
+            return true;
         }
         
         return false;
     }
     
-    public function getVMList() {
+    public function createVM($vmid, $name, $memory = 2048, $cores = 2, $disk = 20) {
         if (!$this->ticket) {
             $this->authenticate();
         }
         
-        // Demo-Daten für Entwicklung
-        if ($this->host === 'demo.proxmox.com' || !$this->ticket) {
-            return [
-                'data' => [
-                    ['vmid' => '100', 'name' => 'web-server-01', 'status' => 'running', 'cpu' => 2, 'mem' => 2048],
-                    ['vmid' => '101', 'name' => 'db-server-01', 'status' => 'stopped', 'cpu' => 4, 'mem' => 4096],
-                    ['vmid' => '102', 'name' => 'game-server-01', 'status' => 'running', 'cpu' => 8, 'mem' => 8192]
-                ]
-            ];
-        }
+        $data = [
+            'vmid' => $vmid,
+            'name' => $name,
+            'memory' => $memory,
+            'cores' => $cores,
+            'sockets' => 1,
+            'ostype' => 'l26',
+            'ide2' => 'local:iso/ubuntu-20.04-server.iso,media=cdrom',
+            'scsi0' => "local-lvm:{$disk},format=qcow2",
+            'scsihw' => 'virtio-scsi-pci',
+            'bootdisk' => 'scsi0',
+            'net0' => 'virtio,bridge=vmbr0',
+            'start' => 1
+        ];
         
-        return $this->makeRequest('/cluster/resources?type=vm', 'GET');
+        return $this->makeRequest("/nodes/pve/qemu", 'POST', $data);
     }
     
     public function getVMStatus($vmid) {
         if (!$this->ticket) {
             $this->authenticate();
-        }
-        
-        // Demo-Daten
-        if ($this->host === 'demo.proxmox.com' || !$this->ticket) {
-            return [
-                'data' => [
-                    'vmid' => $vmid,
-                    'status' => 'running',
-                    'cpu' => 0.15,
-                    'mem' => 1073741824,
-                    'uptime' => 86400
-                ]
-            ];
         }
         
         return $this->makeRequest("/nodes/pve/qemu/{$vmid}/status/current", 'GET');
@@ -88,11 +65,6 @@ class ProxmoxAPI {
             $this->authenticate();
         }
         
-        // Demo-Modus
-        if ($this->host === 'demo.proxmox.com' || !$this->ticket) {
-            return ['success' => true, 'message' => 'VM gestartet', 'vmid' => $vmid];
-        }
-        
         return $this->makeRequest("/nodes/pve/qemu/{$vmid}/status/start", 'POST');
     }
     
@@ -101,22 +73,12 @@ class ProxmoxAPI {
             $this->authenticate();
         }
         
-        // Demo-Modus
-        if ($this->host === 'demo.proxmox.com' || !$this->ticket) {
-            return ['success' => true, 'message' => 'VM gestoppt', 'vmid' => $vmid];
-        }
-        
         return $this->makeRequest("/nodes/pve/qemu/{$vmid}/status/stop", 'POST');
     }
     
     public function restartVM($vmid) {
         if (!$this->ticket) {
             $this->authenticate();
-        }
-        
-        // Demo-Modus
-        if ($this->host === 'demo.proxmox.com' || !$this->ticket) {
-            return ['success' => true, 'message' => 'VM neugestartet', 'vmid' => $vmid];
         }
         
         return $this->makeRequest("/nodes/pve/qemu/{$vmid}/status/reboot", 'POST');
@@ -160,8 +122,8 @@ class ProxmoxAPI {
             }
         }
         
-        if ($method === 'POST' || $method === 'PUT') {
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        if ($method === 'POST') {
+            curl_setopt($ch, CURLOPT_POST, true);
             if ($data) {
                 curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
                 $headers[] = 'Content-Type: application/x-www-form-urlencoded';
@@ -182,13 +144,7 @@ class ProxmoxAPI {
         
         return json_decode($response, true);
     }
+    
+
 }
-
-// Proxmox VE API initialisieren
-$proxmox = new ProxmoxAPI(
-    PROXMOX_HOST ?? 'demo.proxmox.com',
-    PROXMOX_USERNAME ?? 'demo@pve',
-    PROXMOX_PASSWORD ?? ''
-);
-
 ?>
