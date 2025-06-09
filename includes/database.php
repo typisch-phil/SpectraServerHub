@@ -50,6 +50,8 @@ class Database {
         if ($result->rowCount() == 0) {
             $this->createTables();
             $this->insertDefaultData();
+        } else {
+            $this->updateSchema();
         }
     }
     
@@ -179,6 +181,37 @@ class Database {
         
         foreach ($tables as $sql) {
             $this->connection->exec($sql);
+        }
+    }
+    
+    private function updateSchema() {
+        // Check if assigned_to column exists in tickets table
+        $result = $this->connection->query("PRAGMA table_info(tickets)");
+        $columns = $result->fetchAll();
+        $hasAssignedTo = false;
+        
+        foreach ($columns as $column) {
+            if ($column['name'] === 'assigned_to') {
+                $hasAssignedTo = true;
+                break;
+            }
+        }
+        
+        if (!$hasAssignedTo) {
+            $this->connection->exec("ALTER TABLE tickets ADD COLUMN assigned_to INTEGER NULL");
+        }
+        
+        // Check if category column exists in tickets table
+        $hasCategory = false;
+        foreach ($columns as $column) {
+            if ($column['name'] === 'category') {
+                $hasCategory = true;
+                break;
+            }
+        }
+        
+        if (!$hasCategory) {
+            $this->connection->exec("ALTER TABLE tickets ADD COLUMN category TEXT DEFAULT 'general'");
         }
     }
     
