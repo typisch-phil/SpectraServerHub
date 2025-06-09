@@ -93,29 +93,9 @@ class Auth {
     }
 }
 
-// Generate CSRF token
-function generateCSRFToken() {
-    if (!isset($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
+// CSRF functions are now defined in config.php
 
-// Verify CSRF token
-function verifyCSRFToken($token) {
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
-}
-
-// Global wrapper functions for API compatibility
-function isLoggedIn() {
-    $auth = new Auth();
-    return $auth->isLoggedIn();
-}
-
-function getCurrentUser() {
-    $auth = new Auth();
-    return $auth->getCurrentUser();
-}
+// Global wrapper functions for API compatibility - these are now defined in config.php
 
 function requireLogin() {
     $auth = new Auth();
