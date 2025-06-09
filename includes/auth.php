@@ -104,24 +104,5 @@ function verifyCSRFToken($token) {
 
 $auth = new Auth();
 
-// Global helper functions
-function requireLogin() {
-    global $auth;
-    $auth->requireLogin();
-}
-
-function requireAdmin() {
-    global $auth;
-    $auth->requireAdmin();
-}
-
-function getCurrentUser() {
-    global $auth;
-    return $auth->getCurrentUser();
-}
-
-function isLoggedIn() {
-    global $auth;
-    return $auth->isLoggedIn();
-}
+// Note: Global helper functions moved to includes/session.php
 ?>
