@@ -59,9 +59,16 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
                     <a href="/contact" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Kontakt</a>
                     
                     <?php if (isset($_SESSION['user_id'])): ?>
-                        <a href="/dashboard" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Dashboard</a>
+                        <a href="/dashboard" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
+                        </a>
+                        <?php if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] === 'admin'): ?>
+                            <a href="/admin" class="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                                <i class="fas fa-cog mr-1"></i>Admin Panel
+                            </a>
+                        <?php endif; ?>
                         <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
-                            Abmelden
+                            <i class="fas fa-sign-out-alt mr-1"></i>Abmelden
                         </button>
                     <?php else: ?>
                         <a href="/login" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Anmelden</a>
@@ -94,8 +101,17 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
                 <a href="/contact" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">Kontakt</a>
                 
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="/dashboard" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">Dashboard</a>
-                    <button onclick="logout()" class="w-full text-left py-2 text-red-500 hover:text-red-600">Abmelden</button>
+                    <a href="/dashboard" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                        <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
+                    </a>
+                    <?php if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] === 'admin'): ?>
+                        <a href="/admin" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400">
+                            <i class="fas fa-cog mr-1"></i>Admin Panel
+                        </a>
+                    <?php endif; ?>
+                    <button onclick="logout()" class="w-full text-left py-2 text-red-500 hover:text-red-600">
+                        <i class="fas fa-sign-out-alt mr-1"></i>Abmelden
+                    </button>
                 <?php else: ?>
                     <a href="/login" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">Anmelden</a>
                     <a href="/register" class="block py-2 text-blue-500 hover:text-blue-600">Registrieren</a>
