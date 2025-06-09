@@ -519,12 +519,22 @@ renderHeader($title, $description);
 
         // Specific integration functions using dedicated APIs
         function configureProxmox() { configureIntegration('proxmox'); }
-        function testProxmox() { testSpecificIntegration('proxmox'); }
+        function testProxmox() { 
+            const btn = event.target;
+            testSpecificIntegration('proxmox', btn); 
+        }
         function configureMollie() { configureIntegration('mollie'); }
-        function testMollie() { testSpecificIntegration('mollie'); }
+        function testMollie() { 
+            const btn = event.target;
+            testSpecificIntegration('mollie', btn); 
+        }
 
-        async function testSpecificIntegration(integration) {
-            const button = event.target;
+        async function testSpecificIntegration(integration, button) {
+            if (!button) {
+                showNotification('error', 'Button-Referenz fehlt');
+                return;
+            }
+            
             const originalText = button.innerHTML;
             button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Teste...';
             button.disabled = true;
