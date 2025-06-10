@@ -1,61 +1,51 @@
 <?php
-require_once __DIR__ . '/../../includes/dashboard-layout.php';
-
 header('Content-Type: application/json');
 
-if (!isLoggedIn()) {
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once __DIR__ . '/../../includes/database.php';
+
+// Authentifizierung prüfen
+if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['error' => 'Nicht authentifiziert']);
     exit;
 }
 
+// Nur POST-Requests akzeptieren
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['error' => 'Methode nicht erlaubt']);
-    exit;
-}
-
-$user = getCurrentUser();
-$user_id = $user['id'];
-
-$ticket_id = $_POST['ticket_id'] ?? null;
-$status = $_POST['status'] ?? null;
-
-if (!$ticket_id || !$status) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Ticket ID und Status sind erforderlich']);
-    exit;
-}
-
-// Nur bestimmte Status-Änderungen erlauben
-$allowed_statuses = ['open', 'closed'];
-if (!in_array($status, $allowed_statuses)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Ungültiger Status']);
-    exit;
-}
-
-// MySQL-Datenbankverbindung
-$host = $_ENV['MYSQL_HOST'] ?? 'localhost';
-$username = $_ENV['MYSQL_USER'] ?? 'root';
-$password = $_ENV['MYSQL_PASSWORD'] ?? '';
-$database = $_ENV['MYSQL_DATABASE'] ?? 'spectrahost';
-
-$mysqli = new mysqli($host, $username, $password, $database);
-
-if ($mysqli->connect_error) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Datenbankverbindung fehlgeschlagen']);
+    echo json_encode(['error' => 'Method not allowed']);
     exit;
 }
 
 try {
-    // Prüfen ob Ticket dem User gehört
-    $stmt = $mysqli->prepare("SELECT id, status FROM support_tickets WHERE id = ? AND user_id = ?");
-    $stmt->bind_param("ii", $ticket_id, $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $ticket = $result->fetch_assoc();
+    $ticket_id = $_POST['ticket_id'] ?? null;
+    $status = $_POST['status'] ?? null;
+    
+    if (!$ticket_id || !$status) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Ticket ID und Status erforderlich']);
+        exit;
+    }
+    
+    // Gültige Status prüfen
+    $validStatuses = ['open', 'in_progress', 'waiting_customer', 'closed'];
+    if (!in_array($status, $validStatuses)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Ungültiger Status']);
+        exit;
+    }
+    
+    $db = Database::getInstance();
+    
+    // Prüfen ob Ticket dem Benutzer gehört
+    $ticket = $db->fetchOne("
+        SELECT id, status FROM support_tickets 
+        WHERE id = ? AND user_id = ?
+    ", [$ticket_id, $_SESSION['user_id']]);
     
     if (!$ticket) {
         http_response_code(404);
@@ -64,30 +54,39 @@ try {
     }
     
     // Status aktualisieren
-    $stmt = $mysqli->prepare("UPDATE support_tickets SET status = ?, updated_at = NOW() WHERE id = ? AND user_id = ?");
-    $stmt->bind_param("sii", $status, $ticket_id, $user_id);
+    $stmt = $db->prepare("
+        UPDATE support_tickets 
+        SET status = ?, updated_at = NOW() 
+        WHERE id = ? AND user_id = ?
+    ");
+    $stmt->execute([$status, $ticket_id, $_SESSION['user_id']]);
     
-    if ($stmt->execute()) {
-        // System-Nachricht hinzufügen
-        $message = $status === 'closed' ? 'Ticket wurde vom Kunden geschlossen.' : 'Ticket wurde vom Kunden wieder geöffnet.';
-        $stmt2 = $mysqli->prepare("
-            INSERT INTO ticket_messages (ticket_id, user_id, message, is_admin_reply) 
-            VALUES (?, ?, ?, 0)
+    // Bei Schließung: Closed-Zeitstempel setzen
+    if ($status === 'closed') {
+        $stmt = $db->prepare("
+            UPDATE support_tickets 
+            SET closed_at = NOW() 
+            WHERE id = ? AND user_id = ?
         ");
-        $stmt2->bind_param("iis", $ticket_id, $user_id, $message);
-        $stmt2->execute();
+        $stmt->execute([$ticket_id, $_SESSION['user_id']]);
         
-        echo json_encode([
-            'success' => true,
-            'message' => 'Ticket-Status erfolgreich geändert'
+        // System-Nachricht hinzufügen
+        $stmt = $db->prepare("
+            INSERT INTO ticket_messages (ticket_id, user_id, message, is_staff, created_at) 
+            VALUES (?, ?, ?, 0, NOW())
+        ");
+        $stmt->execute([
+            $ticket_id, 
+            $_SESSION['user_id'], 
+            'Ticket wurde vom Kunden geschlossen.'
         ]);
-    } else {
-        http_response_code(500);
-        echo json_encode(['error' => 'Fehler beim Ändern des Status']);
     }
     
+    echo json_encode(['success' => true]);
+    
 } catch (Exception $e) {
+    error_log('Update Ticket Status Error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Server-Fehler: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Interner Server-Fehler']);
 }
 ?>
