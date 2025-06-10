@@ -14,7 +14,13 @@ $route = trim($path, '/');
 // API-Requests weiterleiten
 if (strpos($route, 'api/') === 0) {
     $apiEndpoint = substr($route, 4); // Remove 'api/' prefix
-    $apiFile = __DIR__ . '/api/' . $apiEndpoint . '.php';
+    $apiFile = __DIR__ . '/api/' . $apiEndpoint;
+    
+    // Add .php extension if not present
+    if (!str_ends_with($apiFile, '.php')) {
+        $apiFile .= '.php';
+    }
+    
     if (file_exists($apiFile)) {
         include $apiFile;
     } else {
