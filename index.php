@@ -14,12 +14,14 @@ $route = trim($path, '/');
 
 // API-Requests weiterleiten
 if (strpos($route, 'api/') === 0) {
-    $apiFile = __DIR__ . '/' . $route . '.php';
+    $apiEndpoint = substr($route, 4); // Remove 'api/' prefix
+    $apiFile = __DIR__ . '/api/' . $apiEndpoint . '.php';
     if (file_exists($apiFile)) {
         include $apiFile;
     } else {
         http_response_code(404);
-        echo json_encode(['error' => 'API endpoint not found']);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'API endpoint not found: ' . $apiEndpoint]);
     }
     exit;
 }

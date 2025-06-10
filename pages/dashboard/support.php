@@ -450,31 +450,20 @@ async function createTicket(event) {
     const form = document.getElementById('createTicketForm');
     const formData = new FormData(form);
     
-    const ticketData = {
-        subject: formData.get('subject'),
-        description: formData.get('description'),
-        category: formData.get('category'),
-        priority: formData.get('priority'),
-        service_id: formData.get('service_id') || null
-    };
+    // Dateien zu FormData hinzufügen
+    uploadedFiles.forEach((file, index) => {
+        formData.append('files[]', file);
+    });
     
     try {
-        const response = await fetch('/api/tickets.php', {
+        const response = await fetch('/dashboard/create-ticket', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(ticketData)
+            body: formData
         });
         
         const data = await response.json();
         
         if (data.success) {
-            // Upload files if any
-            if (uploadedFiles.length > 0) {
-                await uploadTicketFiles(data.ticket_id);
-            }
-            
             alert('Ticket erfolgreich erstellt!');
             hideCreateTicketModal();
             location.reload();
