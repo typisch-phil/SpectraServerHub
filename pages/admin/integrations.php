@@ -330,7 +330,7 @@ renderHeader($title, $description);
             switch (integration) {
                 case 'proxmox':
                     return `
-                        <form onsubmit="saveConfig('proxmox', event)">
+                        <form onsubmit="saveProxmoxConfig(event)">
                             <div class="space-y-4">
                                 <div class="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg mb-4">
                                     <h4 class="font-medium text-green-800 dark:text-green-200 mb-2">Proxmox VE Produktionsserver</h4>
@@ -445,6 +445,40 @@ renderHeader($title, $description);
                             </div>
                         </div>
                     `;
+            }
+        }
+
+        async function saveProxmoxConfig(event) {
+            event.preventDefault();
+            const form = event.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Speichere...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/save-proxmox-config.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('success', result.message);
+                    closeConfigModal();
+                    await loadIntegrationStatus();
+                } else {
+                    showNotification('error', result.message || 'Fehler beim Speichern der Konfiguration');
+                }
+            } catch (error) {
+                console.error('Speicherfehler:', error);
+                showNotification('error', 'Verbindungsfehler beim Speichern');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         }
 
