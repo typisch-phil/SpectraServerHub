@@ -361,24 +361,31 @@ renderHeader($title, $description);
                                             Produktionsmodus: Echte Proxmox VE Server-Verbindung
                                         </p>
                                     </div>
+                                    <div class="bg-green-50 dark:bg-green-900/30 p-3 rounded mb-4">
+                                        <p class="text-sm text-green-700 dark:text-green-300">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            Produktionsserver-Daten aus Umgebungsvariablen verfügbar
+                                        </p>
+                                    </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Host/IP-Adresse</label>
-                                        <input type="text" name="host" placeholder="192.168.1.100 oder proxmox.example.com" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
-                                        <p class="text-xs text-gray-500 mt-1">IP-Adresse oder Hostname Ihres Proxmox-Servers</p>
+                                        <input type="text" name="host" placeholder="Wird aus Umgebungsvariablen geladen" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
+                                        <p class="text-xs text-gray-500 mt-1">Automatisch aus PROXMOX_HOST geladen</p>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Benutzername</label>
-                                        <input type="text" name="username" placeholder="root@pam" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
-                                        <p class="text-xs text-gray-500 mt-1">Format: benutzer@realm (z.B. root@pam, admin@pve)</p>
+                                        <input type="text" name="username" placeholder="Wird aus Umgebungsvariablen geladen" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
+                                        <p class="text-xs text-gray-500 mt-1">Automatisch aus PROXMOX_USERNAME geladen</p>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Passwort</label>
-                                        <input type="password" name="password" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                                        <input type="password" placeholder="••••••••" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
+                                        <p class="text-xs text-gray-500 mt-1">Automatisch aus PROXMOX_PASSWORD geladen</p>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Node-Name</label>
-                                        <input type="text" name="node" placeholder="pve" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
-                                        <p class="text-xs text-gray-500 mt-1">Name des Proxmox-Knotens (Standard: pve)</p>
+                                        <input type="text" name="node" placeholder="Wird aus Umgebungsvariablen geladen" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
+                                        <p class="text-xs text-gray-500 mt-1">Automatisch aus PROXMOX_NODE geladen</p>
                                     </div>
                                     <div>
                                         <label class="flex items-center">
