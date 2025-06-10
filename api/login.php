@@ -37,6 +37,19 @@ try {
     
     // Start session and store user data
     if (session_status() === PHP_SESSION_NONE) {
+        // Set secure session parameters for production
+        $domain = $_SERVER['HTTP_HOST'] ?? 'spectrahost.de';
+        $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+        
+        session_set_cookie_params([
+            'lifetime' => 3600,
+            'path' => '/',
+            'domain' => $domain === 'localhost:5000' ? '' : '.' . $domain,
+            'secure' => $isSecure,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+        
         session_start();
     }
     $_SESSION['user_id'] = $user['id'];

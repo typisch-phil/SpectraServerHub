@@ -5,10 +5,13 @@ header('Content-Type: application/json');
 
 try {
     // Use environment variable for Mollie API key
+    $domain = $_SERVER['HTTP_HOST'] ?? 'spectrahost.de';
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+    
     $config = [
         'api_key' => $_ENV['MOLLIE_API_KEY'],
         'test_mode' => true, // Default to test mode for safety
-        'webhook_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/api/webhooks/mollie.php',
+        'webhook_url' => $protocol . '://' . $domain . '/api/webhooks/mollie.php',
         'last_updated' => date('Y-m-d H:i:s')
     ];
     

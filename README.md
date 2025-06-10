@@ -1,234 +1,191 @@
-# SpectraHost - PHP Hosting Platform
+# SpectraHost - Premium Hosting Management Platform
 
-Eine professionelle Hosting-Plattform entwickelt mit PHP, MySQL, und modernen Web-Technologien.
+Eine professionelle Hosting-Management-Plattform mit integrierter Proxmox VE-Automatisierung und Mollie-Zahlungsabwicklung.
 
-## 🚀 Features
+## 🚀 Deployment auf spectrahost.de
 
-- **Backend**: PHP 8.0+ mit PDO für sichere Datenbankverbindungen
-- **Datenbank**: MySQL 5.7+ mit optimierten Abfragen und Indizes
-- **Frontend**: HTML5, Tailwind CSS, Vanilla JavaScript
-- **Zahlungen**: Mollie API Integration für sichere Payments
-- **Server Management**: Proxmox VE API Integration
-- **Security**: Prepared Statements, Password Hashing, Session Management
-- **Design**: Responsive Design mit Dark/Light Mode
-
-## 📋 Anforderungen
-
-- **Webserver**: Apache 2.4+ oder Nginx 1.18+
-- **PHP**: Version 8.0 oder höher
-- **Datenbank**: MySQL 5.7+ oder MariaDB 10.3+
-- **Extensions**: PDO, JSON, cURL, mbstring
-- **Optional**: Proxmox VE Server für automatische VM-Erstellung
-
-## 🛠 Installation
+### Systemanforderungen
+- PHP 8.1+ mit Extensions: PDO, PDO_MySQL, cURL, JSON, OpenSSL
+- MySQL 5.7+ oder MariaDB 10.3+
+- Apache mit mod_rewrite oder Nginx
+- SSL-Zertifikat (empfohlen)
 
 ### 1. Dateien hochladen
 ```bash
-# Projekt-Dateien in Webroot kopieren
-cp -r * /var/www/html/spectrahost/
+# Alle Projektdateien in das Web-Root-Verzeichnis hochladen
+# Stelle sicher, dass .htaccess mit hochgeladen wird
 ```
 
-### 2. Datenbank einrichten
+### 2. Umgebungsvariablen konfigurieren
 ```bash
-# MySQL-Datenbank erstellen
-mysql -u root -p
+# .env.production zu .env kopieren und anpassen
+cp .env.production .env
 ```
 
+**Wichtige Konfigurationen in .env:**
+```env
+# Datenbank
+MYSQL_HOST=localhost
+MYSQL_DATABASE=spectrahost
+MYSQL_USER=dein_db_benutzer
+MYSQL_PASSWORD=dein_db_passwort
+
+# Mollie (Live-Modus)
+MOLLIE_API_KEY=live_dein_mollie_schlüssel
+
+# Proxmox VE
+PROXMOX_HOST=45.137.68.202
+PROXMOX_USERNAME=spectrahost@pve
+PROXMOX_PASSWORD=dein_proxmox_passwort
+PROXMOX_NODE=bl1-4
+```
+
+### 3. Datenbank einrichten
 ```sql
 -- Datenbank erstellen
 CREATE DATABASE spectrahost CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Benutzer erstellen (optional)
+-- Benutzer erstellen (ersetze 'username' und 'password')
 CREATE USER 'spectrahost'@'localhost' IDENTIFIED BY 'sicheres_passwort';
 GRANT ALL PRIVILEGES ON spectrahost.* TO 'spectrahost'@'localhost';
 FLUSH PRIVILEGES;
-
--- Schema importieren
-source database/schema.sql;
 ```
 
-### 3. Umgebungsvariablen konfigurieren
+### 4. Deployment ausführen
 ```bash
-# .env Datei erstellen
-cp .env.example .env
+# Deployment-Skript ausführen
+php deploy.php
 ```
 
-Bearbeiten Sie die `.env` Datei:
-```env
-# Datenbank
-DB_HOST=localhost
-DB_NAME=spectrahost
-DB_USER=spectrahost
-DB_PASS=sicheres_passwort
-
-# Mollie Payment
-MOLLIE_API_KEY=test_xxxxx
-MOLLIE_TEST_MODE=true
-
-# Proxmox (optional)
-PROXMOX_HOST=your-proxmox-server.com
-PROXMOX_USER=api-user@pve
-PROXMOX_PASS=api-password
-
-# Site
-SITE_URL=https://spectrahost.de
-ADMIN_EMAIL=admin@spectrahost.de
-```
-
-### 4. Apache/Nginx konfigurieren
-
-#### Apache
-```apache
-<VirtualHost *:80>
-    ServerName spectrahost.de
-    DocumentRoot /var/www/html/spectrahost/public
-    
-    <Directory /var/www/html/spectrahost/public>
-        AllowOverride All
-        Require all granted
-    </Directory>
-    
-    ErrorLog ${APACHE_LOG_DIR}/spectrahost_error.log
-    CustomLog ${APACHE_LOG_DIR}/spectrahost_access.log combined
-</VirtualHost>
-```
-
-#### Nginx
-```nginx
-server {
-    listen 80;
-    server_name spectrahost.de;
-    root /var/www/html/spectrahost/public;
-    index index.php;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.0-fpm.sock;
-        fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
-}
-```
-
-### 5. Berechtigungen setzen
+### 5. Verzeichnisberechtigungen setzen
 ```bash
-# Ordner-Berechtigungen
-chmod 755 /var/www/html/spectrahost
-chmod 644 /var/www/html/spectrahost/public/.htaccess
-
-# Logs-Ordner erstellen (falls benötigt)
-mkdir /var/www/html/spectrahost/logs
-chmod 755 /var/www/html/spectrahost/logs
+chmod 755 logs uploads
+chmod 644 .htaccess
+chmod 600 .env
 ```
 
-## 🔧 Konfiguration
+## 🔧 Konfiguration nach der Installation
 
-### Mollie Zahlungen einrichten
-1. Account bei [Mollie](https://mollie.com) erstellen
-2. API-Keys aus dem Dashboard kopieren
-3. Webhook-URL in Mollie konfigurieren: `https://yourdomain.com/api/payment/webhook`
+### Admin-Zugang
+- URL: `https://spectrahost.de/admin`
+- Standard-Login: `admin@spectrahost.de` / `admin123`
+- **Wichtig:** Passwort nach der ersten Anmeldung ändern!
 
-### Proxmox Integration (optional)
-1. API-Benutzer in Proxmox erstellen
-2. Entsprechende Berechtigungen vergeben
-3. Credentials in `.env` eintragen
+### Integrationen konfigurieren
+
+#### 1. Mollie Payment Gateway
+1. Admin-Panel → Integrationen → Mollie
+2. "Konfigurieren" klicken
+3. "Speichern & Testen" ausführen
+4. Webhook-URL automatisch konfiguriert: `https://spectrahost.de/api/webhooks/mollie.php`
+
+#### 2. Proxmox VE Integration
+1. Admin-Panel → Integrationen → Proxmox VE
+2. "Konfigurieren" klicken
+3. Produktionskonfiguration prüfen
+4. "Speichern & Testen" ausführen
 
 ## 📁 Projektstruktur
 
 ```
 spectrahost/
-├── public/              # Webroot
-│   ├── index.php       # Haupt-Router
-│   └── .htaccess       # Apache-Konfiguration
-├── includes/            # Core-Dateien
-│   ├── config.php      # Konfiguration
-│   ├── database.php    # Datenbankklasse
-│   ├── auth.php        # Authentifizierung
-│   ├── mollie.php      # Payment-Integration
-│   ├── proxmox.php     # Server-Management
-│   └── layout.php      # HTML-Layout
-├── pages/              # Seiten-Templates
-│   ├── home.php        # Startseite
-│   ├── login.php       # Anmeldung
-│   ├── register.php    # Registrierung
-│   ├── dashboard.php   # Kundendashboard
-│   ├── order.php       # Bestellseite
-│   ├── contact.php     # Kontakt
-│   └── impressum.php   # Impressum
-├── api/                # API-Endpunkte
-│   ├── login.php       # Login-API
-│   ├── register.php    # Registrierungs-API
-│   ├── order.php       # Bestellungs-API
-│   ├── services.php    # Services-API
-│   └── payment/        # Payment-Webhooks
-├── css/                # Stylesheets
-├── js/                 # JavaScript
-└── database/           # Datenbank-Schema
+├── api/                    # API-Endpunkte
+│   ├── webhooks/          # Payment-Webhooks
+│   ├── admin/             # Admin-APIs
+│   └── user/              # Benutzer-APIs
+├── includes/              # PHP-Konfiguration
+├── pages/                 # Frontend-Seiten
+│   ├── admin/            # Admin-Panel
+│   └── dashboard/        # Benutzer-Dashboard
+├── assets/               # Statische Assets
+├── logs/                 # Anwendungs-Logs
+├── uploads/              # Datei-Uploads
+├── .htaccess            # Apache-Konfiguration
+├── .env                 # Umgebungsvariablen
+└── deploy.php           # Deployment-Skript
 ```
 
-## 🛡 Sicherheit
+## 🔒 Sicherheitsfeatures
 
-- **SQL Injection**: Schutz durch Prepared Statements
-- **CSRF**: Token-basierter Schutz
-- **XSS**: Output-Sanitization
-- **Session**: Sichere Session-Konfiguration
-- **Password**: Bcrypt-Hashing
-- **Headers**: Security Headers via .htaccess
+- Session-Sicherheit mit HTTPOnly, Secure, SameSite
+- CSRF-Schutz für alle Formulare
+- SQL-Injection-Schutz durch Prepared Statements
+- XSS-Schutz durch Content Security Policy
+- Sichere Passwort-Hashing mit PASSWORD_DEFAULT
+- HTTPS-Erzwingung auf Produktionsdomain
 
-## 🚀 Deployment
+## 🌐 Domain-spezifische Anpassungen
 
-### Produktions-Checkliste
-- [ ] SSL-Zertifikat installiert
-- [ ] .env Datei mit Produktions-Werten
-- [ ] Error-Reporting deaktiviert
-- [ ] Logs-Monitoring eingerichtet
-- [ ] Backup-Strategie implementiert
-- [ ] Security Headers konfiguriert
+Das System erkennt automatisch die Domain und passt sich entsprechend an:
+- **Entwicklung:** `localhost:5000` (HTTP, relaxed security)
+- **Produktion:** `spectrahost.de` (HTTPS, enhanced security)
 
-### Auto-Deployment
+### Automatische Konfigurationen:
+- SSL-erzwungene Sessions auf HTTPS-Domains
+- Domain-spezifische Cookie-Einstellungen
+- Automatische Webhook-URL-Generierung
+- Sichere Session-Parameter für Produktion
+
+## 🎯 Funktionen
+
+### Für Administratoren
+- **Dashboard:** Übersicht über alle Services und Benutzer
+- **Service-Management:** CRUD-Operationen für Hosting-Pakete
+- **Benutzer-Verwaltung:** Vollständige Benutzerkontrolle
+- **Integrationen:** Mollie & Proxmox VE-Konfiguration
+- **Rechnungen:** Automatisierte Rechnungserstellung
+
+### Für Kunden
+- **Service-Bestellung:** Intuitive Paket-Auswahl
+- **Dashboard:** Übersicht über aktive Services
+- **Guthaben-Management:** Mollie-Integration für Aufladungen
+- **Server-Kontrolle:** Start/Stop/Restart für VPS/Gameserver
+- **Ticket-System:** Support-Anfragen (in Entwicklung)
+
+## 🔧 Wartung
+
+### Logs überwachen
 ```bash
-# Deploy-Script
-#!/bin/bash
-git pull origin main
-composer install --no-dev --optimize-autoloader
-php database/migrate.php
-sudo systemctl reload apache2
+tail -f logs/app.log
+tail -f logs/error.log
 ```
 
-## 📊 Performance
-
-- **Caching**: Datei-basiertes Caching für statische Inhalte
-- **Compression**: Gzip-Komprimierung via .htaccess
-- **Optimierung**: Minifizierte CSS/JS-Dateien
-- **CDN**: Integration für statische Assets
-
-## 🔍 Monitoring
-
-### Logs
-- Apache/Nginx Access & Error Logs
-- PHP Error Logs
-- Application Logs in `/logs/`
-
-### Health Checks
+### Datenbank-Backup
 ```bash
-# Status-Check
-curl -I https://spectrahost.de/
+mysqldump -u spectrahost -p spectrahost > backup_$(date +%Y%m%d).sql
 ```
 
-## 🤝 Support
+### Updates einspielen
+1. Dateien sichern
+2. Neue Dateien hochladen
+3. `php deploy.php` ausführen
+4. Funktionalität testen
 
-- **Documentation**: Vollständige API-Dokumentation
-- **Support**: E-Mail support@spectrahost.de
-- **Updates**: Regelmäßige Security-Updates
+## 🆘 Troubleshooting
 
-## 📄 Lizenz
+### Login-Probleme
+- Überprüfe Session-Konfiguration in `.env`
+- Stelle sicher, dass Cookies aktiviert sind
+- Prüfe HTTPS-Konfiguration
 
-Proprietary - Alle Rechte vorbehalten
+### API-Fehler 404
+- Überprüfe `.htaccess`-Datei
+- Aktiviere `mod_rewrite` in Apache
+- Prüfe Verzeichnisberechtigungen
 
----
+### Datenbank-Verbindungsfehler
+- Überprüfe Datenbank-Credentials in `.env`
+- Teste Verbindung mit `php deploy.php`
+- Prüfe MySQL-Service-Status
 
-**SpectraHost** - Professionelles Hosting mit modernster Technologie
+## 📞 Support
+
+Bei Problemen:
+1. Logs in `logs/` prüfen
+2. `php deploy.php` für Diagnose ausführen
+3. Datenbank-Verbindung testen
+4. Umgebungsvariablen überprüfen
+
+**Entwickler:** SpectraHost Development Team  
+**Version:** 1.0.0  
+**Letzte Aktualisierung:** Juni 2025
