@@ -42,7 +42,7 @@ if (preg_match('/\.(css|js|png|jpg|jpeg|gif|ico|svg)$/', $request_uri)) {
 
 // Route page requests
 $routes = [
-    '/' => 'public/index.php',
+    '/' => 'pages/home.php',
     '/login' => 'pages/login.php',
     '/register' => 'pages/register.php',
     '/dashboard' => 'pages/dashboard/index.php',

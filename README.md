@@ -118,7 +118,7 @@ server {
 ```bash
 # Ordner-Berechtigungen
 chmod 755 /var/www/html/spectrahost
-chmod 644 /var/www/html/spectrahost/public/.htaccess
+chmod 644 /var/www/html/spectrahost/.htaccess
 
 # Logs-Ordner erstellen (falls benötigt)
 mkdir /var/www/html/spectrahost/logs
@@ -141,10 +141,9 @@ chmod 755 /var/www/html/spectrahost/logs
 
 ```
 spectrahost/
-├── public/              # Webroot
-│   ├── index.php       # Haupt-Router
-│   └── .htaccess       # Apache-Konfiguration
-├── includes/            # Core-Dateien
+├── index.php           # Haupt-Router
+├── .htaccess           # Apache-Konfiguration
+├── includes/           # Core-Dateien
 │   ├── config.php      # Konfiguration
 │   ├── database.php    # Datenbankklasse
 │   ├── auth.php        # Authentifizierung
