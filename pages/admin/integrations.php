@@ -469,7 +469,10 @@ renderHeader($title, $description);
                 if (result.success) {
                     showNotification('success', result.message);
                     closeConfigModal();
-                    await loadIntegrationStatus();
+                    // Reload the page to update integration status
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 } else {
                     showNotification('error', result.message || 'Fehler beim Speichern der Konfiguration');
                 }
