@@ -1,43 +1,34 @@
 <?php
-require_once '../includes/dashboard-layout.php';
+session_start();
+require_once '../includes/database.php';
 
 header('Content-Type: application/json');
 
-if (!isLoggedIn()) {
+if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(['error' => 'Nicht authentifiziert']);
+    echo json_encode(['error' => 'Nicht autorisiert']);
     exit;
 }
 
-$user = getCurrentUser();
-$user_id = $user['id'];
-$ticket_id = $_GET['id'] ?? null;
-
-if (!$ticket_id) {
+if (!isset($_GET['id'])) {
     http_response_code(400);
     echo json_encode(['error' => 'Ticket ID erforderlich']);
     exit;
 }
 
-// Zentrale Datenbankverbindung
-require_once '../includes/database.php';
-$db = Database::getInstance();
-
-if ($mysqli->connect_error) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Datenbankverbindung fehlgeschlagen']);
-    exit;
-}
+$ticket_id = (int)$_GET['id'];
+$user_id = $_SESSION['user_id'];
 
 try {
+    $db = Database::getInstance();
+    
     // Ticket-Details abrufen
-    $stmt = $mysqli->prepare("
-        SELECT t.* FROM support_tickets t 
+    $ticket = $db->fetchOne("
+        SELECT t.*, u.first_name, u.last_name, u.email
+        FROM support_tickets t
+        JOIN users u ON t.user_id = u.id
         WHERE t.id = ? AND t.user_id = ?
-    ");
-    $stmt->bind_param("ii", $ticket_id, $user_id);
-    $stmt->execute();
-    $ticket = $stmt->get_result()->fetch_assoc();
+    ", [$ticket_id, $user_id]);
     
     if (!$ticket) {
         http_response_code(404);
@@ -46,48 +37,22 @@ try {
     }
     
     // Nachrichten abrufen
-    $stmt = $mysqli->prepare("
-        SELECT tm.*, 
-               CASE WHEN tm.is_admin_reply = 1 THEN 'Support' ELSE u.first_name END as sender_name
-        FROM ticket_messages tm
-        LEFT JOIN users u ON tm.user_id = u.id
-        WHERE tm.ticket_id = ?
-        ORDER BY tm.created_at ASC
-    ");
-    $stmt->bind_param("i", $ticket_id);
-    $stmt->execute();
-    $messages_result = $stmt->get_result();
-    
-    $messages = [];
-    while ($row = $messages_result->fetch_assoc()) {
-        $messages[] = $row;
-    }
-    
-    // Anhänge abrufen
-    $stmt = $mysqli->prepare("
-        SELECT ta.*, u.first_name as uploaded_by_name
-        FROM ticket_attachments ta
-        LEFT JOIN users u ON ta.uploaded_by = u.id
-        WHERE ta.ticket_id = ?
-        ORDER BY ta.created_at ASC
-    ");
-    $stmt->bind_param("i", $ticket_id);
-    $stmt->execute();
-    $attachments_result = $stmt->get_result();
-    
-    $attachments = [];
-    while ($row = $attachments_result->fetch_assoc()) {
-        $attachments[] = $row;
-    }
+    $messages = $db->fetchAll("
+        SELECT m.*, u.first_name, u.last_name
+        FROM support_messages m
+        JOIN users u ON m.user_id = u.id
+        WHERE m.ticket_id = ?
+        ORDER BY m.created_at ASC
+    ", [$ticket_id]);
     
     echo json_encode([
         'ticket' => $ticket,
-        'messages' => $messages,
-        'attachments' => $attachments
+        'messages' => $messages
     ]);
     
 } catch (Exception $e) {
+    error_log("Ticket details error: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Server-Fehler: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Serverfehler']);
 }
 ?>
