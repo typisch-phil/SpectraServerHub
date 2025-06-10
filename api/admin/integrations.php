@@ -41,9 +41,36 @@ try {
         case 'save':
         case 'configure':
             $integration = $_POST['integration'] ?? '';
-            unset($_POST['integration'], $_POST['admin_override'], $_POST['action']);
+            $configType = $_POST['config_type'] ?? 'demo';
+            unset($_POST['integration'], $_POST['admin_override'], $_POST['action'], $_POST['config_type']);
             
-            $result = configureIntegration($integration, $_POST);
+            // Handle different configuration types
+            if ($integration === 'proxmox' && $configType === 'demo') {
+                $config = [
+                    'host' => 'demo.proxmox.local',
+                    'username' => 'root@pam',
+                    'password' => 'demo123',
+                    'node' => 'pve',
+                    'demo_mode' => true
+                ];
+            } elseif ($integration === 'proxmox' && $configType === 'production') {
+                // Use environment variables for production Proxmox
+                $config = [
+                    'host' => $_ENV['PROXMOX_HOST'] ?? $_POST['host'] ?? '',
+                    'username' => $_ENV['PROXMOX_USERNAME'] ?? $_POST['username'] ?? '',
+                    'password' => $_ENV['PROXMOX_PASSWORD'] ?? $_POST['password'] ?? '',
+                    'node' => $_ENV['PROXMOX_NODE'] ?? $_POST['node'] ?? 'pve',
+                    'ssl_verify' => $_POST['ssl_verify'] ?? false,
+                    'demo_mode' => false
+                ];
+            } else {
+                $config = $_POST;
+                if ($integration === 'proxmox') {
+                    $config['demo_mode'] = false;
+                }
+            }
+            
+            $result = configureIntegration($integration, $config);
             echo json_encode($result);
             break;
             
@@ -93,8 +120,9 @@ function testProxmoxConnection() {
             ];
         }
         
-        // Check if this is a demo/test configuration
-        if (strpos($host, '192.168.') === 0 || strpos($host, '10.0.') === 0 || strpos($host, 'demo') !== false) {
+        // Check if this is a demo configuration
+        $isDemoMode = $config['demo_mode'] ?? false;
+        if ($isDemoMode || strpos($host, 'demo') !== false) {
             return [
                 'success' => true,
                 'message' => 'Proxmox Demo-Konfiguration aktiv',
@@ -117,12 +145,16 @@ function testProxmoxConnection() {
         ];
         
         $ch = curl_init();
+        $sslVerify = $config['ssl_verify'] ?? false;
+        
         curl_setopt($ch, CURLOPT_URL, "https://{$host}:8006/api2/json/access/ticket");
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($authData));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $sslVerify);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $sslVerify ? 2 : 0);
         curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
         
         $authResponse = curl_exec($ch);
@@ -202,7 +234,11 @@ function testProxmoxConnection() {
                     'version' => $version,
                     'release' => $release,
                     'nodes' => $nodeCount,
-                    'response_time' => '< 1s'
+                    'host' => $host,
+                    'node' => $node,
+                    'ssl_verified' => $sslVerify,
+                    'demo_mode' => false,
+                    'response_time' => round($connectTime, 2) . 's'
                 ]
             ];
         } else {
