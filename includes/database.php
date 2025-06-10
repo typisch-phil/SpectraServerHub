@@ -46,6 +46,10 @@ class Database {
         return $this->connection;
     }
     
+    public function prepare($sql) {
+        return $this->connection->prepare($sql);
+    }
+    
     public function query($sql, $params = []) {
         $stmt = $this->connection->prepare($sql);
         $stmt->execute($params);
