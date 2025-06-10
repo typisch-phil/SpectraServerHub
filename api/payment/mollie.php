@@ -148,26 +148,42 @@ function handleWebhook() {
     
     $new_status = $mollie_payment['status'];
     
-    // Update payment status
-    $stmt = $db->prepare("UPDATE payments SET status = ?, updated_at = NOW() WHERE id = ?");
-    $stmt->execute([$new_status, $payment['id']]);
-    
     // If payment is paid, add balance to user account
     if ($new_status === 'paid' && $payment['status'] !== 'paid') {
-        $stmt = $db->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
-        $stmt->execute([$payment['amount'], $payment['user_id']]);
+        $db->beginTransaction();
         
-        // Log balance transaction
-        $stmt = $db->prepare("
-            INSERT INTO balance_transactions (user_id, amount, type, description, payment_id, created_at) 
-            VALUES (?, ?, 'credit', ?, ?, NOW())
-        ");
-        $stmt->execute([
-            $payment['user_id'], 
-            $payment['amount'], 
-            'Guthaben aufgeladen via ' . $payment['payment_method'],
-            $payment['id']
-        ]);
+        try {
+            // Update payment status
+            $stmt = $db->prepare("UPDATE payments SET status = 'paid', updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$payment['id']]);
+            
+            // Add balance to user
+            $stmt = $db->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
+            $stmt->execute([$payment['amount'], $payment['user_id']]);
+            
+            // Log balance transaction
+            $stmt = $db->prepare("
+                INSERT INTO balance_transactions (user_id, amount, type, description, payment_id, created_at) 
+                VALUES (?, ?, 'credit', ?, ?, NOW())
+            ");
+            $stmt->execute([
+                $payment['user_id'], 
+                $payment['amount'], 
+                'Guthaben aufgeladen via ' . $payment['payment_method'],
+                $payment['id']
+            ]);
+            
+            $db->commit();
+            error_log("Webhook: Balance updated for user {$payment['user_id']}: +{$payment['amount']} EUR");
+            
+        } catch (Exception $e) {
+            $db->rollBack();
+            error_log("Webhook: Failed to update balance: " . $e->getMessage());
+        }
+    } else {
+        // Just update payment status
+        $stmt = $db->prepare("UPDATE payments SET status = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$new_status, $payment['id']]);
     }
     
     http_response_code(200);
@@ -202,25 +218,50 @@ function handleReturn() {
             $mollie_payment = callMollieAPI('payments/' . $payment['mollie_payment_id'], 'GET', null, $mollie_api_key);
             
             if ($mollie_payment && $mollie_payment['status'] === 'paid' && $payment['status'] !== 'paid') {
-                // Update payment status
-                $stmt = $db->prepare("UPDATE payments SET status = 'paid', updated_at = NOW() WHERE id = ?");
-                $stmt->execute([$payment['id']]);
+                // Begin transaction
+                $db->beginTransaction();
                 
-                // Add balance to user
-                $stmt = $db->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
-                $stmt->execute([$payment['amount'], $payment['user_id']]);
-                
-                // Log balance transaction
-                $stmt = $db->prepare("
-                    INSERT INTO balance_transactions (user_id, amount, type, description, payment_id, created_at) 
-                    VALUES (?, ?, 'credit', ?, ?, NOW())
-                ");
-                $stmt->execute([
-                    $payment['user_id'], 
-                    $payment['amount'], 
-                    'Guthaben aufgeladen via ' . $payment['payment_method'],
-                    $payment['id']
-                ]);
+                try {
+                    // Update payment status
+                    $stmt = $db->prepare("UPDATE payments SET status = 'paid', updated_at = NOW() WHERE id = ?");
+                    $stmt->execute([$payment['id']]);
+                    
+                    // Add balance to user - ensure we're updating the correct user
+                    $stmt = $db->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
+                    $stmt->execute([$payment['amount'], $payment['user_id']]);
+                    
+                    // Verify the balance was updated
+                    $stmt = $db->prepare("SELECT balance FROM users WHERE id = ?");
+                    $stmt->execute([$payment['user_id']]);
+                    $new_balance = $stmt->fetchColumn();
+                    
+                    // Log balance transaction
+                    $stmt = $db->prepare("
+                        INSERT INTO balance_transactions (user_id, amount, type, description, payment_id, created_at) 
+                        VALUES (?, ?, 'credit', ?, ?, NOW())
+                    ");
+                    $stmt->execute([
+                        $payment['user_id'], 
+                        $payment['amount'], 
+                        'Guthaben aufgeladen via ' . $payment['payment_method'],
+                        $payment['id']
+                    ]);
+                    
+                    // Update session balance if it's the current user
+                    if (isset($_SESSION['user']) && $_SESSION['user']['id'] == $payment['user_id']) {
+                        $_SESSION['user']['balance'] = $new_balance;
+                    }
+                    
+                    // Commit transaction
+                    $db->commit();
+                    
+                    error_log("Balance updated for user {$payment['user_id']}: +{$payment['amount']} EUR, new balance: {$new_balance}");
+                    
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    error_log("Failed to update balance: " . $e->getMessage());
+                    throw $e;
+                }
                 
                 header('Location: /dashboard/billing?success=payment_completed&amount=' . urlencode($payment['amount']));
                 exit;
