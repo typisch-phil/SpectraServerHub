@@ -2,13 +2,13 @@
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/database.php';
-require_once __DIR__ . '/../../includes/admin_layout.php';
+require_once __DIR__ . '/../../includes/layout.php';
 
 requireAdmin();
 
-$title = 'Dashboard';
+$title = 'Admin Dashboard - SpectraHost';
 $description = 'Administrationsbereich für SpectraHost';
-renderAdminHeader($title, $description);
+renderHeader($title, $description);
 
 // Dashboard Statistics
 $database = Database::getInstance();
@@ -225,4 +225,4 @@ function getActivityIcon(type) {
 }
 </script>
 
-<?php renderAdminFooter(); ?>
+<?php renderFooter(); ?>
