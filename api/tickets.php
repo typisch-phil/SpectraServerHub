@@ -1,298 +1,103 @@
 <?php
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/database.php';
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once '../includes/database.php';
+require_once '../includes/auth.php';
 
 header('Content-Type: application/json');
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Check if user is logged in
+// Benutzer authentifizierung prüfen
 if (!isLoggedIn()) {
     http_response_code(401);
-    echo json_encode([
-        'error' => 'Unauthorized',
-        'debug' => [
-            'session_status' => session_status(),
-            'session_id' => session_id(),
-            'has_session_user' => isset($_SESSION['user']),
-            'session_keys' => array_keys($_SESSION ?? [])
-        ]
-    ]);
+    echo json_encode(['error' => 'Nicht authentifiziert']);
     exit;
 }
 
+$user_id = $_SESSION['user_id'];
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Get database instance
-$database = Database::getInstance();
-$db = $database->getConnection();
-
-// Get user ID from session
-$user = getCurrentUser();
-$user_id = $user ? $user['id'] : null;
-
 try {
-    switch ($method) {
+    switch($method) {
         case 'GET':
-            // Get tickets for current user or all tickets if admin
-            $user = getCurrentUser();
-            
-            if (isset($_GET['id'])) {
-                // Get specific ticket
-                $ticket_id = intval($_GET['id']);
-                
-                $query = "SELECT t.*, u.first_name, u.last_name, u.email,
-                                CONCAT(u.first_name, ' ', u.last_name) as customer_name
-                         FROM tickets t 
-                         LEFT JOIN users u ON t.user_id = u.id 
-                         WHERE t.id = ?";
-                
-                if ($user['role'] !== 'admin') {
-                    $query .= " AND t.user_id = ?";
-                    $stmt = $db->prepare($query);
-                    $stmt->execute([$ticket_id, $user_id]);
-                } else {
-                    $stmt = $db->prepare($query);
-                    $stmt->execute([$ticket_id]);
-                }
-                
-                $ticket = $stmt->fetch();
-                if (!$ticket) {
-                    http_response_code(404);
-                    echo json_encode(['success' => false, 'error' => 'Ticket not found']);
-                    exit;
-                }
-                
-                $result = [
-                    'success' => true,
-                    'ticket' => $ticket
-                ];
-                
-                // Include replies if requested
-                if (isset($_GET['include_replies']) && $_GET['include_replies']) {
-                    $reply_query = "SELECT r.*, u.first_name, u.last_name,
-                                          CONCAT(u.first_name, ' ', u.last_name) as author_name
-                                   FROM ticket_replies r
-                                   LEFT JOIN users u ON r.user_id = u.id
-                                   WHERE r.ticket_id = ?
-                                   ORDER BY r.created_at ASC";
-                    
-                    $reply_stmt = $db->prepare($reply_query);
-                    $reply_stmt->execute([$ticket_id]);
-                    $replies = $reply_stmt->fetchAll();
-                    
-                    $result['replies'] = $replies;
-                }
-                
-                // Include attachments if any (wrapped in try-catch)
-                try {
-                    $attachment_query = "SELECT * FROM ticket_attachments 
-                                       WHERE ticket_id = ? OR reply_id IN (
-                                           SELECT id FROM ticket_replies WHERE ticket_id = ?
-                                       )
-                                       ORDER BY created_at ASC";
-                    
-                    $attachment_stmt = $db->prepare($attachment_query);
-                    $attachment_stmt->execute([$ticket_id, $ticket_id]);
-                    $attachments = $attachment_stmt->fetchAll();
-                    
-                    if ($attachments) {
-                        $result['attachments'] = $attachments;
-                    }
-                } catch (Exception $e) {
-                    // If attachments table doesn't exist or query fails, continue without attachments
-                    error_log("Attachment query failed: " . $e->getMessage());
-                }
-                
-                echo json_encode($result);
-            } else {
-                // Get all tickets for user or all tickets if admin
-                if ($user['role'] === 'admin') {
-                    $stmt = $db->prepare("
-                        SELECT t.id, t.user_id, t.subject, t.message, t.status, t.priority, t.category, t.assigned_to, t.created_at, t.updated_at,
-                               u.first_name, u.last_name, u.email,
-                               COUNT(r.id) as reply_count
-                        FROM tickets t 
-                        LEFT JOIN users u ON t.user_id = u.id 
-                        LEFT JOIN ticket_replies r ON t.id = r.ticket_id
-                        GROUP BY t.id, t.user_id, t.subject, t.message, t.status, t.priority, t.category, t.assigned_to, t.created_at, t.updated_at, u.first_name, u.last_name, u.email
-                        ORDER BY t.updated_at DESC
-                    ");
-                    $stmt->execute();
-                } else {
-                    $stmt = $db->prepare("
-                        SELECT t.id, t.user_id, t.subject, t.message, t.status, t.priority, t.category, t.assigned_to, t.created_at, t.updated_at,
-                               COUNT(r.id) as reply_count
-                        FROM tickets t 
-                        LEFT JOIN ticket_replies r ON t.id = r.ticket_id
-                        WHERE t.user_id = ?
-                        GROUP BY t.id, t.user_id, t.subject, t.message, t.status, t.priority, t.category, t.assigned_to, t.created_at, t.updated_at
-                        ORDER BY t.updated_at DESC
-                    ");
-                    $stmt->execute([$user_id]);
-                }
-                
-                $tickets = $stmt->fetchAll();
-                echo json_encode($tickets);
-            }
+            handleGetTickets($db, $user_id);
             break;
-            
         case 'POST':
-            // Create new ticket
-            $input = json_decode(file_get_contents('php://input'), true);
-            
-            if (!$input || !isset($input['subject']) || !isset($input['message'])) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Subject and message are required']);
-                exit;
-            }
-            
-            $category = $input['category'] ?? 'general';
-            $priority = $input['priority'] ?? 'medium';
-            $subject = trim($input['subject']);
-            $message = trim($input['message']);
-            
-            if (empty($subject) || empty($message)) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Subject and message cannot be empty']);
-                exit;
-            }
-            
-            $stmt = $db->prepare("
-                INSERT INTO tickets (user_id, category, priority, subject, message, status) 
-                VALUES (?, ?, ?, ?, ?, 'open')
-            ");
-            
-            if ($stmt->execute([$user_id, $category, $priority, $subject, $message])) {
-                $ticket_id = $db->lastInsertId();
-                echo json_encode([
-                    'success' => true, 
-                    'ticket_id' => $ticket_id,
-                    'message' => 'Ticket created successfully'
-                ]);
-            } else {
-                http_response_code(500);
-                echo json_encode(['error' => 'Failed to create ticket']);
-            }
+            handleCreateTicket($db, $user_id);
             break;
-            
-        case 'PUT':
-            // Update ticket (admin only)
-            $user = getCurrentUser();
-            if ($user['role'] !== 'admin') {
-                http_response_code(403);
-                echo json_encode(['error' => 'Access denied']);
-                exit;
-            }
-            
-            if (!isset($_GET['id'])) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Ticket ID required']);
-                exit;
-            }
-            
-            $ticket_id = intval($_GET['id']);
-            $input = json_decode(file_get_contents('php://input'), true);
-            
-            if (!$input) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Invalid input']);
-                exit;
-            }
-            
-            $updates = [];
-            $params = [];
-            
-            if (isset($input['status'])) {
-                $updates[] = 'status = ?';
-                $params[] = $input['status'];
-            }
-            
-            if (isset($input['priority'])) {
-                $updates[] = 'priority = ?';
-                $params[] = $input['priority'];
-            }
-            
-            if (isset($input['assigned_to'])) {
-                $updates[] = 'assigned_to = ?';
-                $params[] = $input['assigned_to'];
-            }
-            
-            if (empty($updates)) {
-                http_response_code(400);
-                echo json_encode(['error' => 'No valid fields to update']);
-                exit;
-            }
-            
-            $updates[] = 'updated_at = CURRENT_TIMESTAMP';
-            $params[] = $ticket_id;
-            
-            $sql = "UPDATE tickets SET " . implode(', ', $updates) . " WHERE id = ?";
-            $stmt = $db->prepare($sql);
-            
-            if ($stmt->execute($params)) {
-                echo json_encode(['success' => true, 'message' => 'Ticket updated successfully']);
-            } else {
-                http_response_code(500);
-                echo json_encode(['error' => 'Failed to update ticket']);
-            }
-            break;
-            
-        case 'DELETE':
-            // Delete ticket (admin only)
-            $user = getCurrentUser();
-            if ($user['role'] !== 'admin') {
-                http_response_code(403);
-                echo json_encode(['error' => 'Admin access required']);
-                exit;
-            }
-            
-            if (!isset($_GET['id'])) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Ticket ID required']);
-                exit;
-            }
-            
-            $ticket_id = intval($_GET['id']);
-            
-            // Start transaction
-            $db->beginTransaction();
-            
-            try {
-                // Delete replies first
-                $stmt = $db->prepare("DELETE FROM ticket_replies WHERE ticket_id = ?");
-                $stmt->execute([$ticket_id]);
-                
-                // Delete ticket
-                $stmt = $db->prepare("DELETE FROM tickets WHERE id = ?");
-                $stmt->execute([$ticket_id]);
-                
-                if ($stmt->rowCount() === 0) {
-                    throw new Exception('Ticket not found');
-                }
-                
-                $db->commit();
-                echo json_encode(['success' => true, 'message' => 'Ticket deleted successfully']);
-            } catch (Exception $e) {
-                $db->rollBack();
-                http_response_code(404);
-                echo json_encode(['error' => 'Ticket not found or could not be deleted']);
-            }
-            break;
-            
         default:
             http_response_code(405);
-            echo json_encode(['error' => 'Method not allowed']);
-            break;
+            echo json_encode(['error' => 'Methode nicht erlaubt']);
     }
-    
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Server-Fehler: ' . $e->getMessage()]);
+}
+
+function handleGetTickets($db, $user_id) {
+    $stmt = $db->prepare("
+        SELECT t.*, 
+               (SELECT COUNT(*) FROM ticket_messages tm WHERE tm.ticket_id = t.id) as message_count,
+               (SELECT tm.created_at FROM ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY tm.created_at DESC LIMIT 1) as last_activity
+        FROM support_tickets t 
+        WHERE t.user_id = ? 
+        ORDER BY t.created_at DESC
+    ");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $tickets = [];
+    while ($row = $result->fetch_assoc()) {
+        $tickets[] = $row;
+    }
+    
+    echo json_encode($tickets);
+}
+
+function handleCreateTicket($db, $user_id) {
+    $input = json_decode(file_get_contents('php://input'), true);
+    
+    if (!$input || !isset($input['subject']) || !isset($input['description'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Betreff und Beschreibung sind erforderlich']);
+        return;
+    }
+    
+    $subject = trim($input['subject']);
+    $description = trim($input['description']);
+    $category = $input['category'] ?? 'general';
+    $priority = $input['priority'] ?? 'medium';
+    
+    if (empty($subject) || empty($description)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Betreff und Beschreibung dürfen nicht leer sein']);
+        return;
+    }
+    
+    // Ticket erstellen
+    $stmt = $db->prepare("
+        INSERT INTO support_tickets (user_id, subject, description, category, priority, status) 
+        VALUES (?, ?, ?, ?, ?, 'open')
+    ");
+    $stmt->bind_param("issss", $user_id, $subject, $description, $category, $priority);
+    
+    if ($stmt->execute()) {
+        $ticket_id = $db->insert_id;
+        
+        // Erste Nachricht hinzufügen
+        $stmt2 = $db->prepare("
+            INSERT INTO ticket_messages (ticket_id, user_id, message, is_admin_reply) 
+            VALUES (?, ?, ?, FALSE)
+        ");
+        $stmt2->bind_param("iis", $ticket_id, $user_id, $description);
+        $stmt2->execute();
+        
+        echo json_encode([
+            'success' => true,
+            'ticket_id' => $ticket_id,
+            'message' => 'Ticket erfolgreich erstellt'
+        ]);
+    } else {
+        http_response_code(500);
+        echo json_encode(['error' => 'Fehler beim Erstellen des Tickets']);
+    }
 }
 ?>
