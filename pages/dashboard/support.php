@@ -1,507 +1,466 @@
 <?php
-// Dashboard Support - wird über index.php geladen, alle includes sind bereits verfügbar
+// Neues Support Dashboard mit MySQL-Integration
 if (!isLoggedIn()) {
     header('Location: /login');
     exit;
 }
 
-$user = $_SESSION['user'];
+$user = getCurrentUser();
 $user_id = $user['id'];
+$db = Database::getInstance();
 
-$database = Database::getInstance();
+// Support-Daten aus der Datenbank laden
+try {
+    // Support Tickets laden
+    $stmt = $db->prepare("
+        SELECT st.*, s.name as service_name, stt.name as service_type_name,
+               COALESCE((SELECT created_at FROM support_replies WHERE ticket_id = st.id ORDER BY created_at DESC LIMIT 1), st.created_at) as last_activity
+        FROM support_tickets st 
+        LEFT JOIN services s ON st.service_id = s.id 
+        LEFT JOIN service_types stt ON s.service_type_id = stt.id 
+        WHERE st.user_id = ? 
+        ORDER BY st.created_at DESC
+    ");
+    $stmt->execute([$user_id]);
+    $tickets = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-renderHeader('Support - SpectraHost Dashboard');
+    // Ticket-Statistiken
+    $stmt = $db->prepare("SELECT status, COUNT(*) as count FROM support_tickets WHERE user_id = ? GROUP BY status");
+    $stmt->execute([$user_id]);
+    $ticket_stats = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+    // Häufige Fragen aus der Datenbank
+    $stmt = $db->prepare("
+        SELECT * FROM faq_items 
+        WHERE is_active = 1 
+        ORDER BY sort_order ASC, views DESC 
+        LIMIT 6
+    ");
+    $stmt->execute();
+    $faq_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Support-Kategorien
+    $stmt = $db->prepare("
+        SELECT * FROM support_categories 
+        WHERE is_active = 1 
+        ORDER BY sort_order ASC
+    ");
+    $stmt->execute();
+    $support_categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Aktuelle Services für Ticket-Erstellung
+    $stmt = $db->prepare("
+        SELECT s.id, s.name, st.name as service_type_name 
+        FROM services s 
+        LEFT JOIN service_types st ON s.service_type_id = st.id 
+        WHERE s.user_id = ? AND s.status = 'active' 
+        ORDER BY s.created_at DESC
+    ");
+    $stmt->execute([$user_id]);
+    $user_services = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+} catch (Exception $e) {
+    error_log("Support data error: " . $e->getMessage());
+    $tickets = [];
+    $ticket_stats = [];
+    $faq_items = [];
+    $support_categories = [];
+    $user_services = [];
+}
+
+renderHeader('Support - Dashboard');
 ?>
 
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- Dashboard Navigation -->
-    <nav class="bg-white dark:bg-gray-800 shadow">
+<div class="min-h-screen bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="/" class="text-xl font-bold text-blue-600 dark:text-blue-400">SpectraHost</a>
-                    <div class="ml-8 flex space-x-4">
-                        <a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Dashboard</a>
-                        <a href="/dashboard/services" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Meine Services</a>
-                        <a href="/dashboard/billing" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Billing</a>
-                        <a href="/dashboard/support" class="text-blue-600 dark:text-blue-400 font-medium border-b-2 border-blue-600 pb-1">Support</a>
-                        <a href="/order" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Bestellen</a>
+                    <a href="/" class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">S</span>
+                        </div>
+                        <span class="text-xl font-bold text-gray-900">SpectraHost</span>
+                    </a>
+                    <div class="ml-10 flex space-x-8">
+                        <a href="/dashboard" class="text-gray-500 hover:text-gray-700 px-1 pb-4 text-sm font-medium">Dashboard</a>
+                        <a href="/dashboard/services" class="text-gray-500 hover:text-gray-700 px-1 pb-4 text-sm font-medium">Services</a>
+                        <a href="/dashboard/billing" class="text-gray-500 hover:text-gray-700 px-1 pb-4 text-sm font-medium">Billing</a>
+                        <a href="/dashboard/support" class="text-blue-600 border-b-2 border-blue-600 px-1 pb-4 text-sm font-medium">Support</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <div class="text-sm">
-                        <span class="text-gray-500 dark:text-gray-400">Guthaben:</span>
-                        <span class="font-semibold text-green-600 dark:text-green-400"><?php echo number_format($user['balance'] ?? 0, 2); ?> €</span>
-                    </div>
-                    <span class="text-gray-700 dark:text-gray-300">Willkommen, <?php echo htmlspecialchars($user['first_name'] ?? 'Benutzer'); ?></span>
-                    <?php if (($user['role'] ?? 'user') === 'admin'): ?>
-                        <a href="/admin" class="btn-outline">Admin Panel</a>
-                    <?php endif; ?>
-                    <a href="/api/logout" class="btn-outline">Abmelden</a>
+                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700" onclick="showNewTicketModal()">
+                        <i class="fas fa-plus mr-2"></i>Neues Ticket
+                    </button>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Support</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-2">Erstellen Sie Support-Tickets und verwalten Sie Ihre Anfragen</p>
-        </div>
-            <p class="text-gray-600 dark:text-gray-400 mt-2">Benötigen Sie Hilfe? Erstellen Sie ein Support-Ticket oder durchsuchen Sie unsere FAQ</p>
-        </div>
-
-        <div class="grid lg:grid-cols-3 gap-8">
-            <!-- Quick Actions -->
-            <div class="lg:col-span-1">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Schnelle Hilfe</h2>
-                    
-                    <div class="space-y-3">
-                        <button onclick="openTicketModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg transition-colors flex items-center">
-                            <i class="fas fa-ticket-alt mr-3"></i>
-                            Neues Ticket erstellen
-                        </button>
-                        
-                        <a href="#faq" class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-4 py-3 rounded-lg transition-colors flex items-center">
-                            <i class="fas fa-question-circle mr-3"></i>
-                            FAQ durchsuchen
-                        </a>
-                        
-                        <a href="mailto:support@spectrahost.de" class="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg transition-colors flex items-center">
-                            <i class="fas fa-envelope mr-3"></i>
-                            E-Mail an Support
-                        </a>
-                    </div>
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Support Center</h1>
+                    <p class="mt-2 text-gray-600">Wir helfen Ihnen bei allen Fragen zu Ihren Services</p>
                 </div>
-
-                <!-- Support Hours -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Support-Zeiten</h3>
-                    
-                    <div class="space-y-2 text-sm">
-                        <?php
-                        $supportHours = getSupportHours();
-                        $dayNames = [
-                            'monday' => 'Montag',
-                            'tuesday' => 'Dienstag',
-                            'wednesday' => 'Mittwoch', 
-                            'thursday' => 'Donnerstag',
-                            'friday' => 'Freitag',
-                            'saturday' => 'Samstag',
-                            'sunday' => 'Sonntag'
-                        ];
-                        
-                        foreach ($supportHours as $day => $hours):
-                            if (empty($hours['start']) || empty($hours['end'])):
-                        ?>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400"><?= $dayNames[$day] ?>:</span>
-                            <span class="font-medium">Geschlossen</span>
-                        </div>
-                        <?php else: ?>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400"><?= $dayNames[$day] ?>:</span>
-                            <span class="font-medium"><?= $hours['start'] ?> - <?= $hours['end'] ?></span>
-                        </div>
-                        <?php 
-                            endif;
-                        endforeach; 
-                        ?>
+                <div class="flex space-x-6">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600"><?php echo $ticket_stats['open'] ?? 0; ?></div>
+                        <div class="text-sm text-gray-500">Offen</div>
                     </div>
-                    
-                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <div class="flex items-center">
-                            <?php 
-                            $isOnline = getSupportStatus() && isCurrentlyInSupportHours();
-                            ?>
-                            <div class="w-3 h-3 <?= $isOnline ? 'bg-green-500' : 'bg-red-500' ?> rounded-full mr-2"></div>
-                            <span class="text-sm text-gray-600 dark:text-gray-400">
-                                Support ist <?= $isOnline ? 'online' : 'offline' ?>
-                            </span>
-                        </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600"><?php echo $ticket_stats['pending'] ?? 0; ?></div>
+                        <div class="text-sm text-gray-500">In Bearbeitung</div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Tickets Section -->
-            <div class="lg:col-span-2">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md mb-8">
-                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Meine Support-Tickets</h2>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Verwalten Sie Ihre Support-Anfragen</p>
-                    </div>
-                    
-                    <div class="p-6">
-                        <div id="tickets-container">
-                            <!-- Tickets will be loaded here by JavaScript -->
-                            <div class="text-center py-8">
-                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                                <p class="text-gray-500 dark:text-gray-400 mt-2">Lade Tickets...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FAQ Section -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md" id="faq">
-                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Häufig gestellte Fragen</h2>
-                    </div>
-                    
-                    <div class="p-6">
-                        <div class="space-y-4">
-                            <!-- FAQ Item -->
-                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg">
-                                <button class="w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick="toggleFaq(1)">
-                                    <span class="font-medium text-gray-900 dark:text-white">Wie kann ich mein Passwort zurücksetzen?</span>
-                                    <i class="fas fa-chevron-down text-gray-400 transform transition-transform" id="icon-1"></i>
-                                </button>
-                                <div class="hidden p-4 pt-0 text-gray-600 dark:text-gray-400" id="content-1">
-                                    <p>Um Ihr Passwort zurückzusetzen, klicken Sie auf der Anmeldeseite auf "Passwort vergessen" und folgen Sie den Anweisungen. Sie erhalten eine E-Mail mit einem Reset-Link.</p>
-                                </div>
-                            </div>
-
-                            <!-- FAQ Item -->
-                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg">
-                                <button class="w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick="toggleFaq(2)">
-                                    <span class="font-medium text-gray-900 dark:text-white">Wie lange dauert die Server-Einrichtung?</span>
-                                    <i class="fas fa-chevron-down text-gray-400 transform transition-transform" id="icon-2"></i>
-                                </button>
-                                <div class="hidden p-4 pt-0 text-gray-600 dark:text-gray-400" id="content-2">
-                                    <p>Die automatische Server-Einrichtung dauert in der Regel 5-15 Minuten. Bei besonderen Konfigurationen kann es bis zu 30 Minuten dauern.</p>
-                                </div>
-                            </div>
-
-                            <!-- FAQ Item -->
-                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg">
-                                <button class="w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick="toggleFaq(3)">
-                                    <span class="font-medium text-gray-900 dark:text-white">Welche Zahlungsmethoden werden akzeptiert?</span>
-                                    <i class="fas fa-chevron-down text-gray-400 transform transition-transform" id="icon-3"></i>
-                                </button>
-                                <div class="hidden p-4 pt-0 text-gray-600 dark:text-gray-400" id="content-3">
-                                    <p>Wir akzeptieren iDEAL, Kreditkarten (Visa, Mastercard), PayPal und Banküberweisungen. Alle Zahlungen werden sicher über Mollie verarbeitet.</p>
-                                </div>
-                            </div>
-
-                            <!-- FAQ Item -->
-                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg">
-                                <button class="w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick="toggleFaq(4)">
-                                    <span class="font-medium text-gray-900 dark:text-white">Kann ich mein Service upgraden?</span>
-                                    <i class="fas fa-chevron-down text-gray-400 transform transition-transform" id="icon-4"></i>
-                                </button>
-                                <div class="hidden p-4 pt-0 text-gray-600 dark:text-gray-400" id="content-4">
-                                    <p>Ja, Sie können Ihr Service jederzeit upgraden. Gehen Sie in Ihr Dashboard und wählen Sie das gewünschte Service aus. Die Preisdifferenz wird anteilig berechnet.</p>
-                                </div>
-                            </div>
-
-                            <!-- FAQ Item -->
-                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg">
-                                <button class="w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick="toggleFaq(5)">
-                                    <span class="font-medium text-gray-900 dark:text-white">Wie erstelle ich ein Backup meiner Daten?</span>
-                                    <i class="fas fa-chevron-down text-gray-400 transform transition-transform" id="icon-5"></i>
-                                </button>
-                                <div class="hidden p-4 pt-0 text-gray-600 dark:text-gray-400" id="content-5">
-                                    <p>Automatische Backups werden je nach Service täglich oder wöchentlich erstellt. Manuelle Backups können Sie über das Control Panel Ihres Services erstellen.</p>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600"><?php echo $ticket_stats['closed'] ?? 0; ?></div>
+                        <div class="text-sm text-gray-500">Geschlossen</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Ticket Modal -->
-    <div id="ticketModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 modal">
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Neues Support-Ticket erstellen</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Quick Help -->
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg overflow-hidden">
+                    <div class="px-6 py-8 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-medium">Brauchen Sie Hilfe?</h3>
+                                <p class="text-blue-100 mt-2">Unser Support-Team ist 24/7 für Sie da</p>
+                            </div>
+                            <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                <i class="fas fa-headset text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex space-x-3">
+                            <button class="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100" onclick="showNewTicketModal()">
+                                <i class="fas fa-plus mr-2"></i>Ticket erstellen
+                            </button>
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 border border-white border-opacity-30">
+                                <i class="fas fa-phone mr-2"></i>Anrufen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Support Tickets -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-medium text-gray-900">Meine Tickets</h3>
+                            <div class="flex space-x-2">
+                                <button class="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 rounded-lg border border-gray-300">Alle</button>
+                                <button class="text-sm text-white bg-blue-600 px-3 py-1 rounded-lg">Offen</button>
+                                <button class="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 rounded-lg border border-gray-300">Geschlossen</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="divide-y divide-gray-200">
+                        <?php if (!empty($tickets)): ?>
+                            <?php foreach ($tickets as $ticket): ?>
+                                <div class="p-6 hover:bg-gray-50 cursor-pointer" onclick="viewTicket(<?php echo $ticket['id']; ?>)">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="px-3 py-1 text-sm font-medium rounded-full 
+                                                <?php 
+                                                switch($ticket['priority']) {
+                                                    case 'high': echo 'bg-red-100 text-red-800'; break;
+                                                    case 'medium': echo 'bg-orange-100 text-orange-800'; break;
+                                                    case 'low': echo 'bg-green-100 text-green-800'; break;
+                                                    default: echo 'bg-gray-100 text-gray-800';
+                                                }
+                                                ?>">
+                                                <?php echo ucfirst($ticket['priority']); ?>
+                                            </span>
+                                            <span class="px-3 py-1 text-sm font-medium rounded-full 
+                                                <?php 
+                                                switch($ticket['status']) {
+                                                    case 'open': echo 'bg-blue-100 text-blue-800'; break;
+                                                    case 'pending': echo 'bg-orange-100 text-orange-800'; break;
+                                                    case 'closed': echo 'bg-green-100 text-green-800'; break;
+                                                    default: echo 'bg-gray-100 text-gray-800';
+                                                }
+                                                ?>">
+                                                <?php echo ucfirst($ticket['status']); ?>
+                                            </span>
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            #<?php echo str_pad($ticket['id'], 6, '0', STR_PAD_LEFT); ?>
+                                        </div>
+                                    </div>
+                                    
+                                    <h4 class="text-lg font-medium text-gray-900 mb-2"><?php echo htmlspecialchars($ticket['subject']); ?></h4>
+                                    
+                                    <div class="flex items-center justify-between text-sm text-gray-600">
+                                        <div class="flex items-center space-x-4">
+                                            <?php if ($ticket['service_name']): ?>
+                                                <span><i class="fas fa-server mr-1"></i><?php echo htmlspecialchars($ticket['service_name']); ?></span>
+                                            <?php endif; ?>
+                                            <span><i class="fas fa-calendar mr-1"></i><?php echo date('d.m.Y H:i', strtotime($ticket['created_at'])); ?></span>
+                                            <span><i class="fas fa-clock mr-1"></i>Letzte Aktivität: <?php echo date('d.m.Y H:i', strtotime($ticket['last_activity'])); ?></span>
+                                        </div>
+                                        <button class="text-blue-600 hover:text-blue-800">
+                                            <i class="fas fa-arrow-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="p-8 text-center">
+                                <i class="fas fa-ticket-alt text-gray-300 text-4xl mb-4"></i>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">Keine Tickets vorhanden</h3>
+                                <p class="text-gray-600 mb-6">Sie haben noch keine Support-Tickets erstellt.</p>
+                                <button class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700" onclick="showNewTicketModal()">
+                                    <i class="fas fa-plus mr-2"></i>Erstes Ticket erstellen
+                                </button>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Contact Methods -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Kontakt</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-ticket-alt text-blue-600"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm font-medium text-gray-900">Support Ticket</p>
+                                    <p class="text-xs text-gray-500">Beste Option für technische Fragen</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-phone text-green-600"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm font-medium text-gray-900">+49 (0) 123 456 789</p>
+                                    <p class="text-xs text-gray-500">24/7 Telefon-Support</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-envelope text-purple-600"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm font-medium text-gray-900">support@spectrahost.de</p>
+                                    <p class="text-xs text-gray-500">E-Mail Support</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                    <i class="fab fa-discord text-indigo-600"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm font-medium text-gray-900">Discord Chat</p>
+                                    <p class="text-xs text-gray-500">Live-Chat für schnelle Hilfe</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ -->
+                <?php if (!empty($faq_items)): ?>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Häufige Fragen</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4">
+                            <?php foreach ($faq_items as $faq): ?>
+                                <div class="cursor-pointer" onclick="toggleFaq(<?php echo $faq['id']; ?>)">
+                                    <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50">
+                                        <p class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($faq['question']); ?></p>
+                                        <i class="fas fa-chevron-down text-gray-400" id="faq-icon-<?php echo $faq['id']; ?>"></i>
+                                    </div>
+                                    <div class="hidden mt-2 p-3 bg-gray-50 rounded-lg" id="faq-answer-<?php echo $faq['id']; ?>">
+                                        <p class="text-sm text-gray-600"><?php echo nl2br(htmlspecialchars($faq['answer'])); ?></p>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <a href="/faq" class="text-sm text-blue-600 hover:text-blue-800">Alle FAQs anzeigen →</a>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Support Categories -->
+                <?php if (!empty($support_categories)): ?>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Support-Kategorien</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-2">
+                            <?php foreach ($support_categories as $category): ?>
+                                <a href="#" class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
+                                    <div class="flex items-center">
+                                        <i class="fas <?php echo $category['icon'] ?? 'fa-question-circle'; ?> text-blue-600 w-5"></i>
+                                        <span class="ml-3 text-sm font-medium"><?php echo htmlspecialchars($category['name']); ?></span>
+                                    </div>
+                                    <i class="fas fa-arrow-right text-gray-400"></i>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Ticket Modal -->
+<div id="newTicketModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-medium text-gray-900">Neues Support Ticket erstellen</h3>
+                <button onclick="hideNewTicketModal()" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
             
-            <form id="ticketForm">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <form id="newTicketForm" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kategorie</label>
-                        <select id="ticket-category" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" required>
-                            <option value="">Bitte wählen...</option>
-                            <option value="technical">Technisches Problem</option>
-                            <option value="billing">Abrechnung</option>
-                            <option value="general">Allgemeine Frage</option>
-                            <option value="abuse">Missbrauch melden</option>
-                        </select>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Betreff *</label>
+                        <input type="text" name="subject" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Kurze Beschreibung des Problems" required>
                     </div>
-                    
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priorität</label>
-                        <select id="ticket-priority" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" required>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Priorität</label>
+                        <select name="priority" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="low">Niedrig</option>
-                            <option value="medium" selected>Mittel</option>
+                            <option value="medium" selected>Medium</option>
                             <option value="high">Hoch</option>
-                            <option value="critical">Kritisch</option>
                         </select>
                     </div>
                 </div>
                 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Betreff</label>
-                    <input type="text" id="ticket-subject" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="Kurze Beschreibung des Problems" required>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kategorie</label>
+                        <select name="category_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Allgemein</option>
+                            <?php foreach ($support_categories as $category): ?>
+                                <option value="<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Betroffener Service</label>
+                        <select name="service_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Kein spezifischer Service</option>
+                            <?php foreach ($user_services as $service): ?>
+                                <option value="<?php echo $service['id']; ?>"><?php echo htmlspecialchars($service['name'] . ' (' . $service['service_type_name'] . ')'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
                 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nachricht</label>
-                    <textarea id="ticket-message" rows="6" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="Beschreiben Sie Ihr Problem so detailliert wie möglich..." required></textarea>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Beschreibung *</label>
+                    <textarea name="description" rows="6" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Detaillierte Beschreibung Ihres Anliegens..." required></textarea>
                 </div>
                 
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Anhänge (optional)</label>
-                    <input type="file" id="ticket-attachments" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt,.doc,.docx,.zip" multiple>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Unterstützte Dateiformate: Bilder, PDF, Textdateien, Word-Dokumente, ZIP (max. 10MB pro Datei)</p>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Anhänge (optional)</label>
+                    <input type="file" name="attachments[]" multiple class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt,.zip">
+                    <p class="text-xs text-gray-500 mt-1">Maximale Dateigröße: 10MB pro Datei</p>
                 </div>
                 
-                <div class="flex space-x-3">
-                    <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors">
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="hideNewTicketModal()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200">
                         Abbrechen
                     </button>
-                    <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
-                        Ticket erstellen
+                    <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i>Ticket erstellen
                     </button>
                 </div>
             </form>
         </div>
     </div>
+</div>
 
-    <script>
-        function openTicketModal() {
-            document.getElementById('ticketModal').classList.remove('hidden');
-            document.getElementById('ticketModal').classList.add('flex');
+<script>
+function showNewTicketModal() {
+    document.getElementById('newTicketModal').classList.remove('hidden');
+}
+
+function hideNewTicketModal() {
+    document.getElementById('newTicketModal').classList.add('hidden');
+}
+
+function viewTicket(ticketId) {
+    window.location.href = '/dashboard/support/ticket/' + ticketId;
+}
+
+function toggleFaq(faqId) {
+    const answer = document.getElementById('faq-answer-' + faqId);
+    const icon = document.getElementById('faq-icon-' + faqId);
+    
+    if (answer.classList.contains('hidden')) {
+        answer.classList.remove('hidden');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    } else {
+        answer.classList.add('hidden');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    }
+}
+
+// Form submission
+document.getElementById('newTicketForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('/api/support/create-ticket', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            hideNewTicketModal();
+            window.location.reload();
+        } else {
+            alert('Fehler beim Erstellen des Tickets: ' + (data.message || 'Unbekannter Fehler'));
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Fehler beim Erstellen des Tickets');
+    });
+});
+</script>
 
-        function closeModal() {
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            });
-        }
+<!-- Font Awesome für Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-        // Handle ticket form submission
-        document.getElementById('ticketForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const category = document.getElementById('ticket-category').value;
-            const priority = document.getElementById('ticket-priority').value;
-            const subject = document.getElementById('ticket-subject').value.trim();
-            const message = document.getElementById('ticket-message').value.trim();
-            
-            if (!subject || !message) {
-                alert('Bitte füllen Sie alle Pflichtfelder aus.');
-                return;
-            }
-            
-            try {
-                // Create ticket
-                const response = await fetch('/api/tickets.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({
-                        category: category,
-                        priority: priority,
-                        subject: subject,
-                        message: message
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Handle file uploads if any
-                    const files = document.getElementById('ticket-attachments').files;
-                    if (files.length > 0) {
-                        for (let file of files) {
-                            const formData = new FormData();
-                            formData.append('attachment', file);
-                            formData.append('ticket_id', result.ticket_id);
-                            
-                            await fetch('/api/upload-attachment.php', {
-                                method: 'POST',
-                                body: formData
-                            });
-                        }
-                    }
-                    
-                    alert('Ticket erfolgreich erstellt!');
-                    closeModal();
-                    loadTickets(); // Reload tickets
-                    
-                    // Reset form
-                    document.getElementById('ticketForm').reset();
-                } else {
-                    alert('Fehler: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Ein Fehler ist aufgetreten.');
-            }
-        });
-
-        // Load and display tickets
-        async function loadTickets() {
-            try {
-                const response = await fetch('/api/tickets.php', {
-                    method: 'GET',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const tickets = await response.json();
-                
-                const ticketsContainer = document.getElementById('tickets-container');
-                if (!ticketsContainer) return;
-                
-                if (tickets.length === 0) {
-                    ticketsContainer.innerHTML = `
-                        <div class="text-center py-12">
-                            <i class="fas fa-ticket-alt text-4xl text-gray-300 mb-4"></i>
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Keine Tickets gefunden</h3>
-                            <p class="text-gray-500 dark:text-gray-400">Erstellen Sie Ihr erstes Support-Ticket.</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                const statusColors = {
-                    'open': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                    'waiting_customer': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                    'in_progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                    'closed': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                };
-                
-                const priorityColors = {
-                    'low': 'text-gray-600',
-                    'medium': 'text-blue-600',
-                    'high': 'text-orange-600',
-                    'critical': 'text-red-600'
-                };
-                
-                ticketsContainer.innerHTML = tickets.map(ticket => `
-                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer" onclick="window.location.href='/ticket-detail?id=${ticket.id}'">
-                        <div class="flex items-start justify-between">
-                            <div class="flex-1">
-                                <div class="flex items-center mb-2">
-                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mr-3">
-                                        #${ticket.id} ${ticket.subject}
-                                    </h3>
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusColors[ticket.status] || 'bg-gray-100 text-gray-800'}">
-                                        ${ticket.status.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())}
-                                    </span>
-                                </div>
-                                <div class="flex items-center text-sm text-gray-500 dark:text-gray-400 space-x-4">
-                                    <span>Kategorie: ${ticket.category.charAt(0).toUpperCase() + ticket.category.slice(1)}</span>
-                                    <span class="${priorityColors[ticket.priority] || 'text-gray-600'}">
-                                        <i class="fas fa-flag mr-1"></i>${ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}
-                                    </span>
-                                    <span>${new Date(ticket.created_at).toLocaleDateString('de-DE')} ${new Date(ticket.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</span>
-                                    ${ticket.reply_count > 0 ? `<span><i class="fas fa-reply mr-1"></i>${ticket.reply_count} Antworten</span>` : ''}
-                                </div>
-                            </div>
-                            <div class="ml-4">
-                                <i class="fas fa-chevron-right text-gray-400"></i>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-                
-            } catch (error) {
-                console.error('Error loading tickets:', error);
-                const ticketsContainer = document.getElementById('tickets-container');
-                if (ticketsContainer) {
-                    ticketsContainer.innerHTML = `
-                        <div class="text-center py-12">
-                            <i class="fas fa-exclamation-triangle text-4xl text-red-300 mb-4"></i>
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Fehler beim Laden der Tickets</h3>
-                            <p class="text-gray-500 dark:text-gray-400">Bitte laden Sie die Seite neu.</p>
-                            <button onclick="loadTickets()" class="mt-4 btn-primary">Erneut versuchen</button>
-                        </div>
-                    `;
-                }
-            }
-        }
-
-        // Load tickets on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, starting to load tickets...');
-            loadTickets();
-        });
-
-        function toggleFaq(id) {
-            const content = document.getElementById(`content-${id}`);
-            const icon = document.getElementById(`icon-${id}`);
-            
-            if (content.classList.contains('hidden')) {
-                content.classList.remove('hidden');
-                icon.classList.add('rotate-180');
-            } else {
-                content.classList.add('hidden');
-                icon.classList.remove('rotate-180');
-            }
-        }
-
-
-
-        // Close modal with escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeModal();
-            }
-        });
-
-        // Theme toggle functionality
-        function toggleTheme() {
-            const html = document.documentElement;
-            const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            html.classList.remove('dark', 'light');
-            html.classList.add(newTheme);
-            
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon();
-        }
-
-        function updateThemeIcon() {
-            const themeToggle = document.getElementById('theme-toggle');
-            const isDark = document.documentElement.classList.contains('dark');
-            themeToggle.innerHTML = isDark 
-                ? '<i class="fas fa-sun text-yellow-500"></i>'
-                : '<i class="fas fa-moon text-gray-600"></i>';
-        }
-
-        // Initialize theme on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.classList.add(savedTheme);
-            updateThemeIcon();
-            
-            // Add event listener to theme toggle button
-            const themeToggle = document.getElementById('theme-toggle');
-            if (themeToggle) {
-                themeToggle.addEventListener('click', toggleTheme);
-            }
-        });
-    </script>
-</body>
-</html>
+<?php renderFooter(); ?>
