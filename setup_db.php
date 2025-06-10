@@ -2,13 +2,10 @@
 require_once 'includes/config.php';
 
 try {
-    // Connect to MySQL server without database first
-    $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=utf8mb4";
-    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false
-    ]);
+    // Use centralized database connection
+    require_once 'includes/database.php';
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
     
     // Create database if it doesn't exist
     $pdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");

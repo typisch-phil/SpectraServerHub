@@ -1,9 +1,12 @@
 <?php
-require_once 'includes/config.php';
+require_once 'includes/database.php';
 
 try {
+    $db = Database::getInstance();
+    $connection = $db->getConnection();
+    
     // Check if services table exists
-    $stmt = $db->query("SHOW TABLES LIKE 'services'");
+    $stmt = $connection->query("SHOW TABLES LIKE 'services'");
     $table_exists = $stmt->fetch();
     
     if (!$table_exists) {
@@ -14,7 +17,7 @@ try {
     echo "Services table exists.\n";
     
     // Check table structure
-    $stmt = $db->query("DESCRIBE services");
+    $stmt = $connection->query("DESCRIBE services");
     $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo "Table structure:\n";
     foreach ($columns as $column) {
@@ -22,12 +25,12 @@ try {
     }
     
     // Check data
-    $stmt = $db->query("SELECT COUNT(*) as count FROM services");
+    $stmt = $connection->query("SELECT COUNT(*) as count FROM services");
     $count = $stmt->fetchColumn();
     echo "\nTotal services: $count\n";
     
     if ($count > 0) {
-        $stmt = $db->query("SELECT * FROM services LIMIT 5");
+        $stmt = $connection->query("SELECT * FROM services LIMIT 5");
         $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo "\nSample services:\n";
         foreach ($services as $service) {

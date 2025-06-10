@@ -37,30 +37,18 @@ foreach ($files as $file) {
     }
 }
 
-// Datenbankverbindung testen
+// Datenbankverbindung testen über zentrale Database-Klasse
 echo "<h2>Database Connection Test</h2>";
 try {
-    require_once 'includes/config.php';
+    require_once 'includes/database.php';
     
-    $host = DB_HOST;
-    $dbname = DB_NAME;
-    $username = DB_USER;
-    $password = DB_PASS;
-    $port = DB_PORT;
-    
-    echo "Connecting to: $host:$port/$dbname as $username<br>";
-    
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $username, $password, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false
-    ]);
+    $db = Database::getInstance();
+    $connection = $db->getConnection();
     
     echo "✓ Database connection successful<br>";
     
     // Tabellen prüfen
-    $stmt = $pdo->query("SHOW TABLES");
+    $stmt = $connection->query("SHOW TABLES");
     $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
     echo "Tables found: " . implode(", ", $tables) . "<br>";
     

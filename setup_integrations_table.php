@@ -1,7 +1,10 @@
 <?php
-require_once 'includes/config.php';
+require_once 'includes/database.php';
 
 try {
+    $db = Database::getInstance();
+    $connection = $db->getConnection();
+    
     // Create integrations table
     $sql = "CREATE TABLE IF NOT EXISTS integrations (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -12,11 +15,11 @@ try {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )";
     
-    $db->exec($sql);
+    $connection->exec($sql);
     echo "Integrations table created successfully.\n";
     
     // Insert default entries
-    $stmt = $db->prepare("INSERT IGNORE INTO integrations (name, status) VALUES (?, 'disabled')");
+    $stmt = $connection->prepare("INSERT IGNORE INTO integrations (name, status) VALUES (?, 'disabled')");
     $stmt->execute(['mollie']);
     $stmt->execute(['proxmox']);
     

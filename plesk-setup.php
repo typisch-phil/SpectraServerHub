@@ -71,61 +71,31 @@ foreach ($directories as $dir => $perm) {
     }
 }
 
-// Schritt 4: Datenbankverbindung
+// Schritt 4: Datenbankverbindung über zentrale Database-Klasse
 echo "<h2>4. Datenbankverbindung</h2>";
 
-// Versuche verschiedene Konfigurationen
-$db_configs = [
-    'Umgebungsvariablen' => [
-        'host' => $_ENV['MYSQL_HOST'] ?? getenv('MYSQL_HOST') ?: 'localhost',
-        'dbname' => $_ENV['MYSQL_DATABASE'] ?? getenv('MYSQL_DATABASE') ?: 'spectrahost',
-        'username' => $_ENV['MYSQL_USER'] ?? getenv('MYSQL_USER') ?: 'root',
-        'password' => $_ENV['MYSQL_PASSWORD'] ?? getenv('MYSQL_PASSWORD') ?: '',
-        'port' => $_ENV['MYSQL_PORT'] ?? getenv('MYSQL_PORT') ?: '3306'
-    ],
-    'Locale Konfiguration' => [
-        'host' => 'localhost',
-        'dbname' => 'spectrahost',
-        'username' => 'root',
-        'password' => '',
-        'port' => '3306'
-    ],
-    '127.0.0.1' => [
-        'host' => '127.0.0.1',
-        'dbname' => 'spectrahost',
-        'username' => 'root',
-        'password' => '',
-        'port' => '3306'
-    ]
-];
-
 $connection_success = false;
-foreach ($db_configs as $config_name => $config) {
-    try {
-        $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset=utf8mb4";
-        $pdo = new PDO($dsn, $config['username'], $config['password'], [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_TIMEOUT => 5
-        ]);
-        
-        $pdo->query("SELECT 1");
-        echo "<span class='success'>✓ $config_name: Verbindung erfolgreich</span><br>";
-        echo "<div class='info'>Host: {$config['host']}:{$config['port']}<br>Database: {$config['dbname']}<br>User: {$config['username']}</div>";
-        
-        // Tabellen prüfen
-        $stmt = $pdo->query("SHOW TABLES");
-        $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        echo "Tabellen (" . count($tables) . "): " . implode(", ", array_slice($tables, 0, 5));
-        if (count($tables) > 5) echo " ...";
-        echo "<br><br>";
-        
-        $connection_success = true;
-        break;
-        
-    } catch (PDOException $e) {
-        echo "<span class='error'>✗ $config_name: " . $e->getMessage() . "</span><br>";
-    }
+try {
+    require_once 'includes/database.php';
+    
+    $db = Database::getInstance();
+    $connection = $db->getConnection();
+    
+    // Test the connection
+    $connection->query("SELECT 1");
+    echo "<span class='success'>✓ Datenbankverbindung erfolgreich über zentrale Database-Klasse</span><br>";
+    
+    // Tabellen prüfen
+    $stmt = $connection->query("SHOW TABLES");
+    $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    echo "Tabellen (" . count($tables) . "): " . implode(", ", array_slice($tables, 0, 5));
+    if (count($tables) > 5) echo " ...";
+    echo "<br><br>";
+    
+    $connection_success = true;
+    
+} catch (Exception $e) {
+    echo "<span class='error'>✗ Datenbankverbindung fehlgeschlagen: " . $e->getMessage() . "</span><br>";
 }
 
 if (!$connection_success) {
@@ -183,9 +153,9 @@ foreach ($test_urls as $url) {
     $response = @file_get_contents($full_url, false, $context);
     $response_code = 200;
     
-    if (isset($http_response_header)) {
+    if (isset($http_response_header) && !empty($http_response_header)) {
         preg_match('/HTTP\/\d\.\d\s+(\d+)/', $http_response_header[0], $matches);
-        $response_code = intval($matches[1]);
+        $response_code = isset($matches[1]) ? intval($matches[1]) : 200;
     }
     
     $status_class = ($response_code === 200) ? 'success' : 'error';

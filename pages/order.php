@@ -3,6 +3,9 @@ require_once __DIR__ . '/../includes/layout.php';
 require_once __DIR__ . '/../includes/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 
+// Get database instance
+$db = Database::getInstance();
+
 // Require authentication
 $auth = new Auth($db);
 $auth->requireLogin();
