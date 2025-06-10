@@ -18,28 +18,6 @@ define('DB_PORT', getenv('MYSQL_PORT') ?: '3306');
 define('SESSION_TIMEOUT', 3600); // 1 hour
 define('SESSION_NAME', 'SPECTRAHOST_SESSION');
 
-// Session settings for production
-if (session_status() === PHP_SESSION_NONE) {
-    $domain = $_SERVER['HTTP_HOST'] ?? 'spectrahost.de';
-    $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
-    
-    ini_set('session.cookie_httponly', 1);
-    ini_set('session.cookie_secure', $isSecure ? 1 : 0);
-    ini_set('session.cookie_samesite', 'Lax');
-    ini_set('session.use_strict_mode', 1);
-    ini_set('session.gc_maxlifetime', SESSION_TIMEOUT);
-    
-    session_name(SESSION_NAME);
-    session_set_cookie_params([
-        'lifetime' => SESSION_TIMEOUT,
-        'path' => '/',
-        'domain' => $domain === 'localhost:5000' ? '' : $domain,
-        'secure' => $isSecure,
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-}
-
 // Security Settings
 define('CSRF_TOKEN_NAME', '_token');
 define('PASSWORD_MIN_LENGTH', 6);
@@ -68,7 +46,7 @@ define('PROXMOX_PASSWORD', '');
 define('PROXMOX_REALM', 'pam');
 
 // Application URLs
-define('BASE_URL', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://' . ($_SERVER['HTTP_HOST'] ?? 'spectrahost.de'));
+define('BASE_URL', 'http://localhost:5000');
 define('ADMIN_EMAIL', 'admin@spectrahost.de');
 
 // Logging
