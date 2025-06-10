@@ -260,13 +260,18 @@ renderHeader($title, $description);
             button.disabled = true;
 
             try {
-                const response = await fetch('/api/admin/integrations.php?action=test', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ integration: integration })
-                });
+                let response;
+                if (integration === 'proxmox') {
+                    response = await fetch('/api/test-proxmox-direct.php');
+                } else {
+                    response = await fetch('/api/admin/integrations.php?action=test', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ integration: integration })
+                    });
+                }
 
                 const result = await response.json();
                 
