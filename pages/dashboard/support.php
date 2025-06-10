@@ -1,7 +1,5 @@
 <?php
-require_once '../../includes/auth.php';
-require_once '../../includes/database.php';
-require_once '../../includes/dashboard-layout.php';
+require_once __DIR__ . '/../../includes/dashboard-layout.php';
 
 // Benutzer-Authentifizierung prüfen
 if (!isLoggedIn()) {
@@ -15,79 +13,93 @@ if (!$user) {
     exit;
 }
 
-// Support-Tickets und FAQ laden
-try {
-    // Benutzer-Tickets mit aktualisierter Struktur abrufen
-    $stmt = $db->prepare("
-        SELECT t.*, 
-               (SELECT COUNT(*) FROM ticket_messages tm WHERE tm.ticket_id = t.id) as message_count,
-               (SELECT tm.created_at FROM ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY tm.created_at DESC LIMIT 1) as last_activity
-        FROM support_tickets t 
-        WHERE t.user_id = ? 
-        ORDER BY t.created_at DESC
-    ");
-    $stmt->bind_param("i", $user['id']);
-    $stmt->execute();
-    $tickets_result = $stmt->get_result();
-    
-    $user_tickets = [];
-    while ($row = $tickets_result->fetch_assoc()) {
-        $user_tickets[] = $row;
-    }
-    
-    // Ticket-Statistiken
-    $stmt = $db->prepare("SELECT status, COUNT(*) as count FROM support_tickets WHERE user_id = ? GROUP BY status");
-    $stmt->bind_param("i", $user['id']);
-    $stmt->execute();
-    $stats_result = $stmt->get_result();
-    
-    $ticket_stats = [];
-    while ($row = $stats_result->fetch_assoc()) {
-        $ticket_stats[$row['status']] = $row['count'];
-    }
-    
-    // FAQ-Einträge (statische Daten da keine FAQ-Tabelle)
-    $faq_items = [
-        [
-            'id' => 1,
-            'question' => 'Wie kann ich mein Passwort zurücksetzen?',
-            'answer' => 'Sie können Ihr Passwort über den "Passwort vergessen" Link auf der Login-Seite zurücksetzen.'
-        ],
-        [
-            'id' => 2,
-            'question' => 'Wie lange dauert die Server-Bereitstellung?',
-            'answer' => 'Neue Server werden normalerweise innerhalb von 15 Minuten nach der Bestellung bereitgestellt.'
-        ],
-        [
-            'id' => 3,
-            'question' => 'Welche Zahlungsmethoden werden akzeptiert?',
-            'answer' => 'Wir akzeptieren Kreditkarten, PayPal, SEPA-Lastschrift und Überweisung.'
-        ]
-    ];
-    
-    // Benutzer-Services für Ticket-Erstellung
-    $stmt = $db->prepare("
-        SELECT id, name
-        FROM services 
-        WHERE user_id = ? AND status = 'active'
-        ORDER BY name ASC
-    ");
-    $stmt->bind_param("i", $user['id']);
-    $stmt->execute();
-    $services_result = $stmt->get_result();
-    
-    $user_services = [];
-    while ($row = $services_result->fetch_assoc()) {
-        $user_services[] = $row;
-    }
-    
-} catch (Exception $e) {
-    error_log("Support page error: " . $e->getMessage());
+// MySQL-Datenbankverbindung
+$host = $_ENV['MYSQL_HOST'] ?? 'localhost';
+$username = $_ENV['MYSQL_USER'] ?? 'root';
+$password = $_ENV['MYSQL_PASSWORD'] ?? '';
+$database = $_ENV['MYSQL_DATABASE'] ?? 'spectrahost';
+
+$mysqli = new mysqli($host, $username, $password, $database);
+
+if ($mysqli->connect_error) {
+    error_log("Database connection failed: " . $mysqli->connect_error);
     $user_tickets = [];
     $ticket_stats = [];
-    $faq_items = [];
     $user_services = [];
+} else {
+    // Support-Tickets laden
+    try {
+        // Benutzer-Tickets abrufen
+        $stmt = $mysqli->prepare("
+            SELECT t.*, 
+                   (SELECT COUNT(*) FROM ticket_messages tm WHERE tm.ticket_id = t.id) as message_count,
+                   (SELECT tm.created_at FROM ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY tm.created_at DESC LIMIT 1) as last_activity
+            FROM support_tickets t 
+            WHERE t.user_id = ? 
+            ORDER BY t.created_at DESC
+        ");
+        $stmt->bind_param("i", $user['id']);
+        $stmt->execute();
+        $tickets_result = $stmt->get_result();
+        
+        $user_tickets = [];
+        while ($row = $tickets_result->fetch_assoc()) {
+            $user_tickets[] = $row;
+        }
+        
+        // Ticket-Statistiken
+        $stmt = $mysqli->prepare("SELECT status, COUNT(*) as count FROM support_tickets WHERE user_id = ? GROUP BY status");
+        $stmt->bind_param("i", $user['id']);
+        $stmt->execute();
+        $stats_result = $stmt->get_result();
+        
+        $ticket_stats = [];
+        while ($row = $stats_result->fetch_assoc()) {
+            $ticket_stats[$row['status']] = $row['count'];
+        }
+        
+        // Benutzer-Services für Ticket-Erstellung
+        $stmt = $mysqli->prepare("
+            SELECT id, name
+            FROM services 
+            WHERE user_id = ? AND status = 'active'
+            ORDER BY name ASC
+        ");
+        $stmt->bind_param("i", $user['id']);
+        $stmt->execute();
+        $services_result = $stmt->get_result();
+        
+        $user_services = [];
+        while ($row = $services_result->fetch_assoc()) {
+            $user_services[] = $row;
+        }
+        
+    } catch (Exception $e) {
+        error_log("Support page error: " . $e->getMessage());
+        $user_tickets = [];
+        $ticket_stats = [];
+        $user_services = [];
+    }
 }
+
+// FAQ-Einträge
+$faq_items = [
+    [
+        'id' => 1,
+        'question' => 'Wie kann ich mein Passwort zurücksetzen?',
+        'answer' => 'Sie können Ihr Passwort über den "Passwort vergessen" Link auf der Login-Seite zurücksetzen.'
+    ],
+    [
+        'id' => 2,
+        'question' => 'Wie lange dauert die Server-Bereitstellung?',
+        'answer' => 'Neue Server werden normalerweise innerhalb von 15 Minuten nach der Bestellung bereitgestellt.'
+    ],
+    [
+        'id' => 3,
+        'question' => 'Welche Zahlungsmethoden werden akzeptiert?',
+        'answer' => 'Wir akzeptieren Kreditkarten, PayPal, SEPA-Lastschrift und Überweisung.'
+    ]
+];
 
 renderDashboardHeader('Support - Dashboard');
 ?>

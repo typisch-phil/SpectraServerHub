@@ -1,6 +1,5 @@
 <?php
-require_once '../includes/database.php';
-require_once '../includes/auth.php';
+require_once '../includes/dashboard-layout.php';
 
 header('Content-Type: application/json');
 
@@ -10,7 +9,8 @@ if (!isLoggedIn()) {
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
+$user = getCurrentUser();
+$user_id = $user['id'];
 $ticket_id = $_GET['id'] ?? null;
 
 if (!$ticket_id) {
@@ -19,9 +19,23 @@ if (!$ticket_id) {
     exit;
 }
 
+// MySQL-Datenbankverbindung
+$host = $_ENV['MYSQL_HOST'] ?? 'localhost';
+$username = $_ENV['MYSQL_USER'] ?? 'root';
+$password = $_ENV['MYSQL_PASSWORD'] ?? '';
+$database = $_ENV['MYSQL_DATABASE'] ?? 'spectrahost';
+
+$mysqli = new mysqli($host, $username, $password, $database);
+
+if ($mysqli->connect_error) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Datenbankverbindung fehlgeschlagen']);
+    exit;
+}
+
 try {
     // Ticket-Details abrufen
-    $stmt = $db->prepare("
+    $stmt = $mysqli->prepare("
         SELECT t.* FROM support_tickets t 
         WHERE t.id = ? AND t.user_id = ?
     ");
@@ -36,7 +50,7 @@ try {
     }
     
     // Nachrichten abrufen
-    $stmt = $db->prepare("
+    $stmt = $mysqli->prepare("
         SELECT tm.*, 
                CASE WHEN tm.is_admin_reply = 1 THEN 'Support' ELSE u.first_name END as sender_name
         FROM ticket_messages tm
@@ -54,7 +68,7 @@ try {
     }
     
     // Anhänge abrufen
-    $stmt = $db->prepare("
+    $stmt = $mysqli->prepare("
         SELECT ta.*, u.first_name as uploaded_by_name
         FROM ticket_attachments ta
         LEFT JOIN users u ON ta.uploaded_by = u.id

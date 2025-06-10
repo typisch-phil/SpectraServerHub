@@ -1,6 +1,5 @@
 <?php
-require_once '../includes/database.php';
-require_once '../includes/auth.php';
+require_once '../includes/dashboard-layout.php';
 
 header('Content-Type: application/json');
 
@@ -11,7 +10,16 @@ if (!isLoggedIn()) {
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
+$user = getCurrentUser();
+$user_id = $user['id'];
+
+// MySQL-Datenbankverbindung
+$host = $_ENV['MYSQL_HOST'] ?? 'localhost';
+$username = $_ENV['MYSQL_USER'] ?? 'root';
+$password = $_ENV['MYSQL_PASSWORD'] ?? '';
+$database = $_ENV['MYSQL_DATABASE'] ?? 'spectrahost';
+
+$mysqli = new mysqli($host, $username, $password, $database);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -30,7 +38,7 @@ try {
     }
     
     // Prüfen ob Ticket dem User gehört
-    $stmt = $db->prepare("SELECT id FROM support_tickets WHERE id = ? AND user_id = ?");
+    $stmt = $mysqli->prepare("SELECT id FROM support_tickets WHERE id = ? AND user_id = ?");
     $stmt->bind_param("ii", $ticket_id, $user_id);
     $stmt->execute();
     if ($stmt->get_result()->num_rows === 0) {
@@ -74,7 +82,7 @@ try {
     
     if (move_uploaded_file($file['tmp_name'], $file_path)) {
         // Datei-Info in Datenbank speichern
-        $stmt = $db->prepare("
+        $stmt = $mysqli->prepare("
             INSERT INTO ticket_attachments (ticket_id, message_id, filename, original_filename, file_size, mime_type, file_path, uploaded_by) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
@@ -83,7 +91,7 @@ try {
         if ($stmt->execute()) {
             echo json_encode([
                 'success' => true,
-                'attachment_id' => $db->insert_id,
+                'attachment_id' => $mysqli->insert_id,
                 'filename' => $filename,
                 'original_filename' => $file['name'],
                 'file_size' => $file['size']
