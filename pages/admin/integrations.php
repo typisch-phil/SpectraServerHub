@@ -430,6 +430,12 @@ renderHeader($title, $description);
             const formData = new FormData(form);
             const config = Object.fromEntries(formData.entries());
 
+            // Show saving status
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Speichere...';
+            submitBtn.disabled = true;
+
             try {
                 const response = await fetch('/api/admin/integrations.php?action=configure', {
                     method: 'POST',
@@ -444,14 +450,26 @@ renderHeader($title, $description);
                 if (result.success) {
                     showNotification('success', result.message);
                     closeConfigModal();
-                    // Refresh page to show updated status
-                    setTimeout(() => window.location.reload(), 1000);
+                    
+                    // Auto-test connection after successful save
+                    showNotification('info', 'Teste Verbindung...');
+                    setTimeout(async () => {
+                        try {
+                            await testIntegration(integration);
+                        } catch (error) {
+                            console.log('Auto-test completed');
+                        }
+                    }, 1000);
+                    
                 } else {
                     showNotification('error', result.message);
                 }
             } catch (error) {
                 showNotification('error', 'Fehler beim Speichern der Konfiguration');
                 console.error('Save error:', error);
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         }
 

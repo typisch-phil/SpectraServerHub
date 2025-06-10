@@ -137,11 +137,63 @@ function testMollieConnection() {
 }
 
 function configureIntegration($integration, $config) {
-    // This would save configuration to database or environment
-    return [
-        'success' => true,
-        'message' => "Konfiguration für {$integration} gespeichert"
-    ];
+    global $db;
+    
+    try {
+        switch ($integration) {
+            case 'mollie':
+                // Save Mollie configuration
+                $stmt = $db->prepare("
+                    INSERT INTO integrations (name, config, status, updated_at) 
+                    VALUES (?, ?, 'configured', NOW()) 
+                    ON DUPLICATE KEY UPDATE 
+                    config = VALUES(config), 
+                    status = VALUES(status), 
+                    updated_at = VALUES(updated_at)
+                ");
+                $configJson = json_encode($config);
+                $stmt->execute(['mollie', $configJson]);
+                
+                // Update environment variables (in production, this would be handled differently)
+                $_ENV['MOLLIE_API_KEY'] = $config['api_key'];
+                
+                return [
+                    'success' => true,
+                    'message' => 'Mollie-Konfiguration erfolgreich gespeichert'
+                ];
+                
+            case 'proxmox':
+                // Save Proxmox configuration
+                $stmt = $db->prepare("
+                    INSERT INTO integrations (name, config, status, updated_at) 
+                    VALUES (?, ?, 'configured', NOW()) 
+                    ON DUPLICATE KEY UPDATE 
+                    config = VALUES(config), 
+                    status = VALUES(status), 
+                    updated_at = VALUES(updated_at)
+                ");
+                $configJson = json_encode($config);
+                $stmt->execute(['proxmox', $configJson]);
+                
+                // Update environment variables
+                $_ENV['PROXMOX_HOST'] = $config['host'];
+                $_ENV['PROXMOX_USER'] = $config['username'];
+                $_ENV['PROXMOX_PASSWORD'] = $config['password'];
+                
+                return [
+                    'success' => true,
+                    'message' => 'Proxmox VE-Konfiguration erfolgreich gespeichert'
+                ];
+                
+            default:
+                throw new Exception('Unbekannte Integration');
+        }
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'Fehler beim Speichern: ' . $e->getMessage()
+        ];
+    }
 }
 
 function getIntegrationLogs() {
