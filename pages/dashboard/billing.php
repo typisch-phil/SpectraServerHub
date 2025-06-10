@@ -90,9 +90,33 @@ try {
     $upcoming_payments = [];
 }
 
-// Billing Content
-renderDashboardLayout('Billing - SpectraHost Dashboard', 'billing', function() use ($current_balance, $invoices, $invoice_stats, $payment_history, $upcoming_payments) {
+// Render Dashboard Header
+$pageTitle = 'Billing - SpectraHost Dashboard';
+renderHeader($pageTitle);
 ?>
+
+<!-- Dashboard Navigation -->
+<nav class="bg-gray-800 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center">
+                <a href="/dashboard" class="text-white text-xl font-bold">SpectraHost Dashboard</a>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="/dashboard" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">Dashboard</a>
+                <a href="/dashboard/services" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">Services</a>
+                <a href="/dashboard/billing" class="text-white bg-gray-900 px-3 py-2 rounded-md">Billing</a>
+                <a href="/dashboard/support" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">Support</a>
+                <a href="/api/logout" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+<?php
 
 <!-- Billing Header -->
 <div class="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6 mb-8">
