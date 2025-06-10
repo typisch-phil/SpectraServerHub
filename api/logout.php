@@ -1,42 +1,47 @@
 <?php
-/**
- * Logout API mit Session-Verwaltung
- */
-require_once __DIR__ . '/../includes/database.php';
-require_once __DIR__ . '/../includes/auth-system.php';
+require_once __DIR__ . '/../includes/config.php';
+session_start();
+header('Content-Type: application/json');
 
-// Clean output buffer
-if (ob_get_level()) {
-    ob_clean();
-}
-
-// Set headers
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-header('Cache-Control: no-cache, no-store, must-revalidate');
-
-// Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Method not allowed']);
     exit;
 }
 
 try {
-    // Initialize auth system
-    $auth = new AuthSystem();
+    // Clear all session data
+    $_SESSION = array();
     
-    // Perform logout
-    $result = $auth->logout();
+    // Destroy the session cookie
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
     
-    echo json_encode($result);
+    // Destroy the session
+    session_destroy();
+    
+    // For GET requests (direct browser access), redirect to home
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        header('Location: /');
+        exit;
+    }
+    
+    // For POST requests (AJAX), return JSON
+    echo json_encode([
+        'success' => true,
+        'message' => 'Erfolgreich abgemeldet'
+    ]);
     
 } catch (Exception $e) {
-    http_response_code(500);
+    http_response_code(400);
     echo json_encode([
         'success' => false,
-        'error' => 'Server-Fehler: ' . $e->getMessage()
+        'error' => $e->getMessage()
     ]);
 }
 ?>

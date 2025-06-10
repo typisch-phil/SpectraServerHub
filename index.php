@@ -60,21 +60,11 @@ switch ($route) {
         break;
         
     case 'login':
-        // Prüfe zuerst im Hauptverzeichnis, dann im pages-Ordner
-        if (file_exists(__DIR__ . '/login.php')) {
-            include __DIR__ . '/login.php';
-        } else {
-            include __DIR__ . '/pages/login.php';
-        }
+        include __DIR__ . '/pages/login.php';
         break;
         
     case 'register':
-        // Prüfe zuerst im Hauptverzeichnis, dann im pages-Ordner
-        if (file_exists(__DIR__ . '/register.php')) {
-            include __DIR__ . '/register.php';
-        } else {
-            include __DIR__ . '/pages/register.php';
-        }
+        include __DIR__ . '/pages/register.php';
         break;
         
     case 'dashboard':

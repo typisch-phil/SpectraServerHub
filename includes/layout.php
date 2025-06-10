@@ -39,9 +39,6 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Authentication Manager -->
-    <script src="/assets/js/auth-manager.js"></script>
 </head>
 <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300">
     
@@ -125,28 +122,24 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
                     
                     <a href="/contact" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Kontakt</a>
                     
-                    <!-- User Menu (wird dynamisch über JavaScript gesteuert) -->
-                    <div id="userMenu" style="display: none;" class="flex items-center space-x-4">
-                        <a id="dashboardBtn" href="/dashboard" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <a href="/dashboard" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                             <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
                         </a>
-                        <div class="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
-                            <span class="user-name">Benutzername</span>
-                            <span class="text-sm text-gray-500">|</span>
-                            <span class="user-balance text-green-600">0.00 €</span>
-                        </div>
-                        <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        <?php if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] === 'admin'): ?>
+                            <a href="/admin" class="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                                <i class="fas fa-cog mr-1"></i>Admin Panel
+                            </a>
+                        <?php endif; ?>
+                        <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
                             <i class="fas fa-sign-out-alt mr-1"></i>Abmelden
                         </button>
-                    </div>
-                    
-                    <!-- Login/Register Buttons (wird dynamisch über JavaScript gesteuert) -->
-                    <div id="authButtons" class="flex items-center space-x-4">
-                        <a id="loginBtn" href="/login" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Anmelden</a>
-                        <a id="registerBtn" href="/register" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                    <?php else: ?>
+                        <a href="/login" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Anmelden</a>
+                        <a href="/register" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
                             Registrieren
                         </a>
-                    </div>
+                    <?php endif; ?>
                     
                     <!-- Theme Toggle -->
                     <button id="theme-toggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
