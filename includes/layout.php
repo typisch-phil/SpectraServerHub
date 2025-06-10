@@ -6,7 +6,7 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
     }
 ?>
 <!DOCTYPE html>
-<html lang="de" class="scroll-smooth">
+<html lang="de" class="scroll-smooth dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -40,10 +40,10 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300">
+<body class="bg-gray-900 text-white transition-colors duration-300">
     
     <!-- Navigation -->
-    <nav class="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-50">
+    <nav class="bg-gray-800 shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
@@ -52,67 +52,67 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
                         <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                             <span class="text-white font-bold text-sm">S</span>
                         </div>
-                        <span class="text-xl font-bold text-gray-900 dark:text-white">SpectraHost</span>
+                        <span class="text-xl font-bold text-white">SpectraHost</span>
                     </a>
                 </div>
                 
                 <!-- Desktop Navigation -->
                 <div class="hidden md:flex items-center space-x-8">
-                    <a href="/" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Home</a>
+                    <a href="/" class="text-gray-300 hover:text-blue-400 transition-colors">Home</a>
                     
                     <!-- Services Dropdown -->
                     <div class="relative group">
-                        <button class="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        <button class="flex items-center text-gray-300 hover:text-blue-400 transition-colors">
                             Services
                             <i class="fas fa-chevron-down ml-1 text-sm group-hover:rotate-180 transition-transform"></i>
                         </button>
                         
                         <!-- Dropdown Menu -->
-                        <div class="absolute left-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                        <div class="absolute left-0 top-full mt-1 w-56 bg-gray-800 rounded-lg shadow-lg border border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                             <div class="py-2">
-                                <a href="/products/webhosting" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-3">
-                                        <i class="fas fa-globe text-blue-600"></i>
+                                <a href="/products/webhosting" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 transition-colors">
+                                    <div class="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-globe text-blue-400"></i>
                                     </div>
                                     <div>
                                         <div class="font-medium">Webhosting</div>
-                                        <div class="text-xs text-gray-500">WordPress, PHP & mehr</div>
+                                        <div class="text-xs text-gray-400">WordPress, PHP & mehr</div>
                                     </div>
                                 </a>
                                 
-                                <a href="/products/vps" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mr-3">
-                                        <i class="fas fa-server text-green-600"></i>
+                                <a href="/products/vps" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 transition-colors">
+                                    <div class="w-8 h-8 bg-green-900 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-server text-green-400"></i>
                                     </div>
                                     <div>
                                         <div class="font-medium">vServer / VPS</div>
-                                        <div class="text-xs text-gray-500">Root-Zugriff & volle Kontrolle</div>
+                                        <div class="text-xs text-gray-400">Root-Zugriff & volle Kontrolle</div>
                                     </div>
                                 </a>
                                 
-                                <a href="/products/gameserver" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mr-3">
-                                        <i class="fas fa-gamepad text-purple-600"></i>
+                                <a href="/products/gameserver" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 transition-colors">
+                                    <div class="w-8 h-8 bg-purple-900 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-gamepad text-purple-400"></i>
                                     </div>
                                     <div>
                                         <div class="font-medium">GameServer</div>
-                                        <div class="text-xs text-gray-500">Minecraft, CS2 & mehr</div>
+                                        <div class="text-xs text-gray-400">Minecraft, CS2 & mehr</div>
                                     </div>
                                 </a>
                                 
-                                <a href="/products/domains" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <div class="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center mr-3">
-                                        <i class="fas fa-link text-orange-600"></i>
+                                <a href="/products/domains" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 transition-colors">
+                                    <div class="w-8 h-8 bg-orange-900 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-link text-orange-400"></i>
                                     </div>
                                     <div>
                                         <div class="font-medium">Domains</div>
-                                        <div class="text-xs text-gray-500">.de, .com & 500+ TLDs</div>
+                                        <div class="text-xs text-gray-400">.de, .com & 500+ TLDs</div>
                                     </div>
                                 </a>
                                 
-                                <hr class="my-2 border-gray-200 dark:border-gray-700">
+                                <hr class="my-2 border-gray-700">
                                 
-                                <a href="/order" class="flex items-center px-4 py-3 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900 transition-colors">
+                                <a href="/order" class="flex items-center px-4 py-3 text-blue-400 hover:bg-blue-900 transition-colors">
                                     <i class="fas fa-shopping-cart mr-3"></i>
                                     <div class="font-medium">Alle Services bestellen</div>
                                 </a>
@@ -120,14 +120,14 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
                         </div>
                     </div>
                     
-                    <a href="/contact" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Kontakt</a>
+                    <a href="/contact" class="text-gray-300 hover:text-blue-400 transition-colors">Kontakt</a>
                     
                     <?php if (isset($_SESSION['user_id'])): ?>
-                        <a href="/dashboard" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        <a href="/dashboard" class="text-gray-300 hover:text-blue-400 transition-colors">
                             <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
                         </a>
                         <?php if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] === 'admin'): ?>
-                            <a href="/admin" class="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                            <a href="/admin" class="text-gray-300 hover:text-purple-400 transition-colors">
                                 <i class="fas fa-cog mr-1"></i>Admin Panel
                             </a>
                         <?php endif; ?>
@@ -135,17 +135,11 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
                             <i class="fas fa-sign-out-alt mr-1"></i>Abmelden
                         </button>
                     <?php else: ?>
-                        <a href="/login" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Anmelden</a>
+                        <a href="/login" class="text-gray-300 hover:text-blue-400 transition-colors">Anmelden</a>
                         <a href="/register" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
                             Registrieren
                         </a>
                     <?php endif; ?>
-                    
-                    <!-- Theme Toggle -->
-                    <button id="theme-toggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                        <i class="fas fa-moon dark:hidden"></i>
-                        <i class="fas fa-sun hidden dark:inline"></i>
-                    </button>
                 </div>
                 
                 <!-- Mobile menu button -->
