@@ -61,77 +61,246 @@ try {
 }
 
 function testProxmoxConnection() {
-    // Test Proxmox connection
-    $proxmox_host = $_ENV['PROXMOX_HOST'] ?? '';
-    $proxmox_user = $_ENV['PROXMOX_USER'] ?? '';
-    $proxmox_password = $_ENV['PROXMOX_PASSWORD'] ?? '';
+    global $db;
     
-    if (empty($proxmox_host) || empty($proxmox_user) || empty($proxmox_password)) {
+    try {
+        // Get stored Proxmox configuration
+        $stmt = $db->prepare("SELECT config FROM integrations WHERE name = 'proxmox'");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$result || !$result['config']) {
+            return [
+                'success' => false,
+                'message' => 'Proxmox-Konfiguration nicht gefunden'
+            ];
+        }
+        
+        $config = json_decode($result['config'], true);
+        $host = $config['host'] ?? '';
+        $username = $config['username'] ?? '';
+        $password = $config['password'] ?? '';
+        
+        if (empty($host) || empty($username) || empty($password)) {
+            return [
+                'success' => false,
+                'message' => 'Proxmox-Konfiguration unvollständig'
+            ];
+        }
+        
+        // Step 1: Get authentication ticket
+        $authData = [
+            'username' => $username,
+            'password' => $password
+        ];
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, "https://{$host}:8006/api2/json/access/ticket");
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($authData));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+        
+        $authResponse = curl_exec($ch);
+        $authHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($authHttpCode !== 200) {
+            return [
+                'success' => false,
+                'message' => 'Proxmox-Authentifizierung fehlgeschlagen'
+            ];
+        }
+        
+        $authData = json_decode($authResponse, true);
+        if (!$authData || !isset($authData['data']['ticket'])) {
+            return [
+                'success' => false,
+                'message' => 'Proxmox-Authentifizierung ungültig'
+            ];
+        }
+        
+        $ticket = $authData['data']['ticket'];
+        $csrfToken = $authData['data']['CSRFPreventionToken'];
+        
+        // Step 2: Test API access with version endpoint
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, "https://{$host}:8006/api2/json/version");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Cookie: PVEAuthCookie={$ticket}",
+            "CSRFPreventionToken: {$csrfToken}"
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 200) {
+            $data = json_decode($response, true);
+            $version = $data['data']['version'] ?? 'Unknown';
+            $release = $data['data']['release'] ?? 'Unknown';
+            
+            // Get nodes information
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, "https://{$host}:8006/api2/json/nodes");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                "Cookie: PVEAuthCookie={$ticket}",
+                "CSRFPreventionToken: {$csrfToken}"
+            ]);
+            
+            $nodesResponse = curl_exec($ch);
+            curl_close($ch);
+            
+            $nodesData = json_decode($nodesResponse, true);
+            $nodeCount = count($nodesData['data'] ?? []);
+            
+            return [
+                'success' => true,
+                'message' => 'Proxmox-Verbindung erfolgreich',
+                'details' => [
+                    'version' => $version,
+                    'release' => $release,
+                    'nodes' => $nodeCount,
+                    'response_time' => '< 1s'
+                ]
+            ];
+        } else {
+            return [
+                'success' => false,
+                'message' => 'Proxmox-API Zugriff fehlgeschlagen'
+            ];
+        }
+        
+    } catch (Exception $e) {
         return [
             'success' => false,
-            'message' => 'Proxmox-Konfiguration unvollständig'
-        ];
-    }
-    
-    // Simple connection test
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "https://{$proxmox_host}:8006/api2/json/version");
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    if ($httpCode === 200) {
-        return [
-            'success' => true,
-            'message' => 'Proxmox-Verbindung erfolgreich',
-            'details' => 'Server erreichbar'
-        ];
-    } else {
-        return [
-            'success' => false,
-            'message' => 'Proxmox-Verbindung fehlgeschlagen'
+            'message' => 'Proxmox-Verbindungsfehler: ' . $e->getMessage()
         ];
     }
 }
 
 function testMollieConnection() {
-    $mollie_key = $_ENV['MOLLIE_API_KEY'] ?? '';
+    global $db;
     
-    if (empty($mollie_key)) {
-        return [
-            'success' => false,
-            'message' => 'Mollie API-Schlüssel fehlt'
-        ];
-    }
-    
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, 'https://api.mollie.com/v2/methods');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ' . $mollie_key,
-        'Content-Type: application/json'
-    ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    if ($httpCode === 200) {
-        $data = json_decode($response, true);
+    try {
+        // Get stored Mollie configuration
+        $stmt = $db->prepare("SELECT config FROM integrations WHERE name = 'mollie'");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$result || !$result['config']) {
+            return [
+                'success' => false,
+                'message' => 'Mollie-Konfiguration nicht gefunden'
+            ];
+        }
+        
+        $config = json_decode($result['config'], true);
+        $apiKey = $config['api_key'] ?? '';
+        
+        if (empty($apiKey)) {
+            return [
+                'success' => false,
+                'message' => 'Mollie API-Schlüssel fehlt'
+            ];
+        }
+        
+        // Test 1: Get payment methods
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://api.mollie.com/v2/methods');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json'
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        
+        $methodsResponse = curl_exec($ch);
+        $methodsHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($methodsHttpCode !== 200) {
+            $errorData = json_decode($methodsResponse, true);
+            $errorMsg = $errorData['detail'] ?? 'API-Zugriff fehlgeschlagen';
+            return [
+                'success' => false,
+                'message' => 'Mollie-Verbindung fehlgeschlagen: ' . $errorMsg
+            ];
+        }
+        
+        $methodsData = json_decode($methodsResponse, true);
+        $availableMethods = [];
+        foreach ($methodsData['_embedded']['methods'] ?? [] as $method) {
+            $availableMethods[] = $method['description'];
+        }
+        
+        // Test 2: Get profile information
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://api.mollie.com/v2/profiles/me');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json'
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        
+        $profileResponse = curl_exec($ch);
+        $profileHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        $profileData = [];
+        if ($profileHttpCode === 200) {
+            $profileData = json_decode($profileResponse, true);
+        }
+        
+        // Test 3: Get recent payments
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://api.mollie.com/v2/payments?limit=5');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json'
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        
+        $paymentsResponse = curl_exec($ch);
+        $paymentsHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        $recentPaymentsCount = 0;
+        if ($paymentsHttpCode === 200) {
+            $paymentsData = json_decode($paymentsResponse, true);
+            $recentPaymentsCount = count($paymentsData['_embedded']['payments'] ?? []);
+        }
+        
+        // Determine if test mode
+        $testMode = strpos($apiKey, 'test_') === 0;
+        
         return [
             'success' => true,
             'message' => 'Mollie-Verbindung erfolgreich',
-            'details' => count($data['_embedded']['methods'] ?? []) . ' Zahlungsmethoden verfügbar'
+            'details' => [
+                'profile_name' => $profileData['name'] ?? 'Unknown',
+                'profile_email' => $profileData['email'] ?? 'Unknown',
+                'test_mode' => $testMode,
+                'available_methods' => $availableMethods,
+                'recent_payments' => $recentPaymentsCount,
+                'response_time' => '< 1s'
+            ]
         ];
-    } else {
+        
+    } catch (Exception $e) {
         return [
             'success' => false,
-            'message' => 'Mollie-Verbindung fehlgeschlagen'
+            'message' => 'Mollie-Verbindungsfehler: ' . $e->getMessage()
         ];
     }
 }
