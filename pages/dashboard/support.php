@@ -8,92 +8,51 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// MySQL-Datenbankverbindung für Benutzerdaten
-$host = $_ENV['MYSQL_HOST'] ?? 'localhost';
-$username = $_ENV['MYSQL_USER'] ?? 'root';
-$password = $_ENV['MYSQL_PASSWORD'] ?? '';
-$database = $_ENV['MYSQL_DATABASE'] ?? 'spectrahost';
-
-$mysqli = new mysqli($host, $username, $password, $database);
-
-if ($mysqli->connect_error) {
-    error_log("Database connection failed: " . $mysqli->connect_error);
-    header("Location: /login");
-    exit;
-}
+// Zentrale Datenbankverbindung verwenden
+$db = Database::getInstance();
+$connection = $db->getConnection();
 
 // Get current user data
 $user_id = $_SESSION['user_id'];
-$stmt = $mysqli->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$user_result = $stmt->get_result();
-$user = $user_result->fetch_assoc();
+$user = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$user_id]);
 
 if (!$user) {
     header("Location: /login");
     exit;
 }
 
-if ($mysqli->connect_error) {
-    error_log("Database connection failed: " . $mysqli->connect_error);
+// Support-Tickets laden mit zentraler DB
+try {
+    // Benutzer-Tickets abrufen
+    $user_tickets = $db->fetchAll("
+        SELECT t.*, 
+               (SELECT COUNT(*) FROM support_messages sm WHERE sm.ticket_id = t.id) as message_count,
+               (SELECT sm.created_at FROM support_messages sm WHERE sm.ticket_id = t.id ORDER BY sm.created_at DESC LIMIT 1) as last_activity
+        FROM support_tickets t 
+        WHERE t.user_id = ? 
+        ORDER BY t.created_at DESC
+    ", [$user['id']]);
+    
+    // Ticket-Statistiken
+    $stats = $db->fetchAll("SELECT status, COUNT(*) as count FROM support_tickets WHERE user_id = ? GROUP BY status", [$user['id']]);
+    $ticket_stats = [];
+    foreach ($stats as $stat) {
+        $ticket_stats[$stat['status']] = $stat['count'];
+    }
+    
+    // Benutzer-Services für Ticket-Erstellung
+    $user_services = $db->fetchAll("
+        SELECT id, name
+        FROM services 
+        WHERE user_id = ? AND status = 'active'
+        ORDER BY name ASC
+    ", [$user['id']]);
+    
+} catch (Exception $e) {
+    error_log("Support page error: " . $e->getMessage());
     $user_tickets = [];
     $ticket_stats = [];
     $user_services = [];
-} else {
-    // Support-Tickets laden
-    try {
-        // Benutzer-Tickets abrufen
-        $stmt = $mysqli->prepare("
-            SELECT t.*, 
-                   (SELECT COUNT(*) FROM ticket_messages tm WHERE tm.ticket_id = t.id) as message_count,
-                   (SELECT tm.created_at FROM ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY tm.created_at DESC LIMIT 1) as last_activity
-            FROM support_tickets t 
-            WHERE t.user_id = ? 
-            ORDER BY t.created_at DESC
-        ");
-        $stmt->bind_param("i", $user['id']);
-        $stmt->execute();
-        $tickets_result = $stmt->get_result();
-        
-        $user_tickets = [];
-        while ($row = $tickets_result->fetch_assoc()) {
-            $user_tickets[] = $row;
-        }
-        
-        // Ticket-Statistiken
-        $stmt = $mysqli->prepare("SELECT status, COUNT(*) as count FROM support_tickets WHERE user_id = ? GROUP BY status");
-        $stmt->bind_param("i", $user['id']);
-        $stmt->execute();
-        $stats_result = $stmt->get_result();
-        
-        $ticket_stats = [];
-        while ($row = $stats_result->fetch_assoc()) {
-            $ticket_stats[$row['status']] = $row['count'];
-        }
-        
-        // Benutzer-Services für Ticket-Erstellung
-        $stmt = $mysqli->prepare("
-            SELECT id, name
-            FROM services 
-            WHERE user_id = ? AND status = 'active'
-            ORDER BY name ASC
-        ");
-        $stmt->bind_param("i", $user['id']);
-        $stmt->execute();
-        $services_result = $stmt->get_result();
-        
-        $user_services = [];
-        while ($row = $services_result->fetch_assoc()) {
-            $user_services[] = $row;
-        }
-        
-    } catch (Exception $e) {
-        error_log("Support page error: " . $e->getMessage());
-        $user_tickets = [];
-        $ticket_stats = [];
-        $user_services = [];
-    }
 }
 
 // FAQ-Einträge
