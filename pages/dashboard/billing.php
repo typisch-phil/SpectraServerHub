@@ -1,15 +1,15 @@
 <?php
-require_once __DIR__ . '/../../includes/session.php';
-require_once __DIR__ . '/../../includes/config.php';
-require_once __DIR__ . '/../../includes/database.php';
-require_once __DIR__ . '/../../includes/layout.php';
-
-requireLogin();
+// Dashboard Billing - wird über index.php geladen, alle includes sind bereits verfügbar
+if (!isLoggedIn()) {
+    header('Location: /login');
+    exit;
+}
 
 $user = $_SESSION['user'];
 $user_id = $user['id'];
 
 $database = Database::getInstance();
+require_once __DIR__ . '/layout.php';
 
 // Get current user balance from database
 $stmt = $database->prepare("SELECT balance FROM users WHERE id = ?");

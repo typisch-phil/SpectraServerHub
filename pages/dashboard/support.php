@@ -1,13 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-require_once __DIR__ . '/../../includes/database.php';
-require_once __DIR__ . '/../../includes/functions.php';
-require_once __DIR__ . '/../../includes/layout.php';
-
-// Check if user is logged in
-if (!isset($_SESSION['user'])) {
+// Dashboard Support - wird über index.php geladen, alle includes sind bereits verfügbar
+if (!isLoggedIn()) {
     header('Location: /login');
     exit;
 }
