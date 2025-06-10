@@ -48,8 +48,20 @@ if (strpos($route, 'dashboard') === 0) {
         // /dashboard -> /dashboard/index.php
         $page = 'dashboard/index';
     } else {
-        // /dashboard/something -> /dashboard/something.php
-        $page = 'dashboard/' . $dashboardParts[1];
+        // Spezielle Dashboard-Routen
+        $dashboardRoutes = [
+            'ticket-view' => 'dashboard/ticket-view',
+            'create-ticket' => 'dashboard/create-ticket',
+            'update-ticket-status' => 'dashboard/update-ticket-status',
+            'add-ticket-reply' => 'dashboard/add-ticket-reply'
+        ];
+        
+        if (isset($dashboardRoutes[$dashboardParts[1]])) {
+            $page = $dashboardRoutes[$dashboardParts[1]];
+        } else {
+            // /dashboard/something -> /dashboard/something.php
+            $page = 'dashboard/' . $dashboardParts[1];
+        }
     }
 } else {
     // Normale Route bestimmen

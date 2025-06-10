@@ -539,7 +539,7 @@ async function uploadTicketFiles(ticketId) {
 
 // View Ticket Function
 function viewTicket(ticketId) {
-    window.open(`/dashboard/ticket-view?id=${ticketId}`, '_blank');
+    window.location.href = `/dashboard/ticket-view?id=${ticketId}`;
 }
 
 // FAQ Functions
