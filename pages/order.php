@@ -219,6 +219,7 @@ renderHeader('Service bestellen - SpectraHost');
 
 <script>
 let currentService = null;
+let allServices = [];
 
 // API Request helper function
 async function apiRequest(url, method = 'GET', data = null) {
@@ -276,6 +277,7 @@ async function loadServices() {
     try {
         const response = await apiRequest('/api/services');
         if (response.success) {
+            allServices = response.services;
             renderServices(response.services);
         }
     } catch (error) {
@@ -335,13 +337,10 @@ function renderServices(services) {
             </div>
         `;
     }).join('');
-    
-    // Store services globally
-    window.services = services;
 }
 
 function selectService(serviceId) {
-    const service = window.services.find(s => s.id === serviceId);
+    const service = allServices.find(s => s.id === serviceId);
     if (!service) return;
     
     currentService = service;
