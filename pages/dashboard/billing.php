@@ -380,6 +380,7 @@ document.getElementById('topupForm').addEventListener('submit', async function(e
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'same-origin',
             body: JSON.stringify({ amount: amount })
         });
         

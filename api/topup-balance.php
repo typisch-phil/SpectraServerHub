@@ -1,6 +1,11 @@
 <?php
 header('Content-Type: application/json');
 
+// Session-Konfiguration für konsistente Handhabung
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_secure', 0); // Development
+ini_set('session.cookie_samesite', 'Lax');
+
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
