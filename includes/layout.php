@@ -144,7 +144,7 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
                 
                 <!-- Mobile menu button -->
                 <div class="md:hidden">
-                    <button id="mobile-menu-btn" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <button id="mobile-menu-btn" class="p-2 rounded-lg hover:bg-gray-700 transition-colors text-gray-300">
                         <i class="fas fa-bars"></i>
                     </button>
                 </div>
@@ -152,57 +152,57 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
         </div>
         
         <!-- Mobile Navigation -->
-        <div id="mobile-menu" class="hidden md:hidden bg-white dark:bg-gray-800 border-t dark:border-gray-700">
+        <div id="mobile-menu" class="hidden md:hidden bg-gray-800 border-t border-gray-700">
             <div class="px-4 py-2 space-y-2">
-                <a href="/" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">Home</a>
+                <a href="/" class="block py-2 text-gray-300 hover:text-blue-400">Home</a>
                 
                 <!-- Mobile Services Dropdown -->
                 <div class="py-2">
-                    <button onclick="toggleMobileServices()" class="flex items-center justify-between w-full text-left text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                    <button onclick="toggleMobileServices()" class="flex items-center justify-between w-full text-left text-gray-300 hover:text-blue-400">
                         Services
                         <i class="fas fa-chevron-down text-sm transition-transform" id="mobile-services-icon"></i>
                     </button>
                     <div id="mobile-services-menu" class="hidden pl-4 mt-2 space-y-2">
-                        <a href="/products/webhosting" class="flex items-center py-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                            <i class="fas fa-globe text-blue-600 mr-2"></i>
+                        <a href="/products/webhosting" class="flex items-center py-2 text-gray-400 hover:text-blue-400">
+                            <i class="fas fa-globe text-blue-400 mr-2"></i>
                             Webhosting
                         </a>
-                        <a href="/products/vps" class="flex items-center py-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                            <i class="fas fa-server text-green-600 mr-2"></i>
+                        <a href="/products/vps" class="flex items-center py-2 text-gray-400 hover:text-blue-400">
+                            <i class="fas fa-server text-green-400 mr-2"></i>
                             vServer / VPS
                         </a>
-                        <a href="/products/gameserver" class="flex items-center py-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                            <i class="fas fa-gamepad text-purple-600 mr-2"></i>
+                        <a href="/products/gameserver" class="flex items-center py-2 text-gray-400 hover:text-blue-400">
+                            <i class="fas fa-gamepad text-purple-400 mr-2"></i>
                             GameServer
                         </a>
-                        <a href="/products/domains" class="flex items-center py-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                            <i class="fas fa-link text-orange-600 mr-2"></i>
+                        <a href="/products/domains" class="flex items-center py-2 text-gray-400 hover:text-blue-400">
+                            <i class="fas fa-link text-orange-400 mr-2"></i>
                             Domains
                         </a>
-                        <a href="/order" class="flex items-center py-2 text-blue-600 dark:text-blue-400">
+                        <a href="/order" class="flex items-center py-2 text-blue-400">
                             <i class="fas fa-shopping-cart mr-2"></i>
                             Alle Services bestellen
                         </a>
                     </div>
                 </div>
                 
-                <a href="/contact" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">Kontakt</a>
+                <a href="/contact" class="block py-2 text-gray-300 hover:text-blue-400">Kontakt</a>
                 
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="/dashboard" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                    <a href="/dashboard" class="block py-2 text-gray-300 hover:text-blue-400">
                         <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
                     </a>
                     <?php if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] === 'admin'): ?>
-                        <a href="/admin" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400">
+                        <a href="/admin" class="block py-2 text-gray-300 hover:text-purple-400">
                             <i class="fas fa-cog mr-1"></i>Admin Panel
                         </a>
                     <?php endif; ?>
-                    <button onclick="logout()" class="w-full text-left py-2 text-red-500 hover:text-red-600">
+                    <button onclick="logout()" class="w-full text-left py-2 text-red-400 hover:text-red-300">
                         <i class="fas fa-sign-out-alt mr-1"></i>Abmelden
                     </button>
                 <?php else: ?>
-                    <a href="/login" class="block py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">Anmelden</a>
-                    <a href="/register" class="block py-2 text-blue-500 hover:text-blue-600">Registrieren</a>
+                    <a href="/login" class="block py-2 text-gray-300 hover:text-blue-400">Anmelden</a>
+                    <a href="/register" class="block py-2 text-blue-400 hover:text-blue-300">Registrieren</a>
                 <?php endif; ?>
             </div>
         </div>
@@ -213,7 +213,7 @@ function renderHeader($title = 'SpectraHost - Premium Hosting Solutions', $descr
 function renderFooter() {
 ?>
     <!-- Footer -->
-    <footer class="bg-gray-50 dark:bg-gray-800 border-t dark:border-gray-700">
+    <footer class="bg-gray-800 border-t border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <!-- Company Info -->
@@ -222,20 +222,20 @@ function renderFooter() {
                         <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                             <span class="text-white font-bold text-sm">S</span>
                         </div>
-                        <span class="text-xl font-bold">SpectraHost</span>
+                        <span class="text-xl font-bold text-white">SpectraHost</span>
                     </div>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">
+                    <p class="text-gray-400 mb-4">
                         Professionelle Hosting-Lösungen mit erstklassigem Support und modernster Technologie. 
                         Vertrauen Sie auf über 10 Jahre Erfahrung im Hosting-Bereich.
                     </p>
                     <div class="flex space-x-4">
-                        <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors">
+                        <a href="#" class="text-gray-400 hover:text-blue-400 transition-colors">
                             <i class="fab fa-facebook text-xl"></i>
                         </a>
-                        <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors">
+                        <a href="#" class="text-gray-400 hover:text-blue-400 transition-colors">
                             <i class="fab fa-twitter text-xl"></i>
                         </a>
-                        <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors">
+                        <a href="#" class="text-gray-400 hover:text-blue-400 transition-colors">
                             <i class="fab fa-linkedin text-xl"></i>
                         </a>
                     </div>
@@ -243,29 +243,29 @@ function renderFooter() {
                 
                 <!-- Services -->
                 <div>
-                    <h3 class="text-lg font-semibold mb-4">Services</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-white">Services</h3>
                     <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">Webhosting</a></li>
-                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">VPS Server</a></li>
-                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">Game Server</a></li>
-                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">Domains</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-blue-400 transition-colors">Webhosting</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-blue-400 transition-colors">VPS Server</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-blue-400 transition-colors">Game Server</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-blue-400 transition-colors">Domains</a></li>
                     </ul>
                 </div>
                 
                 <!-- Support -->
                 <div>
-                    <h3 class="text-lg font-semibold mb-4">Support</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-white">Support</h3>
                     <ul class="space-y-2">
-                        <li><a href="/contact" class="text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">Kontakt</a></li>
-                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">Dokumentation</a></li>
-                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">FAQ</a></li>
-                        <li><a href="/impressum" class="text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">Impressum</a></li>
+                        <li><a href="/contact" class="text-gray-400 hover:text-blue-400 transition-colors">Kontakt</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-blue-400 transition-colors">Dokumentation</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-blue-400 transition-colors">FAQ</a></li>
+                        <li><a href="/impressum" class="text-gray-400 hover:text-blue-400 transition-colors">Impressum</a></li>
                     </ul>
                 </div>
             </div>
             
-            <div class="border-t dark:border-gray-700 mt-8 pt-8 text-center">
-                <p class="text-gray-600 dark:text-gray-400">
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center">
+                <p class="text-gray-400">
                     © <?php echo date('Y'); ?> SpectraHost. Alle Rechte vorbehalten.
                 </p>
             </div>
@@ -274,28 +274,10 @@ function renderFooter() {
     
     <!-- Inline JavaScript -->
     <script>
-        // Theme management
+        // Mobile menu and navigation
         document.addEventListener('DOMContentLoaded', function() {
-            const themeToggle = document.getElementById('theme-toggle');
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             const mobileMenu = document.getElementById('mobile-menu');
-            
-            // Initialize theme
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const savedTheme = localStorage.getItem('theme');
-            
-            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-                document.documentElement.classList.add('dark');
-            }
-            
-            // Theme toggle
-            if (themeToggle) {
-                themeToggle.addEventListener('click', function() {
-                    document.documentElement.classList.toggle('dark');
-                    const isDark = document.documentElement.classList.contains('dark');
-                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-                });
-            }
             
             // Mobile menu
             if (mobileMenuBtn && mobileMenu) {
