@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../includes/dashboard-layout.php';
+
 // Dark Version Dashboard - Hauptseite
 if (!isLoggedIn()) {
     header('Location: /login');
@@ -75,7 +77,7 @@ try {
     $notifications = [];
 }
 
-renderHeader('Dashboard - SpectraHost');
+renderDashboardHeader('Dashboard - SpectraHost');
 ?>
 
 <div class="min-h-screen bg-gray-900">
@@ -299,4 +301,4 @@ renderHeader('Dashboard - SpectraHost');
 <!-- Font Awesome für Icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-<?php renderFooter(); ?>
+<?php renderDashboardFooter(); ?>

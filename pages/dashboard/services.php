@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../includes/dashboard-layout.php';
+
 // Dark Version Services Dashboard
 if (!isLoggedIn()) {
     header('Location: /login');
@@ -33,7 +35,7 @@ try {
     $service_stats = [];
 }
 
-renderHeader('Meine Services - Dashboard');
+renderDashboardHeader('Meine Services - Dashboard');
 ?>
 
 <div class="min-h-screen bg-gray-900">
