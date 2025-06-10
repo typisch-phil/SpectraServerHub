@@ -116,9 +116,7 @@ renderHeader($pageTitle);
 <div class="min-h-screen bg-gray-100 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-<?php
-
-<!-- Billing Header -->
+        <!-- Billing Header -->
 <div class="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6 mb-8">
     <div class="flex items-center justify-between">
         <div>
@@ -466,6 +464,7 @@ renderHeader($pageTitle);
     });
 </script>
 
-<?php
-});
-?>
+    </div>
+</div>
+
+<?php renderFooter(); ?>
