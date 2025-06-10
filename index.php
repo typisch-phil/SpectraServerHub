@@ -30,7 +30,6 @@ $routes = [
     'home' => 'home',
     'login' => 'login',
     'register' => 'register',
-    'dashboard' => 'dashboard',
     'products' => 'products',
     'webspace' => 'products/webspace',
     'vserver' => 'products/vserver',
@@ -40,8 +39,20 @@ $routes = [
     'impressum' => 'impressum'
 ];
 
-// Route bestimmen
-$page = $routes[$route] ?? null;
+// Dashboard-Routing - spezielle Behandlung für /dashboard/ Ordner
+if (strpos($route, 'dashboard') === 0) {
+    $dashboardParts = explode('/', $route);
+    if (count($dashboardParts) == 1) {
+        // /dashboard -> /dashboard/index.php
+        $page = 'dashboard/index';
+    } else {
+        // /dashboard/something -> /dashboard/something.php
+        $page = 'dashboard/' . $dashboardParts[1];
+    }
+} else {
+    // Normale Route bestimmen
+    $page = $routes[$route] ?? null;
+}
 
 // 404 für unbekannte Routen
 if (!$page) {

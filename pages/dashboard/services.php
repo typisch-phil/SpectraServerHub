@@ -1,167 +1,205 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-require_once __DIR__ . '/../../includes/database.php';
-require_once __DIR__ . '/../../includes/layout.php';
-
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
+// Dashboard Services - wird über index.php geladen
+if (!isLoggedIn()) {
     header('Location: /login');
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
-$user = $_SESSION['user'];
-
-$database = Database::getInstance();
-
-// Get user's services
-$stmt = $database->prepare("
-    SELECT us.*, s.name, s.type, s.description, s.price, s.features 
-    FROM user_services us 
-    JOIN services s ON us.service_id = s.id 
-    WHERE us.user_id = ? 
-    ORDER BY us.created_at DESC
-");
-$stmt->execute([$user_id]);
-$user_services = $stmt->fetchAll();
-
-renderHeader('Meine Services - SpectraHost Dashboard');
+renderHeader('Meine Services - Dashboard');
 ?>
 
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- Dashboard Navigation -->
-    <nav class="bg-white dark:bg-gray-800 shadow">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <a href="/" class="text-xl font-bold text-blue-600 dark:text-blue-400">SpectraHost</a>
-                    <div class="ml-8 flex space-x-4">
-                        <a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Dashboard</a>
-                        <a href="/dashboard/services" class="text-blue-600 dark:text-blue-400 font-medium border-b-2 border-blue-600 pb-1">Meine Services</a>
-                        <a href="/dashboard/billing" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Billing</a>
-                        <a href="/dashboard/support" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Support</a>
-                        <a href="/order" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Bestellen</a>
+<div class="min-h-screen bg-gray-50">
+    <div class="flex">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-lg">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-gray-800">Dashboard</h2>
+            </div>
+            <nav class="mt-6">
+                <a href="/dashboard" class="block px-6 py-3 text-gray-600 hover:bg-blue-50 hover:text-blue-600">
+                    <i class="fas fa-tachometer-alt mr-3"></i>Übersicht
+                </a>
+                <a href="/dashboard/services" class="block px-6 py-3 bg-blue-50 text-blue-600 border-r-2 border-blue-600">
+                    <i class="fas fa-server mr-3"></i>Meine Services
+                </a>
+                <a href="/dashboard/orders" class="block px-6 py-3 text-gray-600 hover:bg-blue-50 hover:text-blue-600">
+                    <i class="fas fa-shopping-cart mr-3"></i>Bestellungen
+                </a>
+                <a href="/dashboard/billing" class="block px-6 py-3 text-gray-600 hover:bg-blue-50 hover:text-blue-600">
+                    <i class="fas fa-credit-card mr-3"></i>Rechnungen
+                </a>
+                <a href="/dashboard/support" class="block px-6 py-3 text-gray-600 hover:bg-blue-50 hover:text-blue-600">
+                    <i class="fas fa-life-ring mr-3"></i>Support
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-8">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Meine Services</h1>
+                <p class="text-gray-600 mt-2">Verwalten Sie Ihre aktiven Hosting-Services</p>
+            </div>
+
+            <!-- Services Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- Webspace Service -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-globe text-blue-600"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="font-semibold text-gray-900">Webspace Pro</h3>
+                                <p class="text-sm text-gray-500">webspace-001</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Aktiv</span>
+                    </div>
+                    
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Speicher:</span>
+                            <span class="font-medium">15 GB / 20 GB</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: 75%"></div>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Domain:</span>
+                            <span class="font-medium">beispiel.de</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Läuft ab:</span>
+                            <span class="font-medium">15.01.2026</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700">
+                            Verwalten
+                        </button>
+                        <button class="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200">
+                            Verlängern
+                        </button>
                     </div>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <div class="text-sm">
-                        <span class="text-gray-500 dark:text-gray-400">Guthaben:</span>
-                        <span class="font-semibold text-green-600 dark:text-green-400"><?php echo number_format($user['balance'] ?? 0, 2); ?> €</span>
+
+                <!-- VPS Service -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-server text-green-600"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="font-semibold text-gray-900">VPS Standard</h3>
+                                <p class="text-sm text-gray-500">vps-002</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Aktiv</span>
                     </div>
-                    <span class="text-gray-700 dark:text-gray-300">Willkommen, <?php echo htmlspecialchars($user['first_name'] ?? 'Benutzer'); ?></span>
-                    <?php if (($user['role'] ?? 'user') === 'admin'): ?>
-                        <a href="/admin" class="btn-outline">Admin Panel</a>
-                    <?php endif; ?>
-                    <a href="/api/logout" class="btn-outline">Abmelden</a>
+                    
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">CPU:</span>
+                            <span class="font-medium">2 vCPU (45%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">RAM:</span>
+                            <span class="font-medium">3.2 GB / 4 GB</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-600 h-2 rounded-full" style="width: 80%"></div>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">IP:</span>
+                            <span class="font-medium">192.168.1.100</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Läuft ab:</span>
+                            <span class="font-medium">28.02.2026</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700">
+                            Verwalten
+                        </button>
+                        <button class="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200">
+                            Neustart
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Game Server Service -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-gamepad text-purple-600"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="font-semibold text-gray-900">Minecraft Server</h3>
+                                <p class="text-sm text-gray-500">game-003</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Online</span>
+                    </div>
+                    
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Spieler:</span>
+                            <span class="font-medium">12 / 20</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-purple-600 h-2 rounded-full" style="width: 60%"></div>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Version:</span>
+                            <span class="font-medium">1.20.4</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Uptime:</span>
+                            <span class="font-medium">5d 12h</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Läuft ab:</span>
+                            <span class="font-medium">10.03.2026</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button class="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-700">
+                            Verwalten
+                        </button>
+                        <button class="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200">
+                            Neustart
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add New Service -->
+            <div class="mt-8">
+                <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                    <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-plus text-gray-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Neuen Service bestellen</h3>
+                    <p class="text-gray-600 mb-4">Erweitern Sie Ihr Hosting mit zusätzlichen Services</p>
+                    <a href="/products" class="inline-block bg-blue-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-blue-700">
+                        Services durchsuchen
+                    </a>
                 </div>
             </div>
         </div>
-    </nav>
-
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Meine Services</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-2">Verwalten Sie Ihre aktiven Hosting-Services und Server</p>
-        </div>
-
-        <!-- Services Grid -->
-        <div class="grid gap-6">
-            <?php if (empty($user_services)): ?>
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
-                    <div class="text-gray-400 mb-4">
-                        <i class="fas fa-server text-6xl"></i>
-                    </div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Keine Services gefunden</h3>
-                    <p class="text-gray-600 dark:text-gray-400 mb-6">Sie haben noch keine Services bestellt. Starten Sie jetzt mit einem unserer Hosting-Pakete!</p>
-                    <a href="/order" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors inline-flex items-center">
-                        <i class="fas fa-plus mr-2"></i>
-                        Service bestellen
-                    </a>
-                </div>
-            <?php else: ?>
-                <?php foreach ($user_services as $service): ?>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="flex items-center">
-                                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-4">
-                                    <?php
-                                    $icon = match($service['type']) {
-                                        'webspace' => 'fas fa-globe',
-                                        'vserver' => 'fas fa-server',
-                                        'gameserver' => 'fas fa-gamepad',
-                                        'domain' => 'fas fa-link',
-                                        default => 'fas fa-cog'
-                                    };
-                                    ?>
-                                    <i class="<?php echo $icon; ?> text-blue-600 dark:text-blue-400"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white"><?php echo htmlspecialchars($service['name']); ?></h3>
-                                    <?php if ($service['domain']): ?>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400"><?php echo htmlspecialchars($service['domain']); ?></p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <span class="px-3 py-1 rounded-full text-xs font-medium <?php echo getStatusClass($service['status']); ?>">
-                                <?php echo getStatusText($service['status']); ?>
-                            </span>
-                        </div>
-
-                        <p class="text-gray-600 dark:text-gray-400 mb-4"><?php echo htmlspecialchars($service['description']); ?></p>
-
-                        <div class="flex justify-between items-center">
-                            <div class="text-lg font-bold text-blue-600 dark:text-blue-400">
-                                €<?php echo number_format($service['price'], 2); ?>/Monat
-                            </div>
-                            <div class="flex space-x-2">
-                                <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
-                                    <i class="fas fa-cog mr-2"></i>Verwalten
-                                </button>
-                                <?php if ($service['type'] === 'vserver' || $service['type'] === 'gameserver'): ?>
-                                    <button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
-                                        <i class="fas fa-play mr-2"></i>Starten
-                                    </button>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-
-                        <?php if ($service['next_payment']): ?>
-                            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                                <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    Nächste Zahlung: <?php echo date('d.m.Y', strtotime($service['next_payment'])); ?>
-                                </p>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
     </div>
-
-    <script>
-        function getStatusClass(status) {
-            const classes = {
-                'active': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                'pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                'suspended': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                'terminated': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-            };
-            return classes[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-        }
-        
-        function getStatusText(status) {
-            const texts = {
-                'active': 'Aktiv',
-                'pending': 'Ausstehend',
-                'suspended': 'Gesperrt',
-                'terminated': 'Beendet'
-            };
-            return texts[status] || status;
-        }
-    </script>
 </div>
+
+<!-- Font Awesome für Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <?php renderFooter(); ?>
