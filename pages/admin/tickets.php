@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../includes/layout.php';
 
 requireAdmin();
 
+$user = $_SESSION['user'];
 $database = Database::getInstance();
 
 // Get all tickets with user information and reply count
