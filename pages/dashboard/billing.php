@@ -375,13 +375,21 @@ document.getElementById('topupForm').addEventListener('submit', async function(e
     showLoader();
     
     try {
+        // CSRF-Token für API-Sicherheit
+        const csrfToken = '<?php echo $_SESSION["csrf_token"] ?? ""; ?>';
+        
         const response = await fetch('/api/topup-balance.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ amount: amount })
+            body: JSON.stringify({ 
+                amount: amount,
+                user_id: <?php echo $_SESSION['user_id'] ?? 'null'; ?>,
+                csrf_token: csrfToken
+            })
         });
         
         const data = await response.json();

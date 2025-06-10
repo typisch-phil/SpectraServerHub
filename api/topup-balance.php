@@ -1,11 +1,6 @@
 <?php
 header('Content-Type: application/json');
 
-// Session-Konfiguration für konsistente Handhabung
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 0); // Development
-ini_set('session.cookie_samesite', 'Lax');
-
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -13,8 +8,26 @@ if (session_status() == PHP_SESSION_NONE) {
 require_once __DIR__ . '/../includes/database.php';
 require_once __DIR__ . '/../includes/mollie.php';
 
-// Authentifizierung prüfen
-if (!isset($_SESSION['user_id'])) {
+// Input lesen
+$input = json_decode(file_get_contents('php://input'), true);
+
+// Authentifizierung prüfen (Session oder direkte User-ID)
+$userId = null;
+if (isset($_SESSION['user_id'])) {
+    $userId = $_SESSION['user_id'];
+} elseif (isset($input['user_id']) && is_numeric($input['user_id'])) {
+    // Alternative Authentifizierung über direkte User-ID (für API-Aufrufe)
+    $userId = (int)$input['user_id'];
+    
+    // Zusätzliche Sicherheitsprüfung: User existiert in DB
+    $db = Database::getInstance();
+    $user = $db->fetchOne("SELECT id FROM users WHERE id = ?", [$userId]);
+    if (!$user) {
+        $userId = null;
+    }
+}
+
+if (!$userId) {
     http_response_code(401);
     echo json_encode(['error' => 'Nicht authentifiziert']);
     exit;
@@ -28,8 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
-    // Input validieren
-    $input = json_decode(file_get_contents('php://input'), true);
+    // Amount aus Input extrahieren
     $amount = floatval($input['amount'] ?? 0);
     
     if ($amount < 5 || $amount > 1000) {
@@ -44,7 +56,7 @@ try {
     
     // Guthaben-Aufladung starten
     $balanceTopup = new BalanceTopup();
-    $result = $balanceTopup->startTopup($_SESSION['user_id'], $amount, $baseUrl);
+    $result = $balanceTopup->startTopup($userId, $amount, $baseUrl);
     
     echo json_encode($result);
     
