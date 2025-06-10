@@ -112,19 +112,32 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         const data = Object.fromEntries(formData);
         delete data.confirmPassword; // Remove confirm password from data
         
-        const result = await apiRequest('/api/register', 'POST', data);
+        const response = await fetch('/api/register-new', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
         
-        messageDiv.className = 'mt-4 alert alert-success';
-        messageDiv.textContent = result.message;
+        const result = await response.json();
         
-        // Redirect after success
-        setTimeout(() => {
-            window.location.href = '/dashboard';
-        }, 1000);
+        if (result.success) {
+            messageDiv.className = 'mt-4 alert alert-success';
+            messageDiv.textContent = result.message;
+            
+            // Redirect to login after success
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 2000);
+        } else {
+            messageDiv.className = 'mt-4 alert alert-error';
+            messageDiv.textContent = result.error;
+        }
         
     } catch (error) {
         messageDiv.className = 'mt-4 alert alert-error';
-        messageDiv.textContent = error.message;
+        messageDiv.textContent = 'Verbindungsfehler: ' + error.message;
     }
     
     setLoading(btn, false);
