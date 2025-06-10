@@ -186,7 +186,7 @@ renderDashboardHeader('Support - Dashboard');
                                                 <h4 class="text-sm font-medium text-white"><?php echo htmlspecialchars($ticket['subject']); ?></h4>
                                                 <span class="px-2 py-1 text-xs font-medium rounded-full 
                                                     <?php 
-                                                    switch($ticket['status']) {
+                                                    switch($ticket['status'] ?? 'open') {
                                                         case 'open': echo 'bg-green-900 text-green-400'; break;
                                                         case 'in_progress': echo 'bg-blue-900 text-blue-400'; break;
                                                         case 'waiting_customer': echo 'bg-yellow-900 text-yellow-400'; break;
@@ -203,12 +203,12 @@ renderDashboardHeader('Support - Dashboard');
                                                         'resolved' => 'Gelöst',
                                                         'closed' => 'Geschlossen'
                                                     ];
-                                                    echo $status_labels[$ticket['status']] ?? ucfirst($ticket['status']);
+                                                    echo $status_labels[$ticket['status'] ?? 'open'] ?? ucfirst($ticket['status'] ?? 'open');
                                                     ?>
                                                 </span>
                                                 <span class="px-2 py-1 text-xs font-medium rounded-full 
                                                     <?php 
-                                                    switch($ticket['priority']) {
+                                                    switch($ticket['priority'] ?? 'medium') {
                                                         case 'urgent': echo 'bg-red-900 text-red-400'; break;
                                                         case 'high': echo 'bg-orange-900 text-orange-400'; break;
                                                         case 'medium': echo 'bg-yellow-900 text-yellow-400'; break;
@@ -216,19 +216,14 @@ renderDashboardHeader('Support - Dashboard');
                                                         default: echo 'bg-gray-700 text-gray-300';
                                                     }
                                                     ?>">
-                                                    <?php echo ucfirst($ticket['priority']); ?>
+                                                    <?php echo ucfirst($ticket['priority'] ?? 'medium'); ?>
                                                 </span>
                                             </div>
-                                            <p class="text-sm text-gray-400 mb-2"><?php echo nl2br(htmlspecialchars(substr($ticket['description'], 0, 200))); ?>...</p>
+                                            <p class="text-sm text-gray-400 mb-2"><?php echo nl2br(htmlspecialchars(substr($ticket['description'] ?? '', 0, 200))); ?><?php echo strlen($ticket['description'] ?? '') > 200 ? '...' : ''; ?></p>
                                             <div class="flex items-center space-x-4 text-xs text-gray-500">
-                                                <span><i class="fas fa-calendar mr-1"></i><?php echo date('d.m.Y H:i', strtotime($ticket['created_at'])); ?></span>
-                                                <span><i class="fas fa-comments mr-1"></i><?php echo $ticket['message_count'] ?? 0; ?> Nachrichten</span>
-                                                <?php if ($ticket['service_name']): ?>
-                                                    <span><i class="fas fa-server mr-1"></i><?php echo htmlspecialchars($ticket['service_name']); ?></span>
-                                                <?php endif; ?>
-                                                <?php if ($ticket['category_name']): ?>
-                                                    <span><i class="fas fa-tag mr-1"></i><?php echo htmlspecialchars($ticket['category_name']); ?></span>
-                                                <?php endif; ?>
+                                                <span><i class="fas fa-calendar mr-1"></i><?php echo date('d.m.Y H:i', strtotime($ticket['created_at'] ?? 'now')); ?></span>
+                                                <span><i class="fas fa-comments mr-1"></i><?php echo isset($ticket['message_count']) ? $ticket['message_count'] : 0; ?> Nachrichten</span>
+                                                <span><i class="fas fa-tag mr-1"></i><?php echo ucfirst($ticket['category'] ?? 'Allgemein'); ?></span>
                                             </div>
                                         </div>
                                         <div class="ml-4">
@@ -306,26 +301,34 @@ renderDashboardHeader('Support - Dashboard');
                     </div>
                 </div>
 
-                <!-- Support Categories -->
-                <?php if (!empty($categories)): ?>
+                <!-- Support Options -->
                 <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
                     <div class="px-6 py-4 border-b border-gray-700">
-                        <h3 class="text-lg font-medium text-white">Support-Kategorien</h3>
+                        <h3 class="text-lg font-medium text-white">Support-Optionen</h3>
                     </div>
                     <div class="p-6">
                         <div class="space-y-3">
-                            <?php foreach ($categories as $category): ?>
-                                <div class="flex items-center p-3 border border-gray-600 rounded-lg hover:bg-gray-750">
-                                    <div class="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center mr-3">
-                                        <i class="fas <?php echo $category['icon']; ?> text-blue-400"></i>
-                                    </div>
-                                    <span class="text-sm font-medium text-white"><?php echo htmlspecialchars($category['name']); ?></span>
+                            <div class="flex items-center p-3 border border-gray-600 rounded-lg hover:bg-gray-750 cursor-pointer" onclick="showCreateTicketModal()">
+                                <div class="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-ticket-alt text-blue-400"></i>
                                 </div>
-                            <?php endforeach; ?>
+                                <span class="text-sm font-medium text-white">Neues Ticket erstellen</span>
+                            </div>
+                            <div class="flex items-center p-3 border border-gray-600 rounded-lg hover:bg-gray-750">
+                                <div class="w-8 h-8 bg-green-900 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-phone text-green-400"></i>
+                                </div>
+                                <span class="text-sm font-medium text-white">Telefonischer Support</span>
+                            </div>
+                            <div class="flex items-center p-3 border border-gray-600 rounded-lg hover:bg-gray-750">
+                                <div class="w-8 h-8 bg-purple-900 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-envelope text-purple-400"></i>
+                                </div>
+                                <span class="text-sm font-medium text-white">E-Mail Support</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <?php endif; ?>
 
                 <!-- Contact Info -->
                 <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
