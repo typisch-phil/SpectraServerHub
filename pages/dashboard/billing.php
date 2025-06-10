@@ -15,15 +15,16 @@ require_once __DIR__ . '/../../includes/dashboard-layout.php';
 $db = Database::getInstance();
 $user_id = $_SESSION['user_id'];
 
-// Balance abrufen
-try {
-    $stmt = $db->prepare("SELECT balance FROM users WHERE id = ?");
-    $stmt->execute([$user_id]);
-    $user = $stmt->fetch();
-    $current_balance = $user['balance'] ?? 0.00;
-} catch (Exception $e) {
-    $current_balance = 0.00;
+// Get current user data
+$user = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$user_id]);
+
+if (!$user) {
+    header("Location: /login");
+    exit;
 }
+
+// Balance abrufen
+$current_balance = $user['balance'] ?? 0.00;
 
 // Invoice statistics berechnen
 try {
@@ -71,14 +72,23 @@ renderDashboardHeader('Billing - SpectraHost Dashboard', 'SpectraHost Billing - 
                 </div>
                 <div class="flex items-center space-x-4">
                     <div class="text-sm text-gray-300">
-                        Willkommen, <span class="font-medium text-white"><?php echo htmlspecialchars($_SESSION['user']['first_name'] ?? 'User'); ?></span>
-                    </div>
-                    <div class="text-sm text-gray-300">
                         Guthaben: <span class="font-bold text-green-400">€<?php echo number_format($current_balance, 2); ?></span>
                     </div>
-                    <a href="/api/logout" class="text-gray-300 hover:text-white">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
+                    <div class="relative group">
+                        <button class="flex items-center space-x-2 text-gray-300 hover:text-white focus:outline-none">
+                            <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-medium"><?php echo strtoupper(substr($user['email'] ?? 'U', 0, 1)); ?></span>
+                            </div>
+                            <span class="text-sm"><?php echo htmlspecialchars($user['email'] ?? 'Benutzer'); ?></span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                        <div class="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden group-hover:block">
+                            <a href="/dashboard/profile" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Profil bearbeiten</a>
+                            <a href="/dashboard/settings" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Einstellungen</a>
+                            <div class="border-t border-gray-700"></div>
+                            <a href="/logout" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Abmelden</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
