@@ -153,9 +153,13 @@ foreach ($test_urls as $url) {
     $response = @file_get_contents($full_url, false, $context);
     $response_code = 200;
     
-    if (isset($http_response_header) && !empty($http_response_header)) {
-        preg_match('/HTTP\/\d\.\d\s+(\d+)/', $http_response_header[0], $matches);
-        $response_code = isset($matches[1]) ? intval($matches[1]) : 200;
+    // Check response headers from the context
+    $response_headers = get_headers($full_url, 1);
+    if ($response_headers && is_array($response_headers)) {
+        $status_line = $response_headers[0];
+        if (preg_match('/HTTP\/\d\.\d\s+(\d+)/', $status_line, $matches)) {
+            $response_code = intval($matches[1]);
+        }
     }
     
     $status_class = ($response_code === 200) ? 'success' : 'error';
