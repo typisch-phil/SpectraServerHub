@@ -1,5 +1,7 @@
 <?php
-require_once __DIR__ . '/../../includes/dashboard-layout.php';
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../../includes/database.php';
 
 // Benutzer-Authentifizierung prüfen

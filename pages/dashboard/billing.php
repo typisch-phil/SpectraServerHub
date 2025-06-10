@@ -1,15 +1,25 @@
 <?php
-require_once __DIR__ . '/../../includes/dashboard-layout.php';
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/../../includes/database.php';
 
-// Dark Version Billing Dashboard
-if (!isLoggedIn()) {
-    header('Location: /login');
+// Benutzer-Authentifizierung prüfen
+if (!isset($_SESSION['user_id'])) {
+    header("Location: /login");
     exit;
 }
 
-$user = getCurrentUser();
-$user_id = $user['id'];
 $db = Database::getInstance();
+$user_id = $_SESSION['user_id'];
+
+// Get current user data
+$user = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$user_id]);
+
+if (!$user) {
+    header("Location: /login");
+    exit;
+}
 
 // Billing-Daten aus der Datenbank laden
 try {
