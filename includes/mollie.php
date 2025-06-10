@@ -131,11 +131,14 @@ class BalanceTopup {
         
         // Mollie-Zahlung erstellen
         try {
+            // Webhook nur in Produktion verwenden
+            $webhookUrl = (strpos($baseUrl, 'localhost') === false) ? $baseUrl . "/api/mollie-webhook" : null;
+            
             $payment = $this->mollie->createPayment(
                 $amount,
                 "Guthaben-Aufladung €{$amount}",
                 $baseUrl . "/dashboard/billing/topup-success?topup_id={$topupId}",
-                $baseUrl . "/api/mollie-webhook",
+                $webhookUrl,
                 ['topup_id' => $topupId, 'user_id' => $userId]
             );
             
