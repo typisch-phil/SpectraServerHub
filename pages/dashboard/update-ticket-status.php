@@ -24,10 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 try {
     $ticket_id = $_POST['ticket_id'] ?? null;
     $status = $_POST['status'] ?? null;
+    $user_id = $_POST['user_id'] ?? $_SESSION['user_id'] ?? null;
     
-    if (!$ticket_id || !$status) {
+    if (!$ticket_id || !$status || !$user_id) {
         http_response_code(400);
-        echo json_encode(['error' => 'Ticket ID und Status erforderlich']);
+        echo json_encode(['error' => 'Ticket ID, Status und User ID erforderlich']);
         exit;
     }
     
@@ -45,7 +46,7 @@ try {
     $ticket = $db->fetchOne("
         SELECT id, status FROM support_tickets 
         WHERE id = ? AND user_id = ?
-    ", [$ticket_id, $_SESSION['user_id']]);
+    ", [$ticket_id, $user_id]);
     
     if (!$ticket) {
         http_response_code(404);
@@ -59,7 +60,7 @@ try {
         SET status = ?, updated_at = NOW() 
         WHERE id = ? AND user_id = ?
     ");
-    $stmt->execute([$status, $ticket_id, $_SESSION['user_id']]);
+    $stmt->execute([$status, $ticket_id, $user_id]);
     
     // Bei Schließung: Closed-Zeitstempel setzen
     if ($status === 'closed') {
@@ -68,7 +69,7 @@ try {
             SET closed_at = NOW() 
             WHERE id = ? AND user_id = ?
         ");
-        $stmt->execute([$ticket_id, $_SESSION['user_id']]);
+        $stmt->execute([$ticket_id, $user_id]);
         
         // System-Nachricht hinzufügen
         $stmt = $db->prepare("
@@ -77,7 +78,7 @@ try {
         ");
         $stmt->execute([
             $ticket_id, 
-            $_SESSION['user_id'], 
+            $user_id, 
             'Ticket wurde vom Kunden geschlossen.'
         ]);
     }

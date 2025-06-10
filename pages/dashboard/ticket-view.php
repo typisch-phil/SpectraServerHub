@@ -390,7 +390,8 @@ function closeTicket(ticketId) {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: `ticket_id=${ticketId}&status=closed`
+            credentials: 'same-origin',
+            body: `ticket_id=${ticketId}&status=closed&user_id=<?php echo $_SESSION['user_id'] ?? 0; ?>`
         })
         .then(response => response.json())
         .then(data => {
