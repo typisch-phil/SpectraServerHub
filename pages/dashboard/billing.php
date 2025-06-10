@@ -70,12 +70,12 @@ try {
     // Zahlungshistorie - wird später implementiert
     $payment_history = [];
 
-    // Nächste Abbuchungen
+    // Aktive Services für Abbuchungen
     $stmt = $db->prepare("
-        SELECT s.name, s.price, s.next_billing_date 
+        SELECT s.name, s.price, s.created_at 
         FROM services s 
-        WHERE s.user_id = ? AND s.status = 'active' AND s.next_billing_date IS NOT NULL 
-        ORDER BY s.next_billing_date ASC 
+        WHERE s.user_id = ? AND s.status = 'active' 
+        ORDER BY s.created_at DESC 
         LIMIT 5
     ");
     $stmt->execute([$user_id]);

@@ -8,10 +8,10 @@ define('APP_ENV', 'development');
 
 // Database Configuration (MySQL)
 define('DB_TYPE', 'mysql');
-define('DB_HOST', getenv('MYSQL_HOST') ?: 'localhost');
-define('DB_NAME', getenv('MYSQL_DATABASE') ?: 'spectrahost');
-define('DB_USER', getenv('MYSQL_USER') ?: 'root');
-define('DB_PASS', getenv('MYSQL_PASSWORD') ?: '');
+define('DB_HOST', getenv('MYSQL_HOST') ?: '37.114.32.205');
+define('DB_NAME', getenv('MYSQL_DATABASE') ?: 's9281_spectrahost');
+define('DB_USER', getenv('MYSQL_USER') ?: 's9281_spectrahost');
+define('DB_PASS', getenv('MYSQL_PASSWORD') ?: 'PASSWORD_PLACEHOLDER');
 define('DB_PORT', getenv('MYSQL_PORT') ?: '3306');
 
 // Session Configuration
