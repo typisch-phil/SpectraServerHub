@@ -1,18 +1,13 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/layout.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
-    exit;
-}
+requireLogin();
 
-$user_id = $_SESSION['user_id'];
 $user = $_SESSION['user'];
+$user_id = $user['id'];
 
 $database = Database::getInstance();
 
