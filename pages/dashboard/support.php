@@ -105,32 +105,43 @@ $faq_items = [
 </head>
 <body class="bg-gray-900 text-white">
     <div class="min-h-screen bg-gray-900">
-        <!-- Navigation -->
+        <!-- Dashboard Navigation -->
         <nav class="bg-gray-800 shadow-lg border-b border-gray-700">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center h-16">
+                <div class="flex justify-between h-16">
                     <div class="flex items-center">
-                        <a href="/dashboard" class="flex items-center space-x-2">
+                        <a href="/" class="flex items-center space-x-2">
                             <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                                 <span class="text-white font-bold text-sm">S</span>
                             </div>
-                            <span class="text-xl font-bold text-white">SpectraHost</span>
+                            <span class="text-xl font-bold text-white">SpectraHost Dashboard</span>
                         </a>
+                        <div class="ml-10 flex space-x-8">
+                            <a href="/dashboard" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Dashboard</a>
+                            <a href="/dashboard/services" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Services</a>
+                            <a href="/dashboard/billing" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Billing</a>
+                            <a href="/dashboard/support" class="text-blue-400 border-b-2 border-blue-400 px-1 pb-4 text-sm font-medium">Support</a>
+                        </div>
                     </div>
-                    
                     <div class="flex items-center space-x-4">
-                        <a href="/dashboard" class="text-gray-300 hover:text-blue-400 transition-colors">
-                            <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
-                        </a>
-                        <a href="/dashboard/services" class="text-gray-300 hover:text-blue-400 transition-colors">
-                            <i class="fas fa-server mr-2"></i>Services
-                        </a>
-                        <a href="/dashboard/support" class="text-blue-400">
-                            <i class="fas fa-headset mr-2"></i>Support
-                        </a>
-                        <a href="/logout" class="text-gray-300 hover:text-red-400 transition-colors">
-                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
-                        </a>
+                        <div class="text-sm text-gray-300">
+                            Guthaben: <span class="font-bold text-green-400">€<?php echo number_format($user['balance'] ?? 0, 2); ?></span>
+                        </div>
+                        <div class="relative group">
+                            <button class="flex items-center space-x-2 text-gray-300 hover:text-white focus:outline-none">
+                                <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                                    <span class="text-sm font-medium"><?php echo strtoupper(substr($user['email'] ?? 'U', 0, 1)); ?></span>
+                                </div>
+                                <span class="text-sm"><?php echo htmlspecialchars($user['email'] ?? 'Benutzer'); ?></span>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                            <div class="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden group-hover:block">
+                                <a href="/dashboard/profile" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Profil bearbeiten</a>
+                                <a href="/dashboard/settings" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Einstellungen</a>
+                                <div class="border-t border-gray-700"></div>
+                                <a href="/logout" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Abmelden</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
