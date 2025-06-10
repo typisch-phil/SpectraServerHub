@@ -1,22 +1,30 @@
 RewriteEngine On
-RewriteBase /
 
 # Disable directory browsing
-Options -Indexes -MultiViews
+Options -Indexes -MultiViews +FollowSymLinks
 
 # Force UTF-8 encoding
 AddDefaultCharset UTF-8
 
 # PHP settings for Plesk
-<IfModule mod_php8.c>
+<IfModule mod_php.c>
     php_value session.use_cookies 1
     php_value session.use_only_cookies 1
     php_value session.cookie_httponly 1
     php_value session.cookie_secure 0
     php_value session.gc_maxlifetime 7200
+    php_value max_execution_time 60
+    php_value memory_limit 256M
+    php_value upload_max_filesize 10M
+    php_value post_max_size 12M
 </IfModule>
 
-# Handle existing files and directories
+# Handle API requests first (direct file routing for Plesk)
+RewriteCond %{REQUEST_URI} ^/api/(.*)$
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Handle static assets and existing files
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
@@ -24,7 +32,7 @@ RewriteRule ^ - [L]
 # Route all other requests to index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php [QSA,L]
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]
 
 # Security Headers (Plesk compatible)
 <IfModule mod_headers.c>

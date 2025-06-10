@@ -29,11 +29,12 @@ class Database {
     }
     
     private function getEnvironmentConfig() {
+        // Plesk-optimierte Umgebungskonfiguration
         return [
-            'host' => $_ENV['MYSQL_HOST'] ?? getenv('MYSQL_HOST'),
-            'dbname' => $_ENV['MYSQL_DATABASE'] ?? getenv('MYSQL_DATABASE'),
-            'username' => $_ENV['MYSQL_USER'] ?? getenv('MYSQL_USER'),
-            'password' => $_ENV['MYSQL_PASSWORD'] ?? getenv('MYSQL_PASSWORD'),
+            'host' => $_ENV['MYSQL_HOST'] ?? getenv('MYSQL_HOST') ?? '37.114.32.205',
+            'dbname' => $_ENV['MYSQL_DATABASE'] ?? getenv('MYSQL_DATABASE') ?? 's9281_spectrahost',
+            'username' => $_ENV['MYSQL_USER'] ?? getenv('MYSQL_USER') ?? 's9281_spectrahost',
+            'password' => $_ENV['MYSQL_PASSWORD'] ?? getenv('MYSQL_PASSWORD') ?? '',
             'port' => $_ENV['MYSQL_PORT'] ?? getenv('MYSQL_PORT') ?: '3306'
         ];
     }

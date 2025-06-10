@@ -32,12 +32,26 @@ try {
     exit;
 }
 
-// Get the requested path
+// Get the requested path - Plesk compatible routing
 $request = $_SERVER['REQUEST_URI'];
 $path = parse_url($request, PHP_URL_PATH);
 
-// Remove leading slash
-$path = ltrim($path, '/');
+// Handle route parameter from .htaccess for Plesk
+if (isset($_GET['route'])) {
+    $path = $_GET['route'];
+} else {
+    $path = ltrim($path, '/');
+}
+
+// Remove any trailing slashes
+$path = rtrim($path, '/');
+
+// Handle subdirectory installations on Plesk
+$script_dir = dirname($_SERVER['SCRIPT_NAME']);
+if ($script_dir !== '/') {
+    $path = str_replace($script_dir, '', $path);
+    $path = ltrim($path, '/');
+}
 
 // Route handling
 switch ($path) {
