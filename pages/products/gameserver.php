@@ -1,23 +1,22 @@
 <?php 
 require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/layout.php';
 
 $pageTitle = 'GameServer - SpectraHost';
 renderHeader($pageTitle);
 
-// Get game server services - with database safety check
+// Get game server services from s9281_spectrahost database
 $gameServerServices = [];
-if (isset($db) && $db) {
-    try {
-        $connection = $db->getConnection();
-        $stmt = $connection->prepare("SELECT * FROM services WHERE type = 'gameserver' AND active = 1 ORDER BY price ASC");
-        $stmt->execute();
-        $gameServerServices = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (Exception $e) {
-        error_log("Database error in gameserver.php: " . $e->getMessage());
-        $gameServerServices = [];
-    }
+try {
+    $db = Database::getInstance();
+    $stmt = $db->prepare("SELECT * FROM service_types WHERE category = 'gameserver' ORDER BY price ASC");
+    $stmt->execute();
+    $gameServerServices = $stmt->fetchAll();
+} catch (Exception $e) {
+    error_log("Database error in gameserver.php: " . $e->getMessage());
+    $gameServerServices = [];
 }
 ?>
 
