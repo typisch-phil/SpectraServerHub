@@ -11,6 +11,15 @@ $user_id = $user['id'];
 
 $database = Database::getInstance();
 
+// Get current user balance from database
+$stmt = $database->prepare("SELECT balance FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$current_balance = $stmt->fetchColumn() ?: 0.00;
+
+// Update session with current balance
+$_SESSION['user']['balance'] = $current_balance;
+$user['balance'] = $current_balance;
+
 // Get payment history
 $stmt = $database->prepare("
     SELECT p.*, s.name as service_name 

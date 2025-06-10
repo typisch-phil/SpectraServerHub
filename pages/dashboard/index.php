@@ -17,15 +17,13 @@ $user_id = $user['id'];
 $database = Database::getInstance();
 
 try {
-    // Get user balance from session or database
-    $user_balance = $_SESSION['user']['balance'] ?? 0.00;
+    // Always get current balance from database
+    $stmt = $database->prepare("SELECT balance FROM users WHERE id = ?");
+    $stmt->execute([$user_id]);
+    $user_balance = $stmt->fetchColumn() ?: 0.00;
     
-    // If balance not in session, get from database
-    if ($user_balance == 0) {
-        $stmt = $database->prepare("SELECT balance FROM users WHERE id = ?");
-        $stmt->execute([$user_id]);
-        $user_balance = $stmt->fetchColumn() ?: 0.00;
-    }
+    // Update session with current balance
+    $_SESSION['user']['balance'] = $user_balance;
     
     // Get active user services count
     $stmt = $database->prepare("SELECT COUNT(*) FROM user_services WHERE user_id = ? AND status = 'active'");
