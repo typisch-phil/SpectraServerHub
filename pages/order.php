@@ -275,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadServices() {
     try {
-        const response = await apiRequest('/api/services');
+        const response = await apiRequest('/api/services.php');
         if (response.success) {
             allServices = response.services;
             renderServices(response.services);

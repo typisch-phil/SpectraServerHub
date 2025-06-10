@@ -535,13 +535,11 @@ renderHeader($title, $description);
         // Specific integration functions using dedicated APIs
         function configureProxmox() { configureIntegration('proxmox'); }
         function testProxmox() { 
-            const btn = event.target;
-            testSpecificIntegration('proxmox', btn); 
+            testIntegration('proxmox');
         }
         function configureMollie() { configureIntegration('mollie'); }
         function testMollie() { 
-            const btn = event.target;
-            testSpecificIntegration('mollie', btn); 
+            testIntegration('mollie');
         }
 
         async function testSpecificIntegration(integration, button) {
