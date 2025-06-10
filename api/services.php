@@ -1,11 +1,11 @@
 <?php
-require_once '../includes/config.php';
-require_once '../includes/functions.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 header('Content-Type: application/json');
 
 try {
-    $stmt = $db->prepare("SELECT * FROM services WHERE active = 1 ORDER BY sort_order ASC, name ASC");
+    $stmt = $db->prepare("SELECT * FROM services WHERE active = 1 ORDER BY name ASC");
     $stmt->execute();
     $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
     

@@ -220,6 +220,39 @@ renderHeader('Service bestellen - SpectraHost');
 <script>
 let currentService = null;
 
+// API Request helper function
+async function apiRequest(url, method = 'GET', data = null) {
+    const options = {
+        method: method,
+        credentials: 'include',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    };
+    
+    if (data && method !== 'GET') {
+        options.body = JSON.stringify(data);
+    }
+    
+    console.log(`Making ${method} request to ${url}`, options);
+    
+    const response = await fetch(url, options);
+    
+    console.log(`Response from ${url}:`, response.status, response.statusText);
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API Error Response: ${errorText}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    console.log(`Response data from ${url}:`, result);
+    
+    return result;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     loadServices();
     
