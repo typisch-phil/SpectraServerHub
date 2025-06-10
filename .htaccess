@@ -127,10 +127,9 @@ AddDefaultCharset UTF-8
 # URL-ROUTING
 # ========================================
 
-# API-Anfragen (direkte Weiterleitung wenn Datei existiert)
+# API-Anfragen über index.php routen
 RewriteCond %{REQUEST_URI} ^/api/
-RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule ^ - [L]
+RewriteRule ^api/(.*)$ index.php?route=api/$1 [QSA,L]
 
 # Statische Dateien (CSS, JS, Bilder) direkt ausliefern
 RewriteCond %{REQUEST_FILENAME} -f [OR]

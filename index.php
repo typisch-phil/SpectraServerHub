@@ -1,37 +1,40 @@
 <?php
-// SpectraHost - Plesk-kompatible Hauptdatei
+// SpectraHost - Hauptrouting-System
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
-// Session starten
+// Session sicher starten
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Basis-Konfiguration laden
+// Basis-Includes laden
 try {
-    if (file_exists(__DIR__ . '/includes/config.php')) {
-        require_once __DIR__ . '/includes/config.php';
-    }
-    
-    if (file_exists(__DIR__ . '/includes/database.php')) {
-        require_once __DIR__ . '/includes/database.php';
-    }
+    require_once __DIR__ . '/includes/config.php';
+    require_once __DIR__ . '/includes/database.php';
+    require_once __DIR__ . '/includes/functions.php';
+    require_once __DIR__ . '/includes/layout.php';
 } catch (Exception $e) {
-    error_log("Configuration error: " . $e->getMessage());
+    error_log("Include error: " . $e->getMessage());
 }
 
-// Routing-System für Plesk
-$request_uri = $_SERVER['REQUEST_URI'];
-$route = '';
+// Globale Datenbankverbindung bereitstellen
+$db = null;
+try {
+    if (class_exists('Database')) {
+        $db = Database::getInstance();
+    }
+} catch (Exception $e) {
+    error_log("Database connection failed: " . $e->getMessage());
+}
 
-// Route aus .htaccess Parameter extrahieren
+// Routing-Parameter ermitteln
+$route = '';
 if (isset($_GET['route'])) {
     $route = trim($_GET['route'], '/');
 } else {
-    // Fallback: Route aus URI extrahieren
-    $path = parse_url($request_uri, PHP_URL_PATH);
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $route = trim($path, '/');
 }
 
@@ -40,108 +43,141 @@ if (empty($route)) {
     $route = 'home';
 }
 
-// API-Anfragen verarbeiten
+// API-Routing
 if (strpos($route, 'api/') === 0) {
-    handleApiRequest($route);
+    handleApiRoute($route);
     exit;
 }
 
-// Content-Type für HTML setzen
+// Content-Type für HTML-Seiten
 header('Content-Type: text/html; charset=utf-8');
 
-// Seiten-Routing
+// Haupt-Routing
 switch ($route) {
     case 'home':
     case '':
-        loadPage('home');
-        break;
-        
-    case 'services':
-        loadPage('services');
-        break;
-        
-    case 'webspace':
-        loadPage('products/webspace');
-        break;
-        
-    case 'vserver':
-        loadPage('products/vserver');
-        break;
-        
-    case 'gameserver':
-        loadPage('products/gameserver');
-        break;
-        
-    case 'domain':
-        loadPage('products/domain');
+        include __DIR__ . '/pages/home.php';
         break;
         
     case 'login':
-        loadPage('login');
+        include __DIR__ . '/pages/login.php';
         break;
         
     case 'register':
-        loadPage('register');
+        include __DIR__ . '/pages/register.php';
         break;
         
     case 'dashboard':
-        loadPage('dashboard');
-        break;
-        
-    case 'order':
-        loadPage('order');
+        include __DIR__ . '/pages/dashboard.php';
         break;
         
     case 'contact':
-        loadPage('contact');
+        include __DIR__ . '/pages/contact.php';
         break;
         
     case 'impressum':
-        loadPage('impressum');
+        include __DIR__ . '/pages/impressum.php';
+        break;
+        
+    case 'order':
+        include __DIR__ . '/pages/order.php';
+        break;
+        
+    // Produktseiten
+    case 'webspace':
+    case 'products/webhosting':
+        include __DIR__ . '/pages/products/webhosting.php';
+        break;
+        
+    case 'vserver':
+    case 'products/vps':
+        include __DIR__ . '/pages/products/vps.php';
+        break;
+        
+    case 'gameserver':
+    case 'products/gameserver':
+        include __DIR__ . '/pages/products/gameserver.php';
+        break;
+        
+    case 'domain':
+    case 'products/domains':
+        include __DIR__ . '/pages/products/domains.php';
+        break;
+        
+    // Dashboard-Unterseiten
+    case 'dashboard/services':
+        include __DIR__ . '/pages/dashboard/services.php';
+        break;
+        
+    case 'dashboard/billing':
+        include __DIR__ . '/pages/dashboard/billing.php';
+        break;
+        
+    case 'dashboard/support':
+        include __DIR__ . '/pages/dashboard/support.php';
+        break;
+        
+    // Admin-Panel
+    case 'admin':
+        include __DIR__ . '/pages/admin/dashboard.php';
+        break;
+        
+    case 'admin/users':
+        include __DIR__ . '/pages/admin/users.php';
+        break;
+        
+    case 'admin/services':
+        include __DIR__ . '/pages/admin/services.php';
+        break;
+        
+    case 'admin/tickets':
+        include __DIR__ . '/pages/admin/tickets.php';
+        break;
+        
+    case 'admin/invoices':
+        include __DIR__ . '/pages/admin/invoices.php';
+        break;
+        
+    case 'admin/integrations':
+        include __DIR__ . '/pages/admin/integrations.php';
+        break;
+        
+    case 'admin/statistics':
+        include __DIR__ . '/pages/admin/statistics.php';
+        break;
+        
+    // Fehlerbehandlung
+    case 'error':
+        handleErrorPage();
         break;
         
     default:
-        loadPage('404');
+        // 404 Seite
+        http_response_code(404);
+        include __DIR__ . '/pages/404.php';
         break;
 }
 
-// Seite laden und ausgeben
-function loadPage($page) {
-    $page_file = __DIR__ . '/pages/' . $page . '.php';
-    
-    if (file_exists($page_file)) {
-        // Globale Variablen für Seiten bereitstellen
-        global $db;
-        
-        // Datenbankverbindung falls verfügbar
-        try {
-            if (class_exists('Database')) {
-                $db = Database::getInstance();
-            }
-        } catch (Exception $e) {
-            error_log("Database connection failed: " . $e->getMessage());
-            $db = null;
-        }
-        
-        // Seite einbinden
-        include $page_file;
-    } else {
-        // 404 Seite falls nicht gefunden
-        http_response_code(404);
-        echo generateErrorPage(404, 'Seite nicht gefunden', 'Die angeforderte Seite existiert nicht.');
-    }
-}
-
-// API-Anfragen verarbeiten
-function handleApiRequest($route) {
+// API-Routing-Handler
+function handleApiRoute($route) {
     header('Content-Type: application/json');
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    
+    // Preflight-Anfragen
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(200);
+        exit;
+    }
     
     // API-Route extrahieren
     $api_path = str_replace('api/', '', $route);
     $parts = explode('/', $api_path);
     $endpoint = $parts[0] ?? '';
     
-    // API-Datei suchen
+    // API-Datei einbinden mit globaler Datenbankverbindung
+    global $db;
     $api_file = __DIR__ . '/api/' . $endpoint . '.php';
     
     if (file_exists($api_file)) {
@@ -151,31 +187,55 @@ function handleApiRequest($route) {
         echo json_encode([
             'success' => false,
             'error' => 'API endpoint not found',
-            'endpoint' => $endpoint
+            'endpoint' => $endpoint,
+            'path' => $api_file,
+            'available' => ['login', 'register', 'services', 'user', 'order']
         ]);
     }
 }
 
-// Fehlerseite generieren
-function generateErrorPage($code, $title, $message) {
-    return "<!DOCTYPE html>
-<html lang='de'>
-<head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>$title - SpectraHost</title>
-    <script src='https://cdn.tailwindcss.com'></script>
-</head>
-<body class='bg-gray-100 min-h-screen flex items-center justify-center'>
-    <div class='max-w-md mx-auto text-center bg-white p-8 rounded-lg shadow-lg'>
-        <h1 class='text-6xl font-bold text-blue-600 mb-4'>$code</h1>
-        <h2 class='text-2xl font-semibold text-gray-800 mb-4'>$title</h2>
-        <p class='text-gray-600 mb-8'>$message</p>
-        <a href='/' class='inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors'>
-            Zur Startseite
-        </a>
-    </div>
-</body>
-</html>";
+// Fehlerseiten-Handler
+function handleErrorPage() {
+    $code = $_GET['code'] ?? 404;
+    $title = 'Fehler';
+    $message = 'Ein Fehler ist aufgetreten.';
+    
+    switch ($code) {
+        case 400:
+            $title = 'Ungültige Anfrage';
+            $message = 'Die Anfrage konnte nicht verarbeitet werden.';
+            break;
+        case 401:
+            $title = 'Nicht autorisiert';
+            $message = 'Sie sind nicht berechtigt, diese Seite aufzurufen.';
+            break;
+        case 403:
+            $title = 'Zugriff verweigert';
+            $message = 'Der Zugriff auf diese Ressource ist nicht erlaubt.';
+            break;
+        case 404:
+            $title = 'Seite nicht gefunden';
+            $message = 'Die angeforderte Seite existiert nicht.';
+            break;
+        case 500:
+            $title = 'Server-Fehler';
+            $message = 'Ein interner Server-Fehler ist aufgetreten.';
+            break;
+    }
+    
+    http_response_code($code);
+    
+    $pageTitle = $title . ' - SpectraHost';
+    renderHeader($pageTitle);
+    
+    echo "<div class='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900'>";
+    echo "<div class='max-w-md mx-auto text-center bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg'>";
+    echo "<h1 class='text-6xl font-bold text-red-600 mb-4'>$code</h1>";
+    echo "<h2 class='text-2xl font-semibold text-gray-800 dark:text-white mb-4'>$title</h2>";
+    echo "<p class='text-gray-600 dark:text-gray-400 mb-8'>$message</p>";
+    echo "<a href='/' class='inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors'>Zur Startseite</a>";
+    echo "</div></div>";
+    
+    renderFooter();
 }
 ?>
