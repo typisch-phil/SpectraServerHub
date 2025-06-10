@@ -1,64 +1,352 @@
-# SpectraHost - Vereinfachte Plesk .htaccess
+# SpectraHost - Komplette .htaccess Konfiguration
+# Optimiert für Plesk-Hosting und Produktivumgebung
+
+# ========================================
+# GRUNDEINSTELLUNGEN
+# ========================================
+
+# Rewrite Engine aktivieren
 RewriteEngine On
 
-# Basis-Einstellungen
-Options -Indexes +FollowSymLinks
-DirectoryIndex index.php
+# Server-Optionen
+Options -Indexes +FollowSymLinks -MultiViews
+DirectoryIndex index.php index.html
+
+# UTF-8 Encoding
 AddDefaultCharset UTF-8
 
-# PHP-Konfiguration für Plesk
+# ========================================
+# PHP-KONFIGURATION
+# ========================================
+
 <IfModule mod_php.c>
+    # Memory und Performance
     php_value memory_limit 256M
     php_value max_execution_time 60
+    php_value max_input_time 60
     php_value upload_max_filesize 10M
     php_value post_max_size 12M
+    php_value max_file_uploads 20
+    
+    # Session-Konfiguration
     php_value session.gc_maxlifetime 7200
+    php_value session.use_cookies 1
+    php_value session.use_only_cookies 1
+    php_value session.cookie_httponly 1
+    php_value session.cookie_secure 0
+    php_value session.cookie_lifetime 0
+    
+    # Error Handling für Produktion
     php_value display_errors 0
     php_value log_errors 1
+    php_value error_reporting "E_ERROR | E_WARNING | E_PARSE"
+    
+    # Output Buffering
+    php_value output_buffering 4096
+    php_value zlib.output_compression 1
 </IfModule>
 
-# Sicherheitsheader
+# ========================================
+# SICHERHEITSHEADER
+# ========================================
+
 <IfModule mod_headers.c>
+    # Content-Type Protection
     Header always set X-Content-Type-Options nosniff
+    
+    # Clickjacking Protection
     Header always set X-Frame-Options SAMEORIGIN
+    
+    # XSS Protection
     Header always set X-XSS-Protection "1; mode=block"
+    
+    # Referrer Policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # HTTPS Enforcement (nur wenn HTTPS verfügbar)
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+    
+    # Content Security Policy (Basic)
+    Header always set Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:; img-src 'self' https: data:; font-src 'self' https: data:;"
+    
+    # Permissions Policy
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
 </IfModule>
 
-# Sensible Dateien schützen
-<FilesMatch "\.(env|sql|log|bak|config)$">
-    Order deny,allow
-    Deny from all
+# ========================================
+# DATEISICHERHEIT
+# ========================================
+
+# Sensible Dateien blockieren
+<FilesMatch "\.(env|sql|log|bak|config|ini|conf|inc|backup|old|tmp|~)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
-# API-Routing (direkte Weiterleitung wenn Datei existiert)
+# Konfigurationsdateien schützen
+<FilesMatch "^(composer\.(json|lock)|package\.(json|lock)|\.htaccess|\.htpasswd|web\.config)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# PHP-Dateien in Upload-Verzeichnissen blockieren
+<DirectoryMatch "^.*/uploads/.*">
+    <FilesMatch "\.php$">
+        <IfModule mod_authz_core.c>
+            Require all denied
+        </IfModule>
+        <IfModule !mod_authz_core.c>
+            Order allow,deny
+            Deny from all
+        </IfModule>
+    </FilesMatch>
+</DirectoryMatch>
+
+# Verzeichniszugriff blockieren
+<IfModule mod_alias.c>
+    RedirectMatch 403 ^.*/includes/.*$
+    RedirectMatch 403 ^.*/database/.*$
+    RedirectMatch 403 ^.*/logs/.*$
+    RedirectMatch 403 ^.*/cache/.*$
+    RedirectMatch 403 ^.*/tmp/.*$
+    RedirectMatch 403 ^.*\.git/.*$
+    RedirectMatch 403 ^.*/vendor/.*$
+</IfModule>
+
+# ========================================
+# URL-ROUTING
+# ========================================
+
+# API-Anfragen (direkte Weiterleitung wenn Datei existiert)
 RewriteCond %{REQUEST_URI} ^/api/
 RewriteCond %{REQUEST_FILENAME} -f
 RewriteRule ^ - [L]
 
-# Statische Dateien direkt ausliefern
+# Statische Dateien (CSS, JS, Bilder) direkt ausliefern
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Alle anderen Anfragen an index.php weiterleiten
+# Pretty URLs für Produktseiten
+RewriteRule ^webspace/?$ index.php?route=products/webhosting [QSA,L]
+RewriteRule ^vserver/?$ index.php?route=products/vps [QSA,L]
+RewriteRule ^gameserver/?$ index.php?route=products/gameserver [QSA,L]
+RewriteRule ^domain/?$ index.php?route=products/domains [QSA,L]
+
+# Dashboard-Routing
+RewriteRule ^dashboard/([^/]+)/?$ index.php?route=dashboard&section=$1 [QSA,L]
+RewriteRule ^dashboard/?$ index.php?route=dashboard [QSA,L]
+
+# Admin-Panel-Routing
+RewriteRule ^admin/([^/]+)/?$ index.php?route=admin&section=$1 [QSA,L]
+RewriteRule ^admin/?$ index.php?route=admin [QSA,L]
+
+# Hauptrouting (alle anderen Anfragen)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]
 
-# Komprimierung
+# ========================================
+# PERFORMANCE-OPTIMIERUNG
+# ========================================
+
+# GZIP-Komprimierung
 <IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json
+    # HTML, CSS, JavaScript komprimieren
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/atom+xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+    
+    # Browser-spezifische Fixes
+    BrowserMatch ^Mozilla/4 gzip-only-text/html
+    BrowserMatch ^Mozilla/4\.0[678] no-gzip
+    BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
 </IfModule>
 
-# Browser-Cache
+# Browser-Caching
 <IfModule mod_expires.c>
     ExpiresActive on
+    
+    # Images
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/ico "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+    
+    # CSS und JavaScript
     ExpiresByType text/css "access plus 1 month"
     ExpiresByType application/javascript "access plus 1 month"
-    ExpiresByType image/* "access plus 6 months"
+    ExpiresByType text/javascript "access plus 1 month"
+    
+    # Fonts
+    ExpiresByType font/ttf "access plus 1 year"
+    ExpiresByType font/otf "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    
+    # Documents
+    ExpiresByType application/pdf "access plus 1 month"
+    ExpiresByType text/plain "access plus 1 month"
+    
+    # Media
+    ExpiresByType video/mp4 "access plus 1 year"
+    ExpiresByType audio/mpeg "access plus 1 year"
+    
+    # HTML und andere dynamische Inhalte
+    ExpiresByType text/html "access plus 0 seconds"
+    ExpiresByType application/json "access plus 0 seconds"
+    ExpiresByType application/xml "access plus 0 seconds"
 </IfModule>
 
-# Error Pages
-ErrorDocument 404 /index.php
-ErrorDocument 403 /index.php
-ErrorDocument 500 /index.php
+# Cache-Control Header
+<IfModule mod_headers.c>
+    # Cache für statische Ressourcen
+    <FilesMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|otf)$">
+        Header set Cache-Control "public, max-age=31536000"
+    </FilesMatch>
+    
+    # Keine Cache für dynamische Inhalte
+    <FilesMatch "\.(php|html)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires 0
+    </FilesMatch>
+</IfModule>
+
+# ========================================
+# MIME-TYPES
+# ========================================
+
+<IfModule mod_mime.c>
+    # Web Fonts
+    AddType application/font-woff woff
+    AddType application/font-woff2 woff2
+    AddType application/vnd.ms-fontobject eot
+    AddType font/ttf ttf
+    AddType font/otf otf
+    
+    # Multimedia
+    AddType video/mp4 mp4
+    AddType video/webm webm
+    AddType audio/mp3 mp3
+    AddType audio/mpeg mp3
+    AddType audio/ogg ogg
+    
+    # Web-Technologien
+    AddType application/javascript js
+    AddType text/css css
+    AddType image/svg+xml svg
+    AddType application/json json
+    AddType text/xml xml
+    
+    # Archive
+    AddType application/zip zip
+    AddType application/x-gzip gz
+    AddType application/x-tar tar
+    
+    # Modern Image Formats
+    AddType image/webp webp
+    AddType image/avif avif
+</IfModule>
+
+# ========================================
+# FEHLERBEHANDLUNG
+# ========================================
+
+# Custom Error Pages
+ErrorDocument 400 /index.php?route=error&code=400
+ErrorDocument 401 /index.php?route=error&code=401
+ErrorDocument 403 /index.php?route=error&code=403
+ErrorDocument 404 /index.php?route=error&code=404
+ErrorDocument 405 /index.php?route=error&code=405
+ErrorDocument 500 /index.php?route=error&code=500
+ErrorDocument 502 /index.php?route=error&code=502
+ErrorDocument 503 /index.php?route=error&code=503
+
+# ========================================
+# HOTLINK-PROTECTION
+# ========================================
+
+<IfModule mod_rewrite.c>
+    # Hotlinking von Bildern verhindern (außer von eigener Domain)
+    RewriteCond %{HTTP_REFERER} !^$
+    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?spectrahost\.de [NC]
+    RewriteCond %{REQUEST_URI} \.(gif|jpg|jpeg|png|webp)$ [NC]
+    RewriteRule \.(gif|jpg|jpeg|png|webp)$ - [F,L]
+</IfModule>
+
+# ========================================
+# ADDITIONAL SECURITY
+# ========================================
+
+# Server Signature ausblenden
+ServerSignature Off
+
+# Server-Informationen minimieren
+<IfModule mod_headers.c>
+    Header unset Server
+    Header unset X-Powered-By
+</IfModule>
+
+# Dotfiles blockieren
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Request-Methoden beschränken
+<LimitExcept GET POST HEAD>
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</LimitExcept>
+
+# ========================================
+# MOBILE OPTIMIZATION
+# ========================================
+
+<IfModule mod_headers.c>
+    # Viewport für mobile Geräte
+    Header always set X-UA-Compatible "IE=edge"
+    
+    # DNS Prefetch Control
+    Header always set X-DNS-Prefetch-Control "on"
+</IfModule>
+
+# ========================================
+# ENDE DER KONFIGURATION
+# ========================================
