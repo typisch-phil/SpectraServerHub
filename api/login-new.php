@@ -1,6 +1,6 @@
 <?php
 /**
- * Logout API mit Session-Verwaltung
+ * Neue Login API mit vollständiger Datenbankintegration
  */
 require_once __DIR__ . '/../includes/database.php';
 require_once __DIR__ . '/../includes/auth-system.php';
@@ -23,13 +23,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    exit;
+}
+
 try {
+    // Get input data
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input) {
+        $input = $_POST;
+    }
+    
+    if (empty($input['email']) || empty($input['password'])) {
+        throw new Exception('E-Mail und Passwort sind erforderlich');
+    }
+    
     // Initialize auth system
     $auth = new AuthSystem();
     
-    // Perform logout
-    $result = $auth->logout();
+    // Attempt login
+    $result = $auth->login($input['email'], $input['password']);
     
+    // Return response
+    http_response_code($result['success'] ? 200 : 400);
     echo json_encode($result);
     
 } catch (Exception $e) {

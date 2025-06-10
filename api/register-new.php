@@ -1,6 +1,6 @@
 <?php
 /**
- * Logout API mit Session-Verwaltung
+ * Neue Register API mit vollständiger Datenbankintegration
  */
 require_once __DIR__ . '/../includes/database.php';
 require_once __DIR__ . '/../includes/auth-system.php';
@@ -23,13 +23,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    exit;
+}
+
 try {
+    // Get input data
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input) {
+        $input = $_POST;
+    }
+    
+    $requiredFields = ['email', 'password', 'firstName', 'lastName'];
+    foreach ($requiredFields as $field) {
+        if (empty($input[$field])) {
+            throw new Exception("Feld '$field' ist erforderlich");
+        }
+    }
+    
     // Initialize auth system
     $auth = new AuthSystem();
     
-    // Perform logout
-    $result = $auth->logout();
+    // Attempt registration
+    $result = $auth->register(
+        $input['email'],
+        $input['password'],
+        $input['firstName'],
+        $input['lastName'],
+        $input['phone'] ?? null
+    );
     
+    // Return response
+    http_response_code($result['success'] ? 201 : 400);
     echo json_encode($result);
     
 } catch (Exception $e) {
