@@ -323,6 +323,10 @@ function showTopupModal() {
 
 function closeTopupModal() {
     document.getElementById('topupModal').classList.add('hidden');
+    // Reset form
+    document.getElementById('topupForm').reset();
+    resetAmountButtons();
+    hideLoader();
 }
 
 function setAmount(amount) {
@@ -337,9 +341,74 @@ function setAmount(amount) {
     event.target.classList.remove('border-gray-600');
 }
 
+function resetAmountButtons() {
+    document.querySelectorAll('.amount-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600');
+        btn.classList.add('border-gray-600', 'text-white');
+    });
+}
+
+function showLoader() {
+    document.getElementById('topupBtnText').textContent = 'Verarbeitung...';
+    document.getElementById('topupLoader').classList.remove('hidden');
+    document.getElementById('topupSubmitBtn').disabled = true;
+}
+
+function hideLoader() {
+    document.getElementById('topupBtnText').textContent = 'Zur Zahlung';
+    document.getElementById('topupLoader').classList.add('hidden');
+    document.getElementById('topupSubmitBtn').disabled = false;
+}
+
+// Form-Handler für Guthaben-Aufladung
+document.getElementById('topupForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const amount = parseFloat(document.getElementById('topupAmount').value);
+    
+    // Validierung
+    if (!amount || amount < 5 || amount > 1000) {
+        alert('Bitte geben Sie einen Betrag zwischen €5 und €1000 ein.');
+        return;
+    }
+    
+    showLoader();
+    
+    try {
+        const response = await fetch('/api/topup-balance.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ amount: amount })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.payment_url) {
+            // Weiterleitung zur Mollie-Zahlungsseite
+            window.location.href = data.payment_url;
+        } else {
+            throw new Error(data.error || 'Unbekannter Fehler beim Erstellen der Zahlung');
+        }
+        
+    } catch (error) {
+        console.error('Topup Error:', error);
+        alert('Fehler beim Starten der Zahlung: ' + error.message);
+        hideLoader();
+    }
+});
+
 // Modal schließen bei Klick außerhalb
 document.getElementById('topupModal').addEventListener('click', function(e) {
     if (e.target === this) {
+        closeTopupModal();
+    }
+});
+
+// Modal schließen bei Escape-Taste
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
         closeTopupModal();
     }
 });

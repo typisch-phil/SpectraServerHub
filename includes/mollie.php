@@ -123,7 +123,7 @@ class BalanceTopup {
             VALUES (?, ?, 'pending', NOW())
         ");
         $stmt->execute([$userId, $amount]);
-        $topupId = $this->db->lastInsertId();
+        $topupId = $this->db->getConnection()->lastInsertId();
         
         if (!$topupId) {
             throw new Exception('Fehler beim Erstellen der Aufladung');
