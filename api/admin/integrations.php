@@ -3,33 +3,14 @@ require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/functions.php';
 
-// Debug session for API calls
-error_log("Session data: " . print_r($_SESSION, true));
-
 // Parse JSON input for API calls
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $_POST = array_merge($_POST, $input);
 
-// Check if user is admin - allow both web and API access
-$isAdmin = false;
-if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin') {
-    $isAdmin = true;
-} elseif (isset($_POST['admin_override']) && $_POST['admin_override'] === 'debug_mode') {
-    // Temporary debug access - remove in production
-    $isAdmin = true;
-    error_log("Debug mode access granted");
-}
-
-if (!$isAdmin) {
+// Check if user is admin
+if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'admin') {
     http_response_code(403);
-    echo json_encode([
-        'success' => false, 
-        'message' => 'Nicht autorisiert',
-        'debug' => [
-            'session_exists' => isset($_SESSION['user']),
-            'user_role' => $_SESSION['user']['role'] ?? 'none'
-        ]
-    ]);
+    echo json_encode(['success' => false, 'message' => 'Nicht autorisiert']);
     exit;
 }
 
