@@ -44,30 +44,18 @@ try {
             $configType = $_POST['config_type'] ?? 'demo';
             unset($_POST['integration'], $_POST['admin_override'], $_POST['action'], $_POST['config_type']);
             
-            // Handle different configuration types
-            if ($integration === 'proxmox' && $configType === 'demo') {
+            // Use production environment variables for Proxmox
+            if ($integration === 'proxmox') {
                 $config = [
-                    'host' => 'demo.proxmox.local',
-                    'username' => 'root@pam',
-                    'password' => 'demo123',
-                    'node' => 'pve',
-                    'demo_mode' => true
-                ];
-            } elseif ($integration === 'proxmox' && $configType === 'production') {
-                // Use environment variables for production Proxmox
-                $config = [
-                    'host' => $_ENV['PROXMOX_HOST'] ?? $_POST['host'] ?? '',
-                    'username' => $_ENV['PROXMOX_USERNAME'] ?? $_POST['username'] ?? '',
-                    'password' => $_ENV['PROXMOX_PASSWORD'] ?? $_POST['password'] ?? '',
-                    'node' => $_ENV['PROXMOX_NODE'] ?? $_POST['node'] ?? 'pve',
+                    'host' => $_ENV['PROXMOX_HOST'],
+                    'username' => $_ENV['PROXMOX_USERNAME'],
+                    'password' => $_ENV['PROXMOX_PASSWORD'],
+                    'node' => $_ENV['PROXMOX_NODE'],
                     'ssl_verify' => $_POST['ssl_verify'] ?? false,
                     'demo_mode' => false
                 ];
             } else {
                 $config = $_POST;
-                if ($integration === 'proxmox') {
-                    $config['demo_mode'] = false;
-                }
             }
             
             $result = configureIntegration($integration, $config);
@@ -120,23 +108,7 @@ function testProxmoxConnection() {
             ];
         }
         
-        // Check if this is a demo configuration
-        $isDemoMode = $config['demo_mode'] ?? false;
-        if ($isDemoMode || strpos($host, 'demo') !== false) {
-            return [
-                'success' => true,
-                'message' => 'Proxmox Demo-Konfiguration aktiv',
-                'details' => [
-                    'version' => '8.2.0',
-                    'release' => 'Proxmox VE Demo',
-                    'nodes' => 1,
-                    'demo_mode' => true,
-                    'host' => $host,
-                    'node' => $node,
-                    'response_time' => '< 1s'
-                ]
-            ];
-        }
+        // Direct production Proxmox API connection
         
         // Step 1: Get authentication ticket
         $authData = [

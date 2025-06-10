@@ -327,73 +327,42 @@ renderHeader($title, $description);
                     return `
                         <form onsubmit="saveConfig('proxmox', event)">
                             <div class="space-y-4">
-                                <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-4">
-                                    <h4 class="font-medium text-blue-800 dark:text-blue-200 mb-2">Konfigurationsoptionen</h4>
-                                    <div class="space-y-2">
-                                        <label class="flex items-center">
-                                            <input type="radio" name="config_type" value="demo" checked class="mr-2" onchange="toggleProxmoxConfig()">
-                                            <span class="text-sm text-blue-700 dark:text-blue-300">Demo-Modus (für Tests)</span>
-                                        </label>
-                                        <label class="flex items-center">
-                                            <input type="radio" name="config_type" value="production" class="mr-2" onchange="toggleProxmoxConfig()">
-                                            <span class="text-sm text-blue-700 dark:text-blue-300">Produktionsserver (echte API-Daten)</span>
-                                        </label>
-                                    </div>
+                                <div class="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg mb-4">
+                                    <h4 class="font-medium text-green-800 dark:text-green-200 mb-2">Proxmox VE Produktionsserver</h4>
+                                    <p class="text-sm text-green-700 dark:text-green-300">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        Echte Server-Konfiguration aus Umgebungsvariablen geladen
+                                    </p>
                                 </div>
                                 
-                                <div id="demo-config">
-                                    <div class="bg-yellow-50 dark:bg-yellow-900/30 p-3 rounded mb-4">
-                                        <p class="text-sm text-yellow-700 dark:text-yellow-300">
-                                            <i class="fas fa-info-circle mr-1"></i>
-                                            Demo-Modus: Verwendet Simulator für Entwicklung und Tests
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Demo-Server</label>
-                                        <input type="text" name="demo_host" value="demo.proxmox.local" readonly class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500">
-                                    </div>
-                                </div>
+                                <input type="hidden" name="config_type" value="production">
                                 
-                                <div id="production-config" style="display: none;">
-                                    <div class="bg-red-50 dark:bg-red-900/30 p-3 rounded mb-4">
-                                        <p class="text-sm text-red-700 dark:text-red-300">
-                                            <i class="fas fa-exclamation-triangle mr-1"></i>
-                                            Produktionsmodus: Echte Proxmox VE Server-Verbindung
-                                        </p>
-                                    </div>
-                                    <div class="bg-green-50 dark:bg-green-900/30 p-3 rounded mb-4">
-                                        <p class="text-sm text-green-700 dark:text-green-300">
-                                            <i class="fas fa-check-circle mr-1"></i>
-                                            Produktionsserver-Daten aus Umgebungsvariablen verfügbar
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Host/IP-Adresse</label>
-                                        <input type="text" name="host" placeholder="Wird aus Umgebungsvariablen geladen" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
-                                        <p class="text-xs text-gray-500 mt-1">Automatisch aus PROXMOX_HOST geladen</p>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Benutzername</label>
-                                        <input type="text" name="username" placeholder="Wird aus Umgebungsvariablen geladen" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
-                                        <p class="text-xs text-gray-500 mt-1">Automatisch aus PROXMOX_USERNAME geladen</p>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Passwort</label>
-                                        <input type="password" placeholder="••••••••" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
-                                        <p class="text-xs text-gray-500 mt-1">Automatisch aus PROXMOX_PASSWORD geladen</p>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Node-Name</label>
-                                        <input type="text" name="node" placeholder="Wird aus Umgebungsvariablen geladen" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
-                                        <p class="text-xs text-gray-500 mt-1">Automatisch aus PROXMOX_NODE geladen</p>
-                                    </div>
-                                    <div>
-                                        <label class="flex items-center">
-                                            <input type="checkbox" name="ssl_verify" class="mr-2">
-                                            <span class="text-sm text-gray-700 dark:text-gray-300">SSL-Zertifikat überprüfen</span>
-                                        </label>
-                                        <p class="text-xs text-gray-500 mt-1">Für Produktionsumgebungen empfohlen</p>
-                                    </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Host/IP-Adresse</label>
+                                    <input type="text" name="host" value="45.137.68.202" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
+                                    <p class="text-xs text-gray-500 mt-1">Proxmox Server IP-Adresse</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Benutzername</label>
+                                    <input type="text" name="username" value="spectrahost@pve" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
+                                    <p class="text-xs text-gray-500 mt-1">Proxmox Benutzer</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Passwort</label>
+                                    <input type="password" value="••••••••" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
+                                    <p class="text-xs text-gray-500 mt-1">Passwort ist konfiguriert</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Node-Name</label>
+                                    <input type="text" name="node" value="bl1-4" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
+                                    <p class="text-xs text-gray-500 mt-1">Aktiver Proxmox-Knoten</p>
+                                </div>
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="ssl_verify" class="mr-2">
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">SSL-Zertifikat überprüfen</span>
+                                    </label>
+                                    <p class="text-xs text-gray-500 mt-1">Erweiterte Sicherheitsoption</p>
                                 </div>
                                 
                                 <div class="flex justify-end space-x-3 pt-4">
@@ -549,27 +518,7 @@ renderHeader($title, $description);
             }
         }
 
-        function toggleProxmoxConfig() {
-            const configType = document.querySelector('input[name="config_type"]:checked').value;
-            const demoConfig = document.getElementById('demo-config');
-            const productionConfig = document.getElementById('production-config');
-            
-            if (configType === 'demo') {
-                demoConfig.style.display = 'block';
-                productionConfig.style.display = 'none';
-                // Clear production fields
-                productionConfig.querySelectorAll('input').forEach(input => {
-                    if (input.type !== 'checkbox' && input.type !== 'radio') {
-                        input.value = '';
-                    }
-                });
-            } else {
-                demoConfig.style.display = 'none';
-                productionConfig.style.display = 'block';
-                // Set default values for production
-                productionConfig.querySelector('input[name="node"]').value = 'pve';
-            }
-        }
+
 
         function showNotification(type, message) {
             const notification = document.createElement('div');
