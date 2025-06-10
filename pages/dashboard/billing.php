@@ -85,8 +85,39 @@ foreach ($invoice_stats as $stat) {
     }
 }
 
-renderDashboardHeader('Billing - Dashboard');
 ?>
+
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing - SpectraHost Dashboard</title>
+    <meta name="description" content="SpectraHost Billing - Verwalten Sie Ihre Rechnungen">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            750: '#374151',
+                            850: '#1f2937'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-900 text-white">
 
 <div class="min-h-screen bg-gray-900">
     <!-- Dashboard Navigation -->
@@ -380,4 +411,5 @@ function hideAddFundsModal() {
 <!-- Font Awesome für Icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-<?php renderDashboardFooter(); ?>
+</body>
+</html>
