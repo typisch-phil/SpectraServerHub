@@ -194,10 +194,49 @@ function handleReturn() {
         exit;
     }
     
+    // Check current status with Mollie if we have the payment ID
+    if ($payment['mollie_payment_id'] && $payment['status'] !== 'paid') {
+        $mollie_api_key = $_ENV['MOLLIE_API_KEY'] ?? null;
+        
+        if ($mollie_api_key) {
+            $mollie_payment = callMollieAPI('payments/' . $payment['mollie_payment_id'], 'GET', null, $mollie_api_key);
+            
+            if ($mollie_payment && $mollie_payment['status'] === 'paid' && $payment['status'] !== 'paid') {
+                // Update payment status
+                $stmt = $db->prepare("UPDATE payments SET status = 'paid', updated_at = NOW() WHERE id = ?");
+                $stmt->execute([$payment['id']]);
+                
+                // Add balance to user
+                $stmt = $db->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
+                $stmt->execute([$payment['amount'], $payment['user_id']]);
+                
+                // Log balance transaction
+                $stmt = $db->prepare("
+                    INSERT INTO balance_transactions (user_id, amount, type, description, payment_id, created_at) 
+                    VALUES (?, ?, 'credit', ?, ?, NOW())
+                ");
+                $stmt->execute([
+                    $payment['user_id'], 
+                    $payment['amount'], 
+                    'Guthaben aufgeladen via ' . $payment['payment_method'],
+                    $payment['id']
+                ]);
+                
+                header('Location: /dashboard/billing?success=payment_completed&amount=' . urlencode($payment['amount']));
+                exit;
+            } elseif ($mollie_payment) {
+                // Update status from Mollie
+                $stmt = $db->prepare("UPDATE payments SET status = ?, updated_at = NOW() WHERE id = ?");
+                $stmt->execute([$mollie_payment['status'], $payment['id']]);
+                $payment['status'] = $mollie_payment['status'];
+            }
+        }
+    }
+    
     if ($payment['status'] === 'paid') {
-        header('Location: /dashboard/billing?success=payment_completed');
+        header('Location: /dashboard/billing?success=payment_completed&amount=' . urlencode($payment['amount']));
     } else {
-        header('Location: /dashboard/billing?error=payment_failed');
+        header('Location: /dashboard/billing?error=payment_failed&status=' . urlencode($payment['status']));
     }
     exit;
 }

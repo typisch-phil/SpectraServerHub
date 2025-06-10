@@ -29,6 +29,35 @@ $stmt->execute([$user_id]);
 $payments = $stmt->fetchAll();
 
 renderHeader('Billing - SpectraHost Dashboard');
+
+// Handle payment notifications
+$notification = '';
+$notification_type = '';
+
+if (isset($_GET['success']) && $_GET['success'] === 'payment_completed') {
+    $amount = $_GET['amount'] ?? '0';
+    $notification = "Zahlung erfolgreich! €" . number_format((float)$amount, 2) . " wurden Ihrem Guthaben gutgeschrieben.";
+    $notification_type = 'success';
+} elseif (isset($_GET['error'])) {
+    switch ($_GET['error']) {
+        case 'payment_failed':
+            $status = $_GET['status'] ?? 'unknown';
+            $notification = "Zahlung fehlgeschlagen. Status: " . htmlspecialchars($status);
+            $notification_type = 'error';
+            break;
+        case 'invalid_payment':
+            $notification = "Ungültige Zahlungs-ID.";
+            $notification_type = 'error';
+            break;
+        case 'payment_not_found':
+            $notification = "Zahlung nicht gefunden.";
+            $notification_type = 'error';
+            break;
+        default:
+            $notification = "Ein unbekannter Fehler ist aufgetreten.";
+            $notification_type = 'error';
+    }
+}
 ?>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -62,6 +91,15 @@ renderHeader('Billing - SpectraHost Dashboard');
     </nav>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <?php if ($notification): ?>
+            <div class="mb-6 p-4 rounded-lg <?php echo $notification_type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' : 'bg-red-100 border border-red-400 text-red-700'; ?>">
+                <div class="flex items-center">
+                    <i class="fas <?php echo $notification_type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'; ?> mr-3"></i>
+                    <span><?php echo htmlspecialchars($notification); ?></span>
+                </div>
+            </div>
+        <?php endif; ?>
+        
         <!-- Header -->
         <div class="mb-8">
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Billing & Zahlungen</h1>
