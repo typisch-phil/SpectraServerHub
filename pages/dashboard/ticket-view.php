@@ -54,7 +54,109 @@ $messages = $db->fetchAll("
 $page_title = "Support Ticket #" . $ticket['id'];
 ?>
 
-<div class="space-y-6">
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $page_title; ?> - SpectraHost Dashboard</title>
+    <meta name="description" content="SpectraHost Support Ticket Details">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            750: '#374151',
+                            850: '#1f2937'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-900 text-white">
+
+<div class="min-h-screen bg-gray-900">
+    <!-- Dashboard Navigation -->
+    <nav class="bg-gray-800 shadow-lg border-b border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">S</span>
+                        </div>
+                        <span class="text-xl font-bold text-white">SpectraHost Dashboard</span>
+                    </a>
+                    <div class="ml-10 flex space-x-8">
+                        <a href="/dashboard" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Dashboard</a>
+                        <a href="/dashboard/services" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Services</a>
+                        <a href="/dashboard/billing" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Billing</a>
+                        <a href="/dashboard/support" class="text-blue-400 border-b-2 border-blue-400 px-1 pb-4 text-sm font-medium">Support</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-300">
+                        Guthaben: <span class="font-bold text-green-400">€<?php echo number_format($user['balance'] ?? 0, 2); ?></span>
+                    </div>
+                    <div class="relative group">
+                        <button class="flex items-center space-x-2 text-gray-300 hover:text-white focus:outline-none">
+                            <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-medium"><?php echo strtoupper(substr($user['email'] ?? 'U', 0, 1)); ?></span>
+                            </div>
+                            <span class="text-sm"><?php echo htmlspecialchars($user['email'] ?? 'Benutzer'); ?></span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                        <div class="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden group-hover:block">
+                            <a href="/dashboard/profile" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Profil bearbeiten</a>
+                            <a href="/dashboard/settings" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Einstellungen</a>
+                            <div class="border-t border-gray-700"></div>
+                            <a href="/logout" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Abmelden</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <nav class="flex" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                <li class="inline-flex items-center">
+                    <a href="/dashboard" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <i class="fas fa-chevron-right text-gray-600 mx-2"></i>
+                        <a href="/dashboard/support" class="text-gray-400 hover:text-white">Support</a>
+                    </div>
+                </li>
+                <li aria-current="page">
+                    <div class="flex items-center">
+                        <i class="fas fa-chevron-right text-gray-600 mx-2"></i>
+                        <span class="text-gray-300">Ticket #<?php echo $ticket['id']; ?></span>
+                    </div>
+                </li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="space-y-6">
     <!-- Ticket Header -->
     <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
         <div class="px-6 py-4 border-b border-gray-700">
@@ -122,61 +224,98 @@ $page_title = "Support Ticket #" . $ticket['id'];
         </div>
     </div>
 
-    <!-- Nachrichten -->
+    <!-- Konversations-Verlauf -->
     <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
-        <div class="px-6 py-4 border-b border-gray-700">
-            <h2 class="text-lg font-medium text-white">Konversation</h2>
+        <div class="px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+            <h2 class="text-lg font-medium text-white">
+                <i class="fas fa-comments mr-2"></i>Konversations-Verlauf
+            </h2>
+            <div class="text-sm text-gray-400">
+                <?php echo count($messages) + 1; ?> Nachrichten
+            </div>
         </div>
         
-        <div class="p-6 space-y-6">
-            <!-- Ursprüngliche Nachricht -->
-            <div class="flex space-x-4">
-                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                    <span class="text-white text-sm font-medium">
-                        <?php echo strtoupper(substr($user['first_name'], 0, 1)); ?>
-                    </span>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center space-x-2 mb-2">
-                        <h4 class="text-sm font-medium text-white">
-                            <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
-                        </h4>
-                        <span class="text-xs text-gray-400">
-                            <?php echo date('d.m.Y H:i', strtotime($ticket['created_at'])); ?>
-                        </span>
+        <div class="max-h-96 overflow-y-auto">
+            <div class="p-6 space-y-4">
+                <!-- Ursprüngliche Ticket-Nachricht -->
+                <div class="flex space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                            <span class="text-white text-sm font-bold">
+                                <?php echo strtoupper(substr($ticket['first_name'] ?? $user['first_name'], 0, 1)); ?>
+                            </span>
+                        </div>
                     </div>
-                    <div class="bg-gray-700 rounded-lg p-4">
-                        <p class="text-gray-300"><?php echo nl2br(htmlspecialchars($ticket['description'])); ?></p>
+                    <div class="flex-1 min-w-0">
+                        <div class="bg-blue-600 rounded-lg rounded-tl-none p-4 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-sm font-semibold text-white">
+                                    <?php echo htmlspecialchars(($ticket['first_name'] ?? $user['first_name']) . ' ' . ($ticket['last_name'] ?? $user['last_name'])); ?>
+                                    <span class="ml-2 px-2 py-1 bg-blue-800 text-blue-100 text-xs rounded-full">Ticket erstellt</span>
+                                </h4>
+                            </div>
+                            <p class="text-blue-50 leading-relaxed"><?php echo nl2br(htmlspecialchars($ticket['description'])); ?></p>
+                            <div class="mt-3 flex items-center text-xs text-blue-200">
+                                <i class="fas fa-clock mr-1"></i>
+                                <?php echo date('d.m.Y, H:i \U\h\r', strtotime($ticket['created_at'])); ?>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Weitere Nachrichten -->
-            <?php foreach ($messages as $message): ?>
-            <div class="flex space-x-4">
-                <div class="w-10 h-10 <?php echo $message['is_staff'] ? 'bg-green-600' : 'bg-blue-600'; ?> rounded-full flex items-center justify-center">
-                    <span class="text-white text-sm font-medium">
-                        <?php echo strtoupper(substr($message['first_name'], 0, 1)); ?>
-                    </span>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center space-x-2 mb-2">
-                        <h4 class="text-sm font-medium text-white">
-                            <?php echo htmlspecialchars($message['first_name'] . ' ' . $message['last_name']); ?>
-                            <?php if ($message['is_staff']): ?>
-                                <span class="text-xs bg-green-900 text-green-400 px-2 py-1 rounded">Support</span>
-                            <?php endif; ?>
-                        </h4>
-                        <span class="text-xs text-gray-400">
-                            <?php echo date('d.m.Y H:i', strtotime($message['created_at'])); ?>
-                        </span>
+                <!-- Antworten/Nachrichten -->
+                <?php foreach ($messages as $index => $message): ?>
+                    <?php $isStaff = isset($message['is_staff']) && $message['is_staff']; ?>
+                    <div class="flex space-x-4 <?php echo $isStaff ? '' : 'flex-row-reverse'; ?>">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 <?php echo $isStaff ? 'bg-green-600' : 'bg-blue-600'; ?> rounded-full flex items-center justify-center shadow-lg">
+                                <span class="text-white text-sm font-bold">
+                                    <?php echo strtoupper(substr($message['first_name'], 0, 1)); ?>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="<?php echo $isStaff ? 'bg-green-600 rounded-tl-none' : 'bg-blue-600 rounded-tr-none'; ?> rounded-lg p-4 shadow-sm">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="text-sm font-semibold text-white">
+                                        <?php echo htmlspecialchars($message['first_name'] . ' ' . $message['last_name']); ?>
+                                        <?php if ($isStaff): ?>
+                                            <span class="ml-2 px-2 py-1 bg-green-800 text-green-100 text-xs rounded-full">
+                                                <i class="fas fa-headset mr-1"></i>Support Team
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="ml-2 px-2 py-1 bg-blue-800 text-blue-100 text-xs rounded-full">
+                                                <i class="fas fa-user mr-1"></i>Kunde
+                                            </span>
+                                        <?php endif; ?>
+                                    </h4>
+                                </div>
+                                <p class="<?php echo $isStaff ? 'text-green-50' : 'text-blue-50'; ?> leading-relaxed whitespace-pre-wrap"><?php echo htmlspecialchars($message['message']); ?></p>
+                                <div class="mt-3 flex items-center text-xs <?php echo $isStaff ? 'text-green-200' : 'text-blue-200'; ?>">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    <?php echo date('d.m.Y, H:i \U\h\r', strtotime($message['created_at'])); ?>
+                                    <?php if ($index === count($messages) - 1): ?>
+                                        <span class="ml-2 px-2 py-1 bg-white bg-opacity-20 rounded-full text-xs">
+                                            <i class="fas fa-clock mr-1"></i>Neueste Nachricht
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-gray-700 rounded-lg p-4">
-                        <p class="text-gray-300"><?php echo nl2br(htmlspecialchars($message['message'])); ?></p>
+                <?php endforeach; ?>
+                
+                <!-- Wenn keine Nachrichten vorhanden -->
+                <?php if (empty($messages)): ?>
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-comments text-gray-400 text-2xl"></i>
+                        </div>
+                        <p class="text-gray-400">Noch keine Antworten vorhanden</p>
+                        <p class="text-sm text-gray-500 mt-1">Unser Support-Team wird sich bald bei Ihnen melden</p>
                     </div>
-                </div>
+                <?php endif; ?>
             </div>
-            <?php endforeach; ?>
         </div>
     </div>
 
@@ -218,6 +357,8 @@ $page_title = "Support Ticket #" . $ticket['id'];
         </form>
     </div>
     <?php endif; ?>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -240,6 +381,15 @@ function closeTicket(ticketId) {
         });
     }
 }
+
+// Auto-scroll to bottom of conversation
+document.addEventListener('DOMContentLoaded', function() {
+    const conversation = document.querySelector('.overflow-y-auto');
+    if (conversation) {
+        conversation.scrollTop = conversation.scrollHeight;
+    }
+});
 </script>
 
-<?php require_once __DIR__ . '/../../includes/dashboard-footer.php'; ?>
+</body>
+</html>
