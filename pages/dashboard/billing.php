@@ -1,5 +1,25 @@
 <?php
-require_once __DIR__ . '/../../includes/dashboard-header.php';
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Benutzer-Authentifizierung prüfen
+if (!isset($_SESSION['user_id'])) {
+    header("Location: /login");
+    exit;
+}
+
+require_once __DIR__ . '/../../includes/database.php';
+$db = Database::getInstance();
+$user_id = $_SESSION['user_id'];
+
+// Get current user data
+$user = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$user_id]);
+
+if (!$user) {
+    header("Location: /login");
+    exit;
+}
 
 // Handle payment actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
