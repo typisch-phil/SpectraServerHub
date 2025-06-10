@@ -91,8 +91,10 @@ try {
 
 // Session Management
 if (session_status() == PHP_SESSION_NONE) {
-    session_name(SESSION_NAME);
-    session_start();
+    if (!headers_sent()) {
+        session_name(SESSION_NAME);
+        session_start();
+    }
 }
 
 // Helper Functions

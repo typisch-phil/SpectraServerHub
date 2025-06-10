@@ -1,6 +1,5 @@
 <?php
 // SpectraHost - Einfaches Routing-System
-session_start();
 
 // Basis-Konfiguration
 require_once __DIR__ . '/includes/config.php';

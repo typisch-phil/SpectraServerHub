@@ -1,13 +1,19 @@
 <?php
 require_once __DIR__ . '/../../includes/dashboard-layout.php';
+require_once __DIR__ . '/../../includes/functions.php';
 
 // Benutzer-Authentifizierung prüfen
-if (!isLoggedIn()) {
+if (!isset($_SESSION['user_id'])) {
     header("Location: /login");
     exit;
 }
 
-$user = getCurrentUser();
+// Get current user data
+$user_id = $_SESSION['user_id'];
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
 if (!$user) {
     header("Location: /login");
     exit;
