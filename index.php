@@ -1,6 +1,36 @@
 <?php
+// Load error handler first for better debugging
+require_once __DIR__ . '/error-handler.php';
+
+// Check if we're running on Plesk and load appropriate config
+if (file_exists(__DIR__ . '/plesk-config.php')) {
+    require_once __DIR__ . '/plesk-config.php';
+}
+
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/session.php';
+
+// Ensure database connection is established
+try {
+    require_once __DIR__ . '/includes/database.php';
+} catch (Exception $e) {
+    error_log("Database initialization failed: " . $e->getMessage());
+    http_response_code(500);
+    
+    if (strpos($_SERVER['REQUEST_URI'], '/api/') === 0) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error' => 'Database connection failed'
+        ]);
+    } else {
+        echo "<!DOCTYPE html><html><head><title>Database Error</title></head><body>";
+        echo "<h1>Database Connection Error</h1>";
+        echo "<p>The application cannot connect to the database. Please check your configuration.</p>";
+        echo "</body></html>";
+    }
+    exit;
+}
 
 // Get the requested path
 $request = $_SERVER['REQUEST_URI'];

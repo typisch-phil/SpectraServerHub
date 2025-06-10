@@ -6,25 +6,86 @@ class Database {
     private $connection;
     
     private function __construct() {
+        $this->initializeConnection();
+    }
+    
+    private function initializeConnection() {
+        // Try multiple connection methods for Plesk compatibility
+        $connectionMethods = [
+            $this->getEnvironmentConfig(),
+            $this->getConfigFileConfig(),
+            $this->getDefaultConfig()
+        ];
+        
+        foreach ($connectionMethods as $config) {
+            if ($this->attemptConnection($config)) {
+                return;
+            }
+        }
+        
+        // If all methods fail, log and throw exception
+        error_log("All database connection methods failed");
+        throw new Exception('Database connection failed - check configuration');
+    }
+    
+    private function getEnvironmentConfig() {
+        return [
+            'host' => $_ENV['MYSQL_HOST'] ?? getenv('MYSQL_HOST'),
+            'dbname' => $_ENV['MYSQL_DATABASE'] ?? getenv('MYSQL_DATABASE'),
+            'username' => $_ENV['MYSQL_USER'] ?? getenv('MYSQL_USER'),
+            'password' => $_ENV['MYSQL_PASSWORD'] ?? getenv('MYSQL_PASSWORD'),
+            'port' => $_ENV['MYSQL_PORT'] ?? getenv('MYSQL_PORT') ?: '3306'
+        ];
+    }
+    
+    private function getConfigFileConfig() {
+        return [
+            'host' => defined('DB_HOST') ? DB_HOST : 'localhost',
+            'dbname' => defined('DB_NAME') ? DB_NAME : 'spectrahost',
+            'username' => defined('DB_USER') ? DB_USER : 'root',
+            'password' => defined('DB_PASS') ? DB_PASS : '',
+            'port' => defined('DB_PORT') ? DB_PORT : '3306'
+        ];
+    }
+    
+    private function getDefaultConfig() {
+        return [
+            'host' => 'localhost',
+            'dbname' => 'spectrahost',
+            'username' => 'root',
+            'password' => '',
+            'port' => '3306'
+        ];
+    }
+    
+    private function attemptConnection($config) {
+        // Skip if required values are missing
+        if (empty($config['host']) || empty($config['dbname']) || empty($config['username'])) {
+            return false;
+        }
+        
         try {
-            // Use provided MySQL database
-            $host = $_ENV['MYSQL_HOST'] ?? 'localhost';
-            $dbname = $_ENV['MYSQL_DATABASE'] ?? 'spectrahost';
-            $username = $_ENV['MYSQL_USER'] ?? 'root';
-            $password = $_ENV['MYSQL_PASSWORD'] ?? '';
-            $port = $_ENV['MYSQL_PORT'] ?? '3306';
+            $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset=utf8mb4";
             
-            $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-            $this->connection = new PDO($dsn, $username, $password, [
+            $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
-            ]);
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+                PDO::ATTR_TIMEOUT => 5
+            ];
             
-            // Database connection successful
+            $this->connection = new PDO($dsn, $config['username'], $config['password'], $options);
+            
+            // Test the connection
+            $this->connection->query("SELECT 1");
+            
+            error_log("Database connection successful to {$config['host']}:{$config['port']}/{$config['dbname']}");
+            return true;
+            
         } catch (PDOException $e) {
-            error_log("MySQL connection failed: " . $e->getMessage());
-            die('MySQL-Datenbankverbindung fehlgeschlagen');
+            error_log("Connection attempt failed for {$config['host']}: " . $e->getMessage());
+            return false;
         }
     }
     
