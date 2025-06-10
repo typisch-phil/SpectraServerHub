@@ -65,26 +65,8 @@ try {
     ");
     $stmt->execute([$status, $ticket_id, $user_id]);
     
-    // Bei Schließung: Closed-Zeitstempel setzen
-    if ($status === 'closed') {
-        $stmt = $db->prepare("
-            UPDATE support_tickets 
-            SET closed_at = NOW() 
-            WHERE id = ? AND user_id = ?
-        ");
-        $stmt->execute([$ticket_id, $user_id]);
-        
-        // System-Nachricht hinzufügen
-        $stmt = $db->prepare("
-            INSERT INTO ticket_messages (ticket_id, user_id, message, is_staff, created_at) 
-            VALUES (?, ?, ?, 0, NOW())
-        ");
-        $stmt->execute([
-            $ticket_id, 
-            $user_id, 
-            'Ticket wurde vom Kunden geschlossen.'
-        ]);
-    }
+    // Erfolgreiche Aktualisierung protokollieren
+    error_log("Ticket {$ticket_id} Status zu '{$status}' geändert von User {$user_id}");
     
     echo json_encode(['success' => true]);
     
