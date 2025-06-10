@@ -43,6 +43,13 @@ try {
     $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
+    // Debug logging
+    error_log("Login attempt for: " . $email);
+    error_log("User found: " . ($user ? 'yes' : 'no'));
+    if ($user) {
+        error_log("Password verify: " . (password_verify($input['password'], $user['password']) ? 'success' : 'failed'));
+    }
+    
     if (!$user || !password_verify($input['password'], $user['password'])) {
         throw new Exception('Ungültige Anmeldedaten');
     }
