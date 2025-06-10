@@ -39,7 +39,7 @@ renderDashboardHeader('Meine Services - Dashboard');
 ?>
 
 <div class="min-h-screen bg-gray-900">
-    <!-- Navigation -->
+    <!-- Dashboard Navigation -->
     <nav class="bg-gray-800 shadow-lg border-b border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -48,7 +48,7 @@ renderDashboardHeader('Meine Services - Dashboard');
                         <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                             <span class="text-white font-bold text-sm">S</span>
                         </div>
-                        <span class="text-xl font-bold text-white">SpectraHost</span>
+                        <span class="text-xl font-bold text-white">SpectraHost Dashboard</span>
                     </a>
                     <div class="ml-10 flex space-x-8">
                         <a href="/dashboard" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Dashboard</a>
@@ -61,6 +61,12 @@ renderDashboardHeader('Meine Services - Dashboard');
                     <a href="/products" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
                         <i class="fas fa-plus mr-2"></i>Service bestellen
                     </a>
+                    <a href="/" class="text-gray-300 hover:text-blue-400 px-3 py-1 rounded">
+                        <i class="fas fa-arrow-left mr-1"></i>Zur Website
+                    </a>
+                    <button onclick="logout()" class="text-gray-300 hover:text-red-400 px-3 py-1 rounded">
+                        <i class="fas fa-sign-out-alt mr-1"></i>Abmelden
+                    </button>
                 </div>
             </div>
         </div>
