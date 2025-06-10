@@ -102,24 +102,32 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache'
             },
             body: JSON.stringify(data)
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            throw new Error(`Server error ${response.status}`);
         }
         
+        // Get response as text first to debug
         const responseText = await response.text();
-        console.log('Raw response:', responseText);
+        
+        // Clean response text (remove any BOM or whitespace)
+        const cleanedText = responseText.trim().replace(/^\uFEFF/, '');
+        
+        if (!cleanedText) {
+            throw new Error('Server returned empty response');
+        }
         
         let result;
         try {
-            result = JSON.parse(responseText);
+            result = JSON.parse(cleanedText);
         } catch (e) {
-            console.error('JSON parse error:', e);
-            console.error('Response was:', responseText);
-            throw new Error('Server returned invalid JSON');
+            console.error('JSON parse failed. Response text:', cleanedText);
+            throw new Error('Invalid server response format');
         }
         
         if (result.success) {
