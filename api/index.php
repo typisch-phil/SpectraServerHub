@@ -40,6 +40,18 @@ try {
             handleAuthAPI($connection, $action);
             break;
             
+        case 'login-new':
+            require_once __DIR__ . '/login-new.php';
+            exit;
+            
+        case 'register-new':
+            require_once __DIR__ . '/register-new.php';
+            exit;
+            
+        case 'user-status':
+            require_once __DIR__ . '/user-status.php';
+            exit;
+            
         case 'user':
             handleUserAPI($connection, $action, $id);
             break;
