@@ -1,17 +1,23 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
-session_start();
+
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
+// Only allow POST requests
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
     exit;
 }
 
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 try {
     // Clear all session data
-    $_SESSION = array();
+    $_SESSION = [];
     
     // Destroy the session cookie
     if (ini_get("session.use_cookies")) {
@@ -25,23 +31,14 @@ try {
     // Destroy the session
     session_destroy();
     
-    // For GET requests (direct browser access), redirect to home
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        header('Location: /');
-        exit;
-    }
-    
-    // For POST requests (AJAX), return JSON
     echo json_encode([
         'success' => true,
-        'message' => 'Erfolgreich abgemeldet'
+        'message' => 'Logout successful'
     ]);
     
 } catch (Exception $e) {
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'error' => $e->getMessage()
-    ]);
+    error_log("Logout error: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'Internal server error']);
 }
 ?>
