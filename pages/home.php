@@ -1,234 +1,272 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpectraHost - Premium Hosting Solutions</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-white">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-lg sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <a href="/" class="flex items-center space-x-2">
-                        <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <span class="text-white font-bold text-xl">S</span>
-                        </div>
-                        <span class="text-xl font-bold text-gray-900">SpectraHost</span>
-                    </a>
-                </div>
-                
-                <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-4">
-                        <a href="/" class="text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Home</a>
-                        <a href="/services" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Services</a>
-                        <a href="/webspace" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Webspace</a>
-                        <a href="/vserver" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">VServer</a>
-                        <a href="/gameserver" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">GameServer</a>
-                        <a href="/domain" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Domains</a>
-                    </div>
-                </div>
-                
-                <div class="flex items-center space-x-4">
-                    <a href="/login" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Login</a>
-                    <a href="/register" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Registrieren</a>
-                </div>
-            </div>
-        </div>
-    </nav>
+<?php 
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/layout.php';
 
-    <!-- Hero Section -->
-    <section class="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-4xl md:text-6xl font-bold mb-6">
-                Premium Hosting
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
-                    Solutions
+$pageTitle = 'SpectraHost - Premium Hosting Solutions';
+$pageDescription = 'Professionelle Hosting-Lösungen mit erstklassigem Support, modernster Technologie und unschlagbarer Performance für Ihr Online-Business.';
+renderHeader($pageTitle, $pageDescription);
+?>
+
+<!-- Hero Section -->
+<section class="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 bg-black opacity-10"></div>
+    <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><defs><pattern id=\"grid\" width=\"10\" height=\"10\" patternUnits=\"userSpaceOnUse\"><path d=\"M 10 0 L 0 0 0 10\" fill=\"none\" stroke=\"white\" stroke-width=\"0.5\" opacity=\"0.1\"/></pattern></defs><rect width=\"100\" height=\"100\" fill=\"url(%23grid)\"/></svg>');"></div>
+    
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+        <div class="text-center">
+            <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
+                Premium
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500">
+                    Hosting
                 </span>
+                <br>Solutions
             </h1>
-            <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto opacity-90">
+            <p class="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto leading-relaxed">
                 Professionelle Hosting-Lösungen mit erstklassigem Support, modernster Technologie und unschlagbarer Performance für Ihr Online-Business.
             </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="/services" class="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                    Services erkunden
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                <a href="/services" class="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                    <i class="fas fa-rocket mr-2"></i>Services erkunden
                 </a>
-                <a href="/contact" class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
-                    Kontakt aufnehmen
+                <a href="/contact" class="border-2 border-white text-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-phone mr-2"></i>Kontakt aufnehmen
                 </a>
             </div>
+            
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-white mb-1">99.9%</div>
+                    <div class="text-blue-200 text-sm">Uptime</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-white mb-1">24/7</div>
+                    <div class="text-blue-200 text-sm">Support</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-white mb-1">1000+</div>
+                    <div class="text-blue-200 text-sm">Kunden</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-white mb-1">10+</div>
+                    <div class="text-blue-200 text-sm">Jahre</div>
+                </div>
+            </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- Features Section -->
-    <section class="py-20 bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                    Warum SpectraHost?
-                </h2>
-                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-                    Wir bieten die perfekte Kombination aus Leistung, Zuverlässigkeit und Support für Ihre digitalen Projekte.
+<!-- Features Section -->
+<section class="py-20 bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                Warum SpectraHost?
+            </h2>
+            <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                Wir bieten die perfekte Kombination aus Leistung, Zuverlässigkeit und Support für Ihre digitalen Projekte.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="group bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                <div class="w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-rocket text-white text-xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">Blitzschnell</h3>
+                <p class="text-gray-600 dark:text-gray-400">Ultraschnelle SSD-Speicher und optimierte Server-Hardware für maximale Performance.</p>
+            </div>
+            
+            <div class="group bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                <div class="w-14 h-14 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-shield-alt text-white text-xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">Sicher</h3>
+                <p class="text-gray-600 dark:text-gray-400">Modernste Sicherheitstechnologien und regelmäßige Backups schützen Ihre Daten.</p>
+            </div>
+            
+            <div class="group bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                <div class="w-14 h-14 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-headset text-white text-xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">24/7 Support</h3>
+                <p class="text-gray-600 dark:text-gray-400">Unser deutschsprachiges Support-Team steht Ihnen rund um die Uhr zur Verfügung.</p>
+            </div>
+            
+            <div class="group bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                <div class="w-14 h-14 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-chart-line text-white text-xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">Skalierbar</h3>
+                <p class="text-gray-600 dark:text-gray-400">Flexible Tarife, die mit Ihrem Business mitwachsen und sich anpassen lassen.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Services Section -->
+<section class="py-20 bg-white dark:bg-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                Unsere Services
+            </h2>
+            <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                Von einfachen Webspace-Paketen bis hin zu leistungsstarken Dedicated Servern - wir haben die passende Lösung für Sie.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-8 h-full">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-globe text-3xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">Webspace</h3>
+                        <p class="mb-6 opacity-90 leading-relaxed">Professionelles Web-Hosting mit PHP, MySQL und SSL-Zertifikaten.</p>
+                        <a href="/webspace" class="inline-block bg-white text-blue-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors">
+                            Mehr erfahren
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                <div class="bg-gradient-to-br from-green-500 to-green-600 text-white p-8 h-full">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-server text-3xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">VServer</h3>
+                        <p class="mb-6 opacity-90 leading-relaxed">Leistungsstarke virtuelle Server mit Root-Zugang und voller Kontrolle.</p>
+                        <a href="/vserver" class="inline-block bg-white text-green-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors">
+                            Mehr erfahren
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-8 h-full">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-gamepad text-3xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">GameServer</h3>
+                        <p class="mb-6 opacity-90 leading-relaxed">Optimierte Game-Server für Minecraft, CS2, ARK und viele weitere Spiele.</p>
+                        <a href="/gameserver" class="inline-block bg-white text-purple-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors">
+                            Mehr erfahren
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                <div class="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-8 h-full">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-link text-3xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">Domains</h3>
+                        <p class="mb-6 opacity-90 leading-relaxed">Domain-Registration und -Verwaltung mit über 500 verfügbaren Endungen.</p>
+                        <a href="/domain" class="inline-block bg-white text-orange-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors">
+                            Mehr erfahren
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="py-20 bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                Was unsere Kunden sagen
+            </h2>
+            <p class="text-xl text-gray-600 dark:text-gray-400">
+                Vertrauen Sie auf die Erfahrungen zufriedener Kunden
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                <div class="flex items-center mb-4">
+                    <div class="flex text-yellow-400">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+                <p class="text-gray-600 dark:text-gray-400 mb-4 italic">
+                    "Exzellenter Service und Support. Meine Website läuft seit Jahren stabil und schnell bei SpectraHost."
                 </p>
+                <div class="font-semibold text-gray-900 dark:text-white">Thomas M.</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Online-Shop Betreiber</div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-rocket text-blue-600 text-xl"></i>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                <div class="flex items-center mb-4">
+                    <div class="flex text-yellow-400">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Blitzschnell</h3>
-                    <p class="text-gray-600">Ultraschnelle SSD-Speicher und optimierte Server-Hardware für maximale Performance.</p>
                 </div>
-                
-                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-shield-alt text-green-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Sicher</h3>
-                    <p class="text-gray-600">Modernste Sicherheitstechnologien und regelmäßige Backups schützen Ihre Daten.</p>
-                </div>
-                
-                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-headset text-purple-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">24/7 Support</h3>
-                    <p class="text-gray-600">Unser deutschsprachiges Support-Team steht Ihnen rund um die Uhr zur Verfügung.</p>
-                </div>
-                
-                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-chart-line text-orange-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Skalierbar</h3>
-                    <p class="text-gray-600">Flexible Tarife, die mit Ihrem Business mitwachsen und sich anpassen lassen.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Services Section -->
-    <section class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                    Unsere Services
-                </h2>
-                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-                    Von einfachen Webspace-Paketen bis hin zu leistungsstarken Dedicated Servern - wir haben die passende Lösung für Sie.
+                <p class="text-gray-600 dark:text-gray-400 mb-4 italic">
+                    "Der GameServer läuft perfekt. Keine Lags, super Performance und der Support antwortet immer schnell."
                 </p>
+                <div class="font-semibold text-gray-900 dark:text-white">Alex K.</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Gaming Community</div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <div class="group hover:scale-105 transition-transform duration-300">
-                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-8 rounded-xl shadow-lg">
-                        <div class="text-center">
-                            <i class="fas fa-globe text-4xl mb-4"></i>
-                            <h3 class="text-2xl font-bold mb-4">Webspace</h3>
-                            <p class="mb-6 opacity-90">Professionelles Web-Hosting mit PHP, MySQL und SSL-Zertifikaten.</p>
-                            <a href="/webspace" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                                Mehr erfahren
-                            </a>
-                        </div>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                <div class="flex items-center mb-4">
+                    <div class="flex text-yellow-400">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
                     </div>
                 </div>
-                
-                <div class="group hover:scale-105 transition-transform duration-300">
-                    <div class="bg-gradient-to-br from-green-500 to-green-600 text-white p-8 rounded-xl shadow-lg">
-                        <div class="text-center">
-                            <i class="fas fa-server text-4xl mb-4"></i>
-                            <h3 class="text-2xl font-bold mb-4">VServer</h3>
-                            <p class="mb-6 opacity-90">Leistungsstarke virtuelle Server mit Root-Zugang und voller Kontrolle.</p>
-                            <a href="/vserver" class="bg-white text-green-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                                Mehr erfahren
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="group hover:scale-105 transition-transform duration-300">
-                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-8 rounded-xl shadow-lg">
-                        <div class="text-center">
-                            <i class="fas fa-gamepad text-4xl mb-4"></i>
-                            <h3 class="text-2xl font-bold mb-4">GameServer</h3>
-                            <p class="mb-6 opacity-90">Optimierte Game-Server für Minecraft, CS2, ARK und viele weitere Spiele.</p>
-                            <a href="/gameserver" class="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                                Mehr erfahren
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="group hover:scale-105 transition-transform duration-300">
-                    <div class="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-8 rounded-xl shadow-lg">
-                        <div class="text-center">
-                            <i class="fas fa-link text-4xl mb-4"></i>
-                            <h3 class="text-2xl font-bold mb-4">Domains</h3>
-                            <p class="mb-6 opacity-90">Domain-Registration und -Verwaltung mit über 500 verfügbaren Endungen.</p>
-                            <a href="/domain" class="bg-white text-orange-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                                Mehr erfahren
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                <p class="text-gray-600 dark:text-gray-400 mb-4 italic">
+                    "Sehr professionell und zuverlässig. Die VServer haben eine top Performance und das Preis-Leistungs-Verhältnis stimmt."
+                </p>
+                <div class="font-semibold text-gray-900 dark:text-white">Sarah L.</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Web-Entwicklerin</div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
-                    <div class="flex items-center space-x-2 mb-4">
-                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <span class="text-white font-bold">S</span>
-                        </div>
-                        <span class="text-xl font-bold">SpectraHost</span>
-                    </div>
-                    <p class="text-gray-400">
-                        Premium Hosting Solutions für professionelle Ansprüche.
-                    </p>
-                </div>
-                
-                <div>
-                    <h3 class="text-lg font-semibold mb-4">Services</h3>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="/webspace" class="hover:text-white transition-colors">Webspace</a></li>
-                        <li><a href="/vserver" class="hover:text-white transition-colors">VServer</a></li>
-                        <li><a href="/gameserver" class="hover:text-white transition-colors">GameServer</a></li>
-                        <li><a href="/domain" class="hover:text-white transition-colors">Domains</a></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h3 class="text-lg font-semibold mb-4">Unternehmen</h3>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="/contact" class="hover:text-white transition-colors">Kontakt</a></li>
-                        <li><a href="/impressum" class="hover:text-white transition-colors">Impressum</a></li>
-                        <li><a href="/datenschutz" class="hover:text-white transition-colors">Datenschutz</a></li>
-                        <li><a href="/agb" class="hover:text-white transition-colors">AGB</a></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h3 class="text-lg font-semibold mb-4">Kontakt</h3>
-                    <div class="space-y-2 text-gray-400">
-                        <p><i class="fas fa-envelope mr-2"></i> info@spectrahost.de</p>
-                        <p><i class="fas fa-phone mr-2"></i> +49 (0) 123 456789</p>
-                        <p><i class="fas fa-clock mr-2"></i> 24/7 Support</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-                <p>&copy; 2024 SpectraHost. Alle Rechte vorbehalten.</p>
-            </div>
+<!-- CTA Section -->
+<section class="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">
+            Bereit für Premium Hosting?
+        </h2>
+        <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Starten Sie noch heute mit unseren leistungsstarken Hosting-Lösungen und erleben Sie den Unterschied.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/register" class="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-300 transform hover:scale-105">
+                <i class="fas fa-user-plus mr-2"></i>Jetzt registrieren
+            </a>
+            <a href="/contact" class="border-2 border-white text-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300">
+                <i class="fas fa-phone mr-2"></i>Beratung anfragen
+            </a>
         </div>
-    </footer>
-</body>
-</html>
+    </div>
+</section>
+
+<?php renderFooter(); ?>
