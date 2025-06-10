@@ -1,24 +1,28 @@
 <?php
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
-require_once __DIR__ . '/../../includes/database.php';
+require_once __DIR__ . '/../../includes/dashboard-header.php';
 
-// Benutzer-Authentifizierung prüfen
-if (!isset($_SESSION['user_id'])) {
-    header("Location: /login");
-    exit;
-}
-
-$db = Database::getInstance();
-$user_id = $_SESSION['user_id'];
-
-// Get current user data
-$user = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$user_id]);
-
-if (!$user) {
-    header("Location: /login");
-    exit;
+// Handle payment actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    
+    switch ($action) {
+        case 'topup':
+            $amount = (float)($_POST['amount'] ?? 0);
+            if ($amount > 0 && $amount <= 1000) {
+                // Redirect to Mollie payment processing
+                header("Location: /api/payment/mollie?action=topup&amount=" . $amount);
+                exit;
+            }
+            break;
+        case 'pay_invoice':
+            $invoice_id = (int)($_POST['invoice_id'] ?? 0);
+            if ($invoice_id > 0) {
+                // Redirect to invoice payment
+                header("Location: /api/payment/mollie?action=invoice&id=" . $invoice_id);
+                exit;
+            }
+            break;
+    }
 }
 
 // Billing-Daten aus der Datenbank laden
@@ -28,388 +32,398 @@ try {
     $stmt->execute([$user_id]);
     $current_balance = $stmt->fetchColumn() ?: 0.00;
 
-    // Rechnungen laden
+    // Rechnungen abrufen
+    $stmt = $db->prepare("SELECT * FROM invoices WHERE user_id = ? ORDER BY created_at DESC LIMIT 20");
+    $stmt->execute([$user_id]);
+    $invoices = $stmt->fetchAll();
+
+    // Rechnungsstatistiken
+    $stats = $db->fetchAll("SELECT status, COUNT(*) as count, SUM(amount) as total FROM invoices WHERE user_id = ? GROUP BY status", [$user_id]);
+    $invoice_stats = [];
+    foreach ($stats as $stat) {
+        $invoice_stats[$stat['status']] = [
+            'count' => $stat['count'],
+            'total' => $stat['total']
+        ];
+    }
+
+    // Zahlungshistorie abrufen
+    $stmt = $db->prepare("SELECT * FROM payment_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 10");
+    $stmt->execute([$user_id]);
+    $payment_history = $stmt->fetchAll();
+
+    // Nächste Abbuchungen
     $stmt = $db->prepare("
-        SELECT i.*, s.name as service_name, st.name as service_type_name
-        FROM invoices i 
-        LEFT JOIN services s ON i.service_id = s.id 
-        LEFT JOIN service_types st ON s.service_type_id = st.id 
-        WHERE i.user_id = ? 
-        ORDER BY i.created_at DESC 
-        LIMIT 20
+        SELECT s.name, s.price, s.next_billing_date 
+        FROM services s 
+        WHERE s.user_id = ? AND s.status = 'active' AND s.next_billing_date IS NOT NULL 
+        ORDER BY s.next_billing_date ASC 
+        LIMIT 5
     ");
     $stmt->execute([$user_id]);
-    $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Zahlungshistorie
-    $stmt = $db->prepare("
-        SELECT p.*, pm.name as payment_method_name
-        FROM payments p 
-        LEFT JOIN payment_methods pm ON p.payment_method_id = pm.id 
-        WHERE p.user_id = ? 
-        ORDER BY p.created_at DESC 
-        LIMIT 10
-    ");
-    $stmt->execute([$user_id]);
-    $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Billing-Statistiken
-    $stmt = $db->prepare("SELECT status, COUNT(*) as count, SUM(amount) as total FROM invoices WHERE user_id = ? GROUP BY status");
-    $stmt->execute([$user_id]);
-    $invoice_stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $upcoming_payments = $stmt->fetchAll();
 
 } catch (Exception $e) {
-    error_log("Billing data error: " . $e->getMessage());
+    error_log("Billing page error: " . $e->getMessage());
     $current_balance = 0.00;
     $invoices = [];
-    $payments = [];
     $invoice_stats = [];
+    $payment_history = [];
+    $upcoming_payments = [];
 }
 
-// Statistiken berechnen
-$total_paid = 0;
-$total_pending = 0;
-$total_overdue = 0;
-
-foreach ($invoice_stats as $stat) {
-    switch ($stat['status']) {
-        case 'paid':
-            $total_paid = $stat['total'];
-            break;
-        case 'pending':
-            $total_pending = $stat['total'];
-            break;
-        case 'overdue':
-            $total_overdue = $stat['total'];
-            break;
-    }
-}
-
+// Billing Content
+renderDashboardLayout('Billing - SpectraHost Dashboard', 'billing', function() use ($current_balance, $invoices, $invoice_stats, $payment_history, $upcoming_payments) {
 ?>
 
-<!DOCTYPE html>
-<html lang="de" class="scroll-smooth dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Billing - SpectraHost Dashboard</title>
-    <meta name="description" content="SpectraHost Billing - Verwalten Sie Ihre Rechnungen">
-    <meta name="robots" content="noindex, nofollow">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        gray: {
-                            750: '#374151',
-                            850: '#1f2937'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-gray-900 text-white">
-
-<div class="min-h-screen bg-gray-900">
-    <!-- Dashboard Navigation -->
-    <nav class="bg-gray-800 shadow-lg border-b border-gray-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <a href="/" class="flex items-center space-x-2">
-                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">S</span>
-                        </div>
-                        <span class="text-xl font-bold text-white">SpectraHost Dashboard</span>
-                    </a>
-                    <div class="ml-10 flex space-x-8">
-                        <a href="/dashboard" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Dashboard</a>
-                        <a href="/dashboard/services" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Services</a>
-                        <a href="/dashboard/billing" class="text-blue-400 border-b-2 border-blue-400 px-1 pb-4 text-sm font-medium">Billing</a>
-                        <a href="/dashboard/support" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Support</a>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="text-sm text-gray-300">
-                        Guthaben: <span class="font-bold text-green-400">€<?php echo number_format($current_balance, 2); ?></span>
-                    </div>
-                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700" onclick="showAddFundsModal()">
-                        <i class="fas fa-plus mr-2"></i>Guthaben aufladen
-                    </button>
-                    <a href="/" class="text-gray-300 hover:text-blue-400 px-3 py-1 rounded">
-                        <i class="fas fa-arrow-left mr-1"></i>Zur Website
-                    </a>
-                    <button onclick="logout()" class="text-gray-300 hover:text-red-400 px-3 py-1 rounded">
-                        <i class="fas fa-sign-out-alt mr-1"></i>Abmelden
-                    </button>
-                </div>
-            </div>
+<!-- Billing Header -->
+<div class="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6 mb-8">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-white">Billing & Rechnungen</h1>
+            <p class="mt-2 text-green-100">Verwalten Sie Ihr Guthaben und Ihre Rechnungen</p>
         </div>
-    </nav>
+        <div class="text-right">
+            <div class="text-sm text-green-100">Aktuelles Guthaben</div>
+            <div class="text-4xl font-bold text-white">€<?php echo number_format($current_balance, 2); ?></div>
+            <button onclick="showTopupModal()" class="mt-2 px-4 py-2 bg-white text-green-600 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                <i class="fas fa-plus mr-2"></i>Guthaben aufladen
+            </button>
+        </div>
+    </div>
+</div>
 
-    <!-- Header -->
-    <div class="bg-gray-800 border-b border-gray-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-bold text-white">Billing & Zahlungen</h1>
-                    <p class="mt-2 text-gray-400">Verwalten Sie Ihre Rechnungen und Zahlungen</p>
-                </div>
-                <div class="flex space-x-6">
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-green-400">€<?php echo number_format($total_paid, 2); ?></div>
-                        <div class="text-sm text-gray-400">Bezahlt</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-orange-400">€<?php echo number_format($total_pending, 2); ?></div>
-                        <div class="text-sm text-gray-400">Offen</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-red-400">€<?php echo number_format($total_overdue, 2); ?></div>
-                        <div class="text-sm text-gray-400">Überfällig</div>
-                    </div>
-                </div>
+<!-- Statistics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-green-900 rounded-lg flex items-center justify-center mr-4">
+                <i class="fas fa-check-circle text-green-400"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-white"><?php echo $invoice_stats['paid']['count'] ?? 0; ?></p>
+                <p class="text-sm text-gray-400">Bezahlte Rechnungen</p>
             </div>
         </div>
     </div>
+    
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-yellow-900 rounded-lg flex items-center justify-center mr-4">
+                <i class="fas fa-clock text-yellow-400"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-white"><?php echo $invoice_stats['pending']['count'] ?? 0; ?></p>
+                <p class="text-sm text-gray-400">Offene Rechnungen</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-red-900 rounded-lg flex items-center justify-center mr-4">
+                <i class="fas fa-exclamation-triangle text-red-400"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-white"><?php echo $invoice_stats['overdue']['count'] ?? 0; ?></p>
+                <p class="text-sm text-gray-400">Überfällige Rechnungen</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-blue-900 rounded-lg flex items-center justify-center mr-4">
+                <i class="fas fa-euro-sign text-blue-400"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-white">€<?php echo number_format(($invoice_stats['paid']['total'] ?? 0) + ($invoice_stats['pending']['total'] ?? 0), 2); ?></p>
+                <p class="text-sm text-gray-400">Gesamtumsatz</p>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Main Content -->
-            <div class="lg:col-span-2 space-y-8">
-                <!-- Account Balance Card -->
-                <div class="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg shadow-lg overflow-hidden">
-                    <div class="px-6 py-8 text-white">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="text-lg font-medium">Aktueller Kontostand</h3>
-                                <div class="text-4xl font-bold mt-2">€<?php echo number_format($current_balance, 2); ?></div>
-                                <p class="text-green-100 mt-2">Verfügbares Guthaben</p>
-                            </div>
-                            <div class="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                                <i class="fas fa-wallet text-3xl"></i>
-                            </div>
-                        </div>
-                        <div class="mt-6 flex space-x-3">
-                            <button class="bg-white text-green-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100" onclick="showAddFundsModal()">
-                                <i class="fas fa-plus mr-2"></i>Guthaben aufladen
-                            </button>
-                            <button class="bg-green-700 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-800 border border-white border-opacity-30">
-                                <i class="fas fa-download mr-2"></i>Kontoauszug
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Invoices -->
-                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
-                    <div class="px-6 py-4 border-b border-gray-700">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-medium text-white">Rechnungen</h3>
-                            <button class="text-sm text-blue-400 hover:text-blue-300">Alle anzeigen</button>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-700">
-                            <thead class="bg-gray-750">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Rechnung</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Service</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Betrag</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Datum</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Aktionen</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-gray-800 divide-y divide-gray-700">
-                                <?php if (!empty($invoices)): ?>
-                                    <?php foreach ($invoices as $invoice): ?>
-                                        <tr class="hover:bg-gray-750">
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm font-medium text-white">#<?php echo str_pad($invoice['id'], 6, '0', STR_PAD_LEFT); ?></div>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm text-white"><?php echo htmlspecialchars($invoice['service_name'] ?? 'Allgemein'); ?></div>
-                                                <div class="text-sm text-gray-400"><?php echo htmlspecialchars($invoice['service_type_name'] ?? ''); ?></div>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm font-medium text-white">€<?php echo number_format($invoice['amount'], 2); ?></div>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 py-1 text-xs font-medium rounded-full 
-                                                    <?php 
-                                                    switch($invoice['status']) {
-                                                        case 'paid': echo 'bg-green-900 text-green-400'; break;
-                                                        case 'pending': echo 'bg-orange-900 text-orange-400'; break;
-                                                        case 'overdue': echo 'bg-red-900 text-red-400'; break;
-                                                        default: echo 'bg-gray-700 text-gray-300';
-                                                    }
-                                                    ?>">
-                                                    <?php echo ucfirst($invoice['status']); ?>
-                                                </span>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                                                <?php echo date('d.m.Y', strtotime($invoice['created_at'])); ?>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <div class="flex space-x-2">
-                                                    <button class="text-blue-400 hover:text-blue-300">
-                                                        <i class="fas fa-eye"></i>
-                                                    </button>
-                                                    <button class="text-green-400 hover:text-green-300">
-                                                        <i class="fas fa-download"></i>
-                                                    </button>
-                                                    <?php if ($invoice['status'] == 'pending' || $invoice['status'] == 'overdue'): ?>
-                                                        <button class="text-orange-400 hover:text-orange-300">
-                                                            <i class="fas fa-credit-card"></i>
-                                                        </button>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="6" class="px-6 py-8 text-center text-gray-400">
-                                            <i class="fas fa-file-invoice text-gray-600 text-4xl mb-4"></i>
-                                            <div>Keine Rechnungen vorhanden</div>
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Payment History -->
-                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
-                    <div class="px-6 py-4 border-b border-gray-700">
-                        <h3 class="text-lg font-medium text-white">Zahlungshistorie</h3>
-                    </div>
-                    <div class="p-6">
-                        <?php if (!empty($payments)): ?>
-                            <div class="space-y-4">
-                                <?php foreach ($payments as $payment): ?>
-                                    <div class="flex items-center justify-between p-4 border border-gray-600 rounded-lg bg-gray-750">
-                                        <div class="flex items-center">
-                                            <div class="w-10 h-10 bg-green-900 rounded-lg flex items-center justify-center">
-                                                <i class="fas <?php echo $payment['type'] == 'deposit' ? 'fa-plus' : 'fa-credit-card'; ?> text-green-400"></i>
-                                            </div>
-                                            <div class="ml-4">
-                                                <p class="text-sm font-medium text-white">
-                                                    <?php echo $payment['type'] == 'deposit' ? 'Guthaben aufgeladen' : 'Zahlung'; ?>
-                                                </p>
-                                                <p class="text-sm text-gray-400">
-                                                    <?php echo htmlspecialchars($payment['payment_method_name'] ?? 'Unbekannt'); ?> • 
-                                                    <?php echo date('d.m.Y H:i', strtotime($payment['created_at'])); ?>
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-sm font-medium text-white">
-                                                <?php echo $payment['type'] == 'deposit' ? '+' : '-'; ?>€<?php echo number_format($payment['amount'], 2); ?>
-                                            </p>
-                                            <span class="px-2 py-1 text-xs font-medium rounded-full 
-                                                <?php echo $payment['status'] == 'completed' ? 'bg-green-900 text-green-400' : 'bg-orange-900 text-orange-400'; ?>">
-                                                <?php echo ucfirst($payment['status']); ?>
-                                            </span>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?>
-                            <div class="text-center py-8">
-                                <i class="fas fa-credit-card text-gray-600 text-4xl mb-4"></i>
-                                <p class="text-gray-400">Keine Zahlungen vorhanden</p>
-                            </div>
-                        <?php endif; ?>
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Invoices -->
+    <div class="lg:col-span-2">
+        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-700">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-medium text-white">Rechnungen</h2>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-2 text-sm bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">
+                            <i class="fas fa-filter mr-2"></i>Filter
+                        </button>
+                        <button class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-download mr-2"></i>Export
+                        </button>
                     </div>
                 </div>
             </div>
-
-            <!-- Sidebar -->
-            <div class="space-y-6">
-                <!-- Quick Actions -->
-                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
-                    <div class="px-6 py-4 border-b border-gray-700">
-                        <h3 class="text-lg font-medium text-white">Aktionen</h3>
+            
+            <div class="divide-y divide-gray-700">
+                <?php if (empty($invoices)): ?>
+                    <div class="p-8 text-center">
+                        <div class="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-file-invoice text-gray-400 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-white mb-2">Keine Rechnungen vorhanden</h3>
+                        <p class="text-gray-400">Ihre Rechnungen werden hier angezeigt</p>
                     </div>
+                <?php else: ?>
+                    <?php foreach ($invoices as $invoice): ?>
+                        <div class="p-6">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-file-invoice text-blue-400"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm font-medium text-white">Rechnung #<?php echo htmlspecialchars($invoice['invoice_number']); ?></h3>
+                                        <p class="text-sm text-gray-400"><?php echo htmlspecialchars($invoice['description'] ?? 'Service-Rechnung'); ?></p>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Erstellt: <?php echo date('d.m.Y', strtotime($invoice['created_at'])); ?>
+                                            <?php if ($invoice['due_date']): ?>
+                                            • Fällig: <?php echo date('d.m.Y', strtotime($invoice['due_date'])); ?>
+                                            <?php endif; ?>
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center space-x-4">
+                                    <div class="text-right">
+                                        <div class="text-lg font-bold text-white">€<?php echo number_format($invoice['amount'], 2); ?></div>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                            <?php 
+                                            switch($invoice['status']) {
+                                                case 'paid': echo 'bg-green-900 text-green-300'; break;
+                                                case 'pending': echo 'bg-yellow-900 text-yellow-300'; break;
+                                                case 'overdue': echo 'bg-red-900 text-red-300'; break;
+                                                case 'cancelled': echo 'bg-gray-700 text-gray-300'; break;
+                                                default: echo 'bg-blue-900 text-blue-300';
+                                            }
+                                            ?>">
+                                            <?php 
+                                            $status_labels = [
+                                                'paid' => 'Bezahlt',
+                                                'pending' => 'Offen',
+                                                'overdue' => 'Überfällig',
+                                                'cancelled' => 'Storniert'
+                                            ];
+                                            echo $status_labels[$invoice['status']] ?? ucfirst($invoice['status']);
+                                            ?>
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="flex space-x-2">
+                                        <button class="p-2 text-gray-400 hover:text-blue-400 transition-colors" title="Rechnung anzeigen">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="p-2 text-gray-400 hover:text-green-400 transition-colors" title="PDF herunterladen">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        <?php if ($invoice['status'] === 'pending' || $invoice['status'] === 'overdue'): ?>
+                                        <button onclick="payInvoice(<?php echo $invoice['id']; ?>)" class="p-2 text-gray-400 hover:text-yellow-400 transition-colors" title="Jetzt bezahlen">
+                                            <i class="fas fa-credit-card"></i>
+                                        </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Upcoming Payments -->
+        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-700">
+                <h3 class="text-lg font-medium text-white">Nächste Abbuchungen</h3>
+            </div>
+            <div class="p-6">
+                <?php if (empty($upcoming_payments)): ?>
+                    <p class="text-gray-400 text-sm">Keine geplanten Abbuchungen</p>
+                <?php else: ?>
+                    <div class="space-y-3">
+                        <?php foreach ($upcoming_payments as $payment): ?>
+                        <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                            <div>
+                                <p class="text-sm font-medium text-white"><?php echo htmlspecialchars($payment['name']); ?></p>
+                                <p class="text-xs text-gray-400"><?php echo date('d.m.Y', strtotime($payment['next_billing_date'])); ?></p>
+                            </div>
+                            <div class="text-sm font-bold text-white">€<?php echo number_format($payment['price'], 2); ?></div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <!-- Payment History -->
+        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-700">
+                <h3 class="text-lg font-medium text-white">Zahlungshistorie</h3>
+            </div>
+            <div class="divide-y divide-gray-700">
+                <?php if (empty($payment_history)): ?>
                     <div class="p-6">
-                        <div class="space-y-3">
-                            <button class="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700" onclick="showAddFundsModal()">
-                                <i class="fas fa-plus mr-2"></i>Guthaben aufladen
-                            </button>
-                            <button class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700">
-                                <i class="fas fa-file-download mr-2"></i>Kontoauszug herunterladen
-                            </button>
-                            <button class="w-full bg-gray-700 text-gray-300 py-3 px-4 rounded-lg font-medium hover:bg-gray-600">
-                                <i class="fas fa-cog mr-2"></i>Zahlungseinstellungen
-                            </button>
+                        <p class="text-gray-400 text-sm">Keine Zahlungen vorhanden</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($payment_history as $payment): ?>
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-white"><?php echo htmlspecialchars($payment['description'] ?? 'Zahlung'); ?></p>
+                                <p class="text-xs text-gray-400"><?php echo date('d.m.Y H:i', strtotime($payment['created_at'])); ?></p>
+                            </div>
+                            <div class="text-sm font-bold <?php echo $payment['type'] === 'credit' ? 'text-green-400' : 'text-red-400'; ?>">
+                                <?php echo $payment['type'] === 'credit' ? '+' : '-'; ?>€<?php echo number_format(abs($payment['amount']), 2); ?>
+                            </div>
                         </div>
                     </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-700">
+                <h3 class="text-lg font-medium text-white">Schnellaktionen</h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-3">
+                    <button onclick="showTopupModal()" class="w-full flex items-center p-3 border border-gray-600 rounded-lg hover:bg-gray-750 text-left">
+                        <div class="w-8 h-8 bg-green-900 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-plus text-green-400"></i>
+                        </div>
+                        <span class="text-sm font-medium text-white">Guthaben aufladen</span>
+                    </button>
+                    
+                    <button class="w-full flex items-center p-3 border border-gray-600 rounded-lg hover:bg-gray-750 text-left">
+                        <div class="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-file-alt text-blue-400"></i>
+                        </div>
+                        <span class="text-sm font-medium text-white">Rechnungen exportieren</span>
+                    </button>
+                    
+                    <button class="w-full flex items-center p-3 border border-gray-600 rounded-lg hover:bg-gray-750 text-left">
+                        <div class="w-8 h-8 bg-purple-900 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-cog text-purple-400"></i>
+                        </div>
+                        <span class="text-sm font-medium text-white">Zahlungseinstellungen</span>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Add Funds Modal -->
-<div id="addFundsModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border border-gray-600 w-96 shadow-lg rounded-md bg-gray-800">
-        <div class="mt-3">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-white">Guthaben aufladen</h3>
-                <button onclick="hideAddFundsModal()" class="text-gray-400 hover:text-gray-300">
+<!-- Top-up Modal -->
+<div id="topupModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="px-6 py-4 border-b border-gray-700">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold text-white">Guthaben aufladen</h2>
+                <button onclick="closeTopupModal()" class="text-gray-400 hover:text-white">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <form id="addFundsForm">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Betrag (€)</label>
-                    <input type="number" min="5" step="0.01" class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00" required>
-                </div>
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Zahlungsmethode</label>
-                    <select class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="mollie">Mollie (Kreditkarte, PayPal, etc.)</option>
-                        <option value="bank">Banküberweisung</option>
-                    </select>
-                </div>
-                <div class="flex space-x-3">
-                    <button type="button" onclick="hideAddFundsModal()" class="flex-1 bg-gray-700 text-gray-300 py-2 px-4 rounded-lg font-medium hover:bg-gray-600">
-                        Abbrechen
-                    </button>
-                    <button type="submit" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700">
-                        Aufladen
-                    </button>
-                </div>
-            </form>
         </div>
+        
+        <form method="POST" class="p-6 space-y-6">
+            <input type="hidden" name="action" value="topup">
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Betrag auswählen</label>
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <button type="button" onclick="setAmount(10)" class="amount-btn px-4 py-2 border border-gray-600 rounded-lg text-white hover:bg-gray-700 transition-colors">€10</button>
+                    <button type="button" onclick="setAmount(25)" class="amount-btn px-4 py-2 border border-gray-600 rounded-lg text-white hover:bg-gray-700 transition-colors">€25</button>
+                    <button type="button" onclick="setAmount(50)" class="amount-btn px-4 py-2 border border-gray-600 rounded-lg text-white hover:bg-gray-700 transition-colors">€50</button>
+                    <button type="button" onclick="setAmount(100)" class="amount-btn px-4 py-2 border border-gray-600 rounded-lg text-white hover:bg-gray-700 transition-colors">€100</button>
+                    <button type="button" onclick="setAmount(250)" class="amount-btn px-4 py-2 border border-gray-600 rounded-lg text-white hover:bg-gray-700 transition-colors">€250</button>
+                    <button type="button" onclick="setAmount(500)" class="amount-btn px-4 py-2 border border-gray-600 rounded-lg text-white hover:bg-gray-700 transition-colors">€500</button>
+                </div>
+                <input type="number" name="amount" id="topupAmount" step="0.01" min="5" max="1000" required
+                       class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                       placeholder="Individueller Betrag (€5 - €1000)">
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Zahlungsmethode</label>
+                <select class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="mollie">Mollie (Kreditkarte, PayPal, etc.)</option>
+                    <option value="bank">Banküberweisung</option>
+                </select>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeTopupModal()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                    Abbrechen
+                </button>
+                <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    Aufladen
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
 <script>
-function showAddFundsModal() {
-    document.getElementById('addFundsModal').classList.remove('hidden');
-}
+    function showTopupModal() {
+        document.getElementById('topupModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
 
-function hideAddFundsModal() {
-    document.getElementById('addFundsModal').classList.add('hidden');
-}
+    function closeTopupModal() {
+        document.getElementById('topupModal').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    function setAmount(amount) {
+        document.getElementById('topupAmount').value = amount;
+        // Highlight selected button
+        document.querySelectorAll('.amount-btn').forEach(btn => {
+            btn.classList.remove('bg-blue-600', 'border-blue-500');
+            btn.classList.add('border-gray-600');
+        });
+        event.target.classList.add('bg-blue-600', 'border-blue-500');
+        event.target.classList.remove('border-gray-600');
+    }
+
+    function payInvoice(invoiceId) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            <input type="hidden" name="action" value="pay_invoice">
+            <input type="hidden" name="invoice_id" value="${invoiceId}">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Modal schließen bei Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeTopupModal();
+        }
+    });
+
+    // Modal schließen bei Klick außerhalb
+    document.getElementById('topupModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeTopupModal();
+        }
+    });
 </script>
 
-<!-- Font Awesome für Icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-</body>
-</html>
+<?php
+});
+?>
