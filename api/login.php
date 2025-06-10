@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../includes/plesk-config.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/database.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
