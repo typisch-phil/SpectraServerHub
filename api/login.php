@@ -65,7 +65,7 @@ try {
         'balance' => $user['balance'] ?? 0.00
     ];
     
-    echo json_encode([
+    $response = [
         'success' => true,
         'message' => 'Anmeldung erfolgreich',
         'user' => [
@@ -73,13 +73,36 @@ try {
             'email' => $user['email'],
             'name' => $user['first_name'] . ' ' . $user['last_name']
         ]
-    ]);
+    ];
+    
+    $jsonResponse = json_encode($response);
+    
+    // Ensure valid JSON before output
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        http_response_code(500);
+        echo '{"success":false,"error":"JSON encoding error"}';
+        exit;
+    }
+    
+    echo $jsonResponse;
+    exit;
     
 } catch (Exception $e) {
     http_response_code(400);
-    echo json_encode([
+    $errorResponse = [
         'success' => false,
         'error' => $e->getMessage()
-    ]);
+    ];
+    
+    $jsonError = json_encode($errorResponse);
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        http_response_code(500);
+        echo '{"success":false,"error":"Server error"}';
+        exit;
+    }
+    
+    echo $jsonError;
+    exit;
 }
 ?>

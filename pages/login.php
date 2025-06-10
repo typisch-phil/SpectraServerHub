@@ -106,7 +106,21 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             body: JSON.stringify(data)
         });
         
-        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+        
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (e) {
+            console.error('JSON parse error:', e);
+            console.error('Response was:', responseText);
+            throw new Error('Server returned invalid JSON');
+        }
         
         if (result.success) {
             messageDiv.className = 'mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded';
