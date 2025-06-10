@@ -8,25 +8,32 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Get current user data
-$user_id = $_SESSION['user_id'];
-$db = Database::getInstance();
-$stmt = $db->getConnection()->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->execute([$user_id]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$user) {
-    header("Location: /login");
-    exit;
-}
-
-// MySQL-Datenbankverbindung
+// MySQL-Datenbankverbindung für Benutzerdaten
 $host = $_ENV['MYSQL_HOST'] ?? 'localhost';
 $username = $_ENV['MYSQL_USER'] ?? 'root';
 $password = $_ENV['MYSQL_PASSWORD'] ?? '';
 $database = $_ENV['MYSQL_DATABASE'] ?? 'spectrahost';
 
 $mysqli = new mysqli($host, $username, $password, $database);
+
+if ($mysqli->connect_error) {
+    error_log("Database connection failed: " . $mysqli->connect_error);
+    header("Location: /login");
+    exit;
+}
+
+// Get current user data
+$user_id = $_SESSION['user_id'];
+$stmt = $mysqli->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$user_result = $stmt->get_result();
+$user = $user_result->fetch_assoc();
+
+if (!$user) {
+    header("Location: /login");
+    exit;
+}
 
 if ($mysqli->connect_error) {
     error_log("Database connection failed: " . $mysqli->connect_error);
