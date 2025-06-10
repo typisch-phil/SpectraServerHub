@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/database.php';
 
 header('Content-Type: application/json');
 
@@ -8,6 +9,8 @@ $input = file_get_contents('php://input');
 error_log("Mollie Webhook received: " . $input);
 
 try {
+    $db = Database::getInstance();
+    
     // Verify webhook request
     $body = json_decode($input, true);
     
