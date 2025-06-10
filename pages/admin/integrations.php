@@ -355,12 +355,9 @@ renderHeader($title, $description);
                         <form onsubmit="saveConfig('mollie', event)">
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Live API Key</label>
-                                    <input type="password" name="live_key" placeholder="live_..." class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Test API Key</label>
-                                    <input type="password" name="test_key" placeholder="test_..." class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
+                                    <input type="password" name="api_key" placeholder="live_... oder test_..." class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                    <p class="text-xs text-gray-500 mt-1">Für Live-Modus: live_... / Für Test-Modus: test_...</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Webhook URL</label>
