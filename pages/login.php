@@ -133,8 +133,16 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             messageDiv.textContent = result.error;
         }
     } catch (error) {
+        console.error('Login error:', error);
         messageDiv.className = 'mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded';
-        messageDiv.textContent = 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
+        
+        if (error.message && error.message.includes('Failed to fetch')) {
+            messageDiv.textContent = 'Verbindungsfehler. Bitte überprüfen Sie Ihre Internetverbindung.';
+        } else if (error.message && error.message.includes('500')) {
+            messageDiv.textContent = 'Server-Fehler. Bitte versuchen Sie es in einem Moment erneut.';
+        } else {
+            messageDiv.textContent = error.message || 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
+        }
     }
     
     btn.disabled = false;

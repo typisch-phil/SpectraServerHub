@@ -8,7 +8,9 @@ define('DOMAIN_NAME', $_SERVER['HTTP_HOST'] ?? 'spectrahost.de');
 
 // URL-Konfiguration für Plesk
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443 ? 'https://' : 'http://';
-define('BASE_URL', $protocol . DOMAIN_NAME);
+if (!defined('BASE_URL')) {
+    define('BASE_URL', $protocol . DOMAIN_NAME);
+}
 define('API_BASE_URL', BASE_URL . '/api');
 
 // Pfad-Konfiguration
@@ -17,12 +19,14 @@ define('INCLUDES_PATH', DOCUMENT_ROOT . '/includes');
 define('UPLOADS_PATH', DOCUMENT_ROOT . '/uploads');
 define('LOGS_PATH', DOCUMENT_ROOT . '/logs');
 
-// Session-Konfiguration für Plesk
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) ? 1 : 0);
-ini_set('session.cookie_domain', '.' . DOMAIN_NAME);
-ini_set('session.gc_maxlifetime', 7200);
+// Session-Konfiguration für Plesk (nur wenn Session noch nicht gestartet)
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) ? 1 : 0);
+    ini_set('session.cookie_domain', '.' . DOMAIN_NAME);
+    ini_set('session.gc_maxlifetime', 7200);
+}
 
 // Fehlerbehandlung für Produktion
 error_reporting(E_ERROR | E_WARNING | E_PARSE);
