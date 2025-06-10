@@ -1,56 +1,90 @@
 <?php
-require_once __DIR__ . '/../../includes/dashboard-layout.php';
+require_once '../../includes/auth.php';
+require_once '../../includes/database.php';
+require_once '../../includes/dashboard-layout.php';
 
-// Dark Version Support Dashboard
+// Benutzer-Authentifizierung prüfen
 if (!isLoggedIn()) {
-    header('Location: /login');
+    header("Location: /login");
     exit;
 }
 
 $user = getCurrentUser();
-$user_id = $user['id'];
-$db = Database::getInstance();
+if (!$user) {
+    header("Location: /login");
+    exit;
+}
 
-// Support-Daten aus der Datenbank laden
+// Support-Tickets und FAQ laden
 try {
-    // Support Tickets des Benutzers
+    // Benutzer-Tickets mit aktualisierter Struktur abrufen
     $stmt = $db->prepare("
-        SELECT st.*, sc.name as category_name, s.name as service_name
-        FROM support_tickets st 
-        LEFT JOIN support_categories sc ON st.category_id = sc.id 
-        LEFT JOIN services s ON st.service_id = s.id 
-        WHERE st.user_id = ? 
-        ORDER BY st.created_at DESC 
-        LIMIT 20
+        SELECT t.*, 
+               (SELECT COUNT(*) FROM ticket_messages tm WHERE tm.ticket_id = t.id) as message_count,
+               (SELECT tm.created_at FROM ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY tm.created_at DESC LIMIT 1) as last_activity
+        FROM support_tickets t 
+        WHERE t.user_id = ? 
+        ORDER BY t.created_at DESC
     ");
-    $stmt->execute([$user_id]);
-    $tickets = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+    $stmt->bind_param("i", $user['id']);
+    $stmt->execute();
+    $tickets_result = $stmt->get_result();
+    
+    $user_tickets = [];
+    while ($row = $tickets_result->fetch_assoc()) {
+        $user_tickets[] = $row;
+    }
+    
     // Ticket-Statistiken
     $stmt = $db->prepare("SELECT status, COUNT(*) as count FROM support_tickets WHERE user_id = ? GROUP BY status");
-    $stmt->execute([$user_id]);
-    $ticket_stats = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-    // Support-Kategorien
-    $stmt = $db->prepare("SELECT * FROM support_categories WHERE is_active = 1 ORDER BY sort_order");
+    $stmt->bind_param("i", $user['id']);
     $stmt->execute();
-    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // FAQ Items
-    $stmt = $db->prepare("SELECT * FROM faq_items WHERE is_active = 1 ORDER BY views DESC LIMIT 10");
-    $stmt->execute();
-    $faq_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Benutzer Services für Ticket-Erstellung
-    $stmt = $db->prepare("SELECT id, name FROM services WHERE user_id = ? AND status = 'active' ORDER BY name");
-    $stmt->execute([$user_id]);
-    $user_services = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-} catch (Exception $e) {
-    error_log("Support data error: " . $e->getMessage());
-    $tickets = [];
+    $stats_result = $stmt->get_result();
+    
     $ticket_stats = [];
-    $categories = [];
+    while ($row = $stats_result->fetch_assoc()) {
+        $ticket_stats[$row['status']] = $row['count'];
+    }
+    
+    // FAQ-Einträge (statische Daten da keine FAQ-Tabelle)
+    $faq_items = [
+        [
+            'id' => 1,
+            'question' => 'Wie kann ich mein Passwort zurücksetzen?',
+            'answer' => 'Sie können Ihr Passwort über den "Passwort vergessen" Link auf der Login-Seite zurücksetzen.'
+        ],
+        [
+            'id' => 2,
+            'question' => 'Wie lange dauert die Server-Bereitstellung?',
+            'answer' => 'Neue Server werden normalerweise innerhalb von 15 Minuten nach der Bestellung bereitgestellt.'
+        ],
+        [
+            'id' => 3,
+            'question' => 'Welche Zahlungsmethoden werden akzeptiert?',
+            'answer' => 'Wir akzeptieren Kreditkarten, PayPal, SEPA-Lastschrift und Überweisung.'
+        ]
+    ];
+    
+    // Benutzer-Services für Ticket-Erstellung
+    $stmt = $db->prepare("
+        SELECT id, name
+        FROM services 
+        WHERE user_id = ? AND status = 'active'
+        ORDER BY name ASC
+    ");
+    $stmt->bind_param("i", $user['id']);
+    $stmt->execute();
+    $services_result = $stmt->get_result();
+    
+    $user_services = [];
+    while ($row = $services_result->fetch_assoc()) {
+        $user_services[] = $row;
+    }
+    
+} catch (Exception $e) {
+    error_log("Support page error: " . $e->getMessage());
+    $user_tickets = [];
+    $ticket_stats = [];
     $faq_items = [];
     $user_services = [];
 }
@@ -131,9 +165,9 @@ renderDashboardHeader('Support - Dashboard');
                         </div>
                     </div>
                     <div class="divide-y divide-gray-700">
-                        <?php if (!empty($tickets)): ?>
-                            <?php foreach ($tickets as $ticket): ?>
-                                <div class="p-6 hover:bg-gray-750">
+                        <?php if (!empty($user_tickets)): ?>
+                            <?php foreach ($user_tickets as $ticket): ?>
+                                <div class="p-6 hover:bg-gray-750 cursor-pointer" onclick="viewTicket(<?php echo $ticket['id']; ?>)">
                                     <div class="flex items-start justify-between">
                                         <div class="flex-1">
                                             <div class="flex items-center space-x-3 mb-2">
@@ -142,18 +176,30 @@ renderDashboardHeader('Support - Dashboard');
                                                     <?php 
                                                     switch($ticket['status']) {
                                                         case 'open': echo 'bg-green-900 text-green-400'; break;
-                                                        case 'pending': echo 'bg-orange-900 text-orange-400'; break;
+                                                        case 'in_progress': echo 'bg-blue-900 text-blue-400'; break;
+                                                        case 'waiting_customer': echo 'bg-yellow-900 text-yellow-400'; break;
+                                                        case 'resolved': echo 'bg-purple-900 text-purple-400'; break;
                                                         case 'closed': echo 'bg-gray-700 text-gray-300'; break;
                                                         default: echo 'bg-blue-900 text-blue-400';
                                                     }
                                                     ?>">
-                                                    <?php echo ucfirst($ticket['status']); ?>
+                                                    <?php 
+                                                    $status_labels = [
+                                                        'open' => 'Offen',
+                                                        'in_progress' => 'In Bearbeitung',
+                                                        'waiting_customer' => 'Wartet auf Kunden',
+                                                        'resolved' => 'Gelöst',
+                                                        'closed' => 'Geschlossen'
+                                                    ];
+                                                    echo $status_labels[$ticket['status']] ?? ucfirst($ticket['status']);
+                                                    ?>
                                                 </span>
                                                 <span class="px-2 py-1 text-xs font-medium rounded-full 
                                                     <?php 
                                                     switch($ticket['priority']) {
-                                                        case 'high': echo 'bg-red-900 text-red-400'; break;
-                                                        case 'medium': echo 'bg-orange-900 text-orange-400'; break;
+                                                        case 'urgent': echo 'bg-red-900 text-red-400'; break;
+                                                        case 'high': echo 'bg-orange-900 text-orange-400'; break;
+                                                        case 'medium': echo 'bg-yellow-900 text-yellow-400'; break;
                                                         case 'low': echo 'bg-green-900 text-green-400'; break;
                                                         default: echo 'bg-gray-700 text-gray-300';
                                                     }
@@ -164,6 +210,7 @@ renderDashboardHeader('Support - Dashboard');
                                             <p class="text-sm text-gray-400 mb-2"><?php echo nl2br(htmlspecialchars(substr($ticket['description'], 0, 200))); ?>...</p>
                                             <div class="flex items-center space-x-4 text-xs text-gray-500">
                                                 <span><i class="fas fa-calendar mr-1"></i><?php echo date('d.m.Y H:i', strtotime($ticket['created_at'])); ?></span>
+                                                <span><i class="fas fa-comments mr-1"></i><?php echo $ticket['message_count'] ?? 0; ?> Nachrichten</span>
                                                 <?php if ($ticket['service_name']): ?>
                                                     <span><i class="fas fa-server mr-1"></i><?php echo htmlspecialchars($ticket['service_name']); ?></span>
                                                 <?php endif; ?>
@@ -305,29 +352,30 @@ renderDashboardHeader('Support - Dashboard');
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <form id="createTicketForm">
+            <form id="createTicketForm" onsubmit="createTicket(event)">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Kategorie</label>
-                        <select class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            <option value="">Kategorie wählen</option>
-                            <?php foreach ($categories as $category): ?>
-                                <option value="<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
-                            <?php endforeach; ?>
+                        <select name="category" class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="general">Allgemein</option>
+                            <option value="technical">Technisch</option>
+                            <option value="billing">Abrechnung</option>
+                            <option value="abuse">Missbrauch</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Priorität</label>
-                        <select class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <select name="priority" class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             <option value="low">Niedrig</option>
                             <option value="medium" selected>Mittel</option>
                             <option value="high">Hoch</option>
+                            <option value="urgent">Dringend</option>
                         </select>
                     </div>
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-300 mb-2">Betroffener Service (optional)</label>
-                    <select class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="service_id" class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Kein spezifischer Service</option>
                         <?php foreach ($user_services as $service): ?>
                             <option value="<?php echo $service['id']; ?>"><?php echo htmlspecialchars($service['name']); ?></option>
@@ -336,12 +384,25 @@ renderDashboardHeader('Support - Dashboard');
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-300 mb-2">Betreff</label>
-                    <input type="text" class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Kurze Beschreibung des Problems" required>
+                    <input type="text" name="subject" class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Kurze Beschreibung des Problems" required>
                 </div>
-                <div class="mb-6">
+                <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-300 mb-2">Beschreibung</label>
-                    <textarea rows="6" class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Detaillierte Beschreibung des Problems oder Ihrer Anfrage..." required></textarea>
+                    <textarea name="description" rows="6" class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Detaillierte Beschreibung des Problems oder Ihrer Anfrage..." required></textarea>
                 </div>
+                
+                <!-- File Upload Section -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Dateien anhängen (optional)</label>
+                    <div id="fileDropZone" class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-gray-500 transition-colors">
+                        <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.gif,.pdf,.txt,.zip" class="hidden" onchange="handleFileSelect(event)">
+                        <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
+                        <p class="text-gray-400 mb-2">Dateien hier ablegen oder <button type="button" onclick="document.getElementById('fileInput').click()" class="text-blue-400 hover:text-blue-300">durchsuchen</button></p>
+                        <p class="text-sm text-gray-500">Maximal 10MB pro Datei. Erlaubte Formate: JPG, PNG, GIF, PDF, TXT, ZIP</p>
+                    </div>
+                    <div id="fileList" class="mt-3 space-y-2"></div>
+                </div>
+                
                 <div class="flex space-x-3">
                     <button type="button" onclick="hideCreateTicketModal()" class="flex-1 bg-gray-700 text-gray-300 py-2 px-4 rounded-lg font-medium hover:bg-gray-600">
                         Abbrechen
@@ -356,14 +417,131 @@ renderDashboardHeader('Support - Dashboard');
 </div>
 
 <script>
+let uploadedFiles = [];
+
+// Modal Functions
 function showCreateTicketModal() {
     document.getElementById('createTicketModal').classList.remove('hidden');
+    document.getElementById('createTicketForm').reset();
+    uploadedFiles = [];
+    updateFileList();
 }
 
 function hideCreateTicketModal() {
     document.getElementById('createTicketModal').classList.add('hidden');
 }
 
+// Create Ticket Function
+async function createTicket(event) {
+    event.preventDefault();
+    
+    const form = document.getElementById('createTicketForm');
+    const formData = new FormData(form);
+    
+    const ticketData = {
+        subject: formData.get('subject'),
+        description: formData.get('description'),
+        category: formData.get('category'),
+        priority: formData.get('priority'),
+        service_id: formData.get('service_id') || null
+    };
+    
+    try {
+        const response = await fetch('/api/tickets.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(ticketData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Upload files if any
+            if (uploadedFiles.length > 0) {
+                await uploadTicketFiles(data.ticket_id);
+            }
+            
+            alert('Ticket erfolgreich erstellt!');
+            hideCreateTicketModal();
+            location.reload();
+        } else {
+            alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    } catch (error) {
+        console.error('Error creating ticket:', error);
+        alert('Fehler beim Erstellen des Tickets');
+    }
+}
+
+// File Upload Functions
+function handleFileSelect(event) {
+    const files = Array.from(event.target.files);
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain', 'application/zip'];
+    
+    for (const file of files) {
+        if (file.size > maxSize) {
+            alert(`Datei "${file.name}" ist zu groß (max. 10MB)`);
+            continue;
+        }
+        
+        if (!allowedTypes.includes(file.type)) {
+            alert(`Dateityp von "${file.name}" ist nicht erlaubt`);
+            continue;
+        }
+        
+        uploadedFiles.push(file);
+    }
+    
+    updateFileList();
+}
+
+function updateFileList() {
+    const container = document.getElementById('fileList');
+    container.innerHTML = uploadedFiles.map((file, index) => `
+        <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-file text-gray-400"></i>
+                <span class="text-white">${file.name}</span>
+                <span class="text-sm text-gray-400">(${(file.size / 1024).toFixed(1)} KB)</span>
+            </div>
+            <button type="button" onclick="removeFile(${index})" class="text-red-400 hover:text-red-300">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+function removeFile(index) {
+    uploadedFiles.splice(index, 1);
+    updateFileList();
+}
+
+async function uploadTicketFiles(ticketId) {
+    for (const file of uploadedFiles) {
+        const formData = new FormData();
+        formData.append('ticket_id', ticketId);
+        formData.append('file', file);
+        
+        try {
+            await fetch('/api/ticket-upload.php', {
+                method: 'POST',
+                body: formData
+            });
+        } catch (error) {
+            console.error('Error uploading file:', error);
+        }
+    }
+}
+
+// View Ticket Function
+function viewTicket(ticketId) {
+    window.open(`/dashboard/ticket-view?id=${ticketId}`, '_blank');
+}
+
+// FAQ Functions
 function toggleFaq(id) {
     const content = document.getElementById('faq-content-' + id);
     const icon = document.getElementById('faq-icon-' + id);
@@ -376,6 +554,54 @@ function toggleFaq(id) {
         icon.classList.remove('rotate-180');
     }
 }
+
+// Logout function
+function logout() {
+    if (confirm('Möchten Sie sich wirklich abmelden?')) {
+        window.location.href = '/api/logout.php';
+    }
+}
+
+// Initialize drag and drop
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('fileDropZone');
+    
+    if (dropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight(e) {
+            dropZone.classList.add('border-blue-500', 'bg-gray-700');
+        }
+        
+        function unhighlight(e) {
+            dropZone.classList.remove('border-blue-500', 'bg-gray-700');
+        }
+        
+        dropZone.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            handleFileSelect({ target: { files: files } });
+        }
+    }
+});
 </script>
 
 <!-- Font Awesome für Icons -->
