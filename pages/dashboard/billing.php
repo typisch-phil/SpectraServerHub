@@ -47,10 +47,8 @@ try {
         ];
     }
 
-    // Zahlungshistorie abrufen
-    $stmt = $db->prepare("SELECT * FROM payment_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 10");
-    $stmt->execute([$user_id]);
-    $payment_history = $stmt->fetchAll();
+    // Zahlungshistorie - wird später implementiert
+    $payment_history = [];
 
     // Nächste Abbuchungen
     $stmt = $db->prepare("

@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../../includes/dashboard-header.php';
 
+// Dashboard-Variablen initialisieren
+list($db, $user_id, $user) = getDashboardGlobals();
+
 // Services aus der Datenbank laden
 try {
     // Alle Services des Benutzers
