@@ -461,14 +461,24 @@ renderHeader($title, $description);
             submitBtn.disabled = true;
 
             try {
-                const payload = { integration: integration, action: 'save', ...config };
-                const response = await fetch('/api/admin/integrations.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload)
-                });
+                let response;
+                if (integration === 'proxmox') {
+                    response = await fetch('/api/save-proxmox-config.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                } else {
+                    const payload = { integration: integration, action: 'save', ...config };
+                    response = await fetch('/api/admin/integrations.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                }
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
