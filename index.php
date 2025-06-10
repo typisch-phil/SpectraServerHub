@@ -2,11 +2,8 @@
 // Load error handler first for better debugging
 require_once __DIR__ . '/error-handler.php';
 
-// Check if we're running on Plesk and load appropriate config
-if (file_exists(__DIR__ . '/plesk-config.php')) {
-    require_once __DIR__ . '/plesk-config.php';
-}
-
+// Load Plesk configuration for live environment
+require_once __DIR__ . '/includes/plesk-config.php';
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/session.php';
 
