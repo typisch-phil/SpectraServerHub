@@ -7,13 +7,13 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('log_errors', 1);
 
-// Plesk-spezifische MySQL-Konfiguration
-// WICHTIG: Ersetzen Sie diese Werte mit Ihren echten Plesk-Datenbankdaten
-define('PLESK_DB_HOST', 'localhost'); // Oft 'localhost' oder '127.0.0.1' in Plesk
-define('PLESK_DB_NAME', 'your_database_name'); // Ihr Plesk-Datenbankname
-define('PLESK_DB_USER', 'your_database_user'); // Ihr Plesk-Datenbankbenutzer
-define('PLESK_DB_PASS', 'your_database_password'); // Ihr Plesk-Datenbankpasswort
-define('PLESK_DB_PORT', '3306'); // Standard MySQL-Port
+// Plesk-spezifische MySQL-Konfiguration (s9281_spectrahost)
+// ALLE PDO-Verbindungen verwenden ausschließlich MySQL!
+define('PLESK_DB_HOST', '37.114.32.205'); // MySQL Host
+define('PLESK_DB_NAME', 's9281_spectrahost'); // MySQL Database Name
+define('PLESK_DB_USER', 's9281_spectrahost'); // MySQL User
+define('PLESK_DB_PASS', getenv('MYSQL_PASSWORD') ?: 'PASSWORD_PLACEHOLDER'); // MySQL Password
+define('PLESK_DB_PORT', '3306'); // MySQL Port
 
 // Plesk-spezifische Pfade
 define('PLESK_DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT']);
