@@ -44,46 +44,70 @@ try {
     $monthly_amount = 0;
 }
 
-$pageTitle = 'Billing - SpectraHost Dashboard';
-require_once __DIR__ . '/../../includes/layout.php';
-renderHeader($pageTitle);
 ?>
 
-<!-- Dashboard Dark Theme Layout -->
-<div class="min-h-screen bg-gray-900 text-white">
-    <!-- Dashboard Header -->
-    <header class="bg-gray-800 border-b border-gray-700">
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing - SpectraHost Dashboard</title>
+    <meta name="description" content="SpectraHost Billing - Verwalten Sie Ihre Rechnungen">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            750: '#374151',
+                            850: '#1f2937'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-900 text-white">
+
+<div class="min-h-screen bg-gray-900">
+    <!-- Dashboard Navigation -->
+    <nav class="bg-gray-800 shadow-lg border-b border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-4">
+            <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <h1 class="text-2xl font-bold text-white">SpectraHost Dashboard</h1>
+                    <a href="/" class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">S</span>
+                        </div>
+                        <span class="text-xl font-bold text-white">SpectraHost Dashboard</span>
+                    </a>
+                    <div class="ml-10 flex space-x-8">
+                        <a href="/dashboard" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Dashboard</a>
+                        <a href="/dashboard/services" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Services</a>
+                        <a href="/dashboard/billing" class="text-blue-400 border-b-2 border-blue-400 px-1 pb-4 text-sm font-medium">Billing</a>
+                        <a href="/dashboard/support" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Support</a>
+                    </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <span class="text-gray-300">Willkommen, <?php echo htmlspecialchars($_SESSION['user']['first_name'] ?? 'User'); ?></span>
-                    <a href="/api/logout" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-white transition-colors">
-                        Logout
+                    <div class="text-sm text-gray-300">
+                        Willkommen, <span class="font-medium text-white"><?php echo htmlspecialchars($_SESSION['user']['first_name'] ?? 'User'); ?></span>
+                    </div>
+                    <div class="text-sm text-gray-300">
+                        Guthaben: <span class="font-bold text-green-400">€<?php echo number_format($current_balance, 2); ?></span>
+                    </div>
+                    <a href="/api/logout" class="text-gray-300 hover:text-white">
+                        <i class="fas fa-sign-out-alt"></i>
                     </a>
                 </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Dashboard Navigation -->
-    <nav class="bg-gray-800 border-b border-gray-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex space-x-8">
-                <a href="/dashboard" class="border-b-2 border-transparent hover:border-blue-500 py-4 px-1 text-gray-300 hover:text-white transition-colors">
-                    <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
-                </a>
-                <a href="/dashboard/services" class="border-b-2 border-transparent hover:border-blue-500 py-4 px-1 text-gray-300 hover:text-white transition-colors">
-                    <i class="fas fa-server mr-2"></i>Services
-                </a>
-                <a href="/dashboard/billing" class="border-b-2 border-blue-500 py-4 px-1 text-white">
-                    <i class="fas fa-credit-card mr-2"></i>Billing
-                </a>
-                <a href="/dashboard/support" class="border-b-2 border-transparent hover:border-blue-500 py-4 px-1 text-gray-300 hover:text-white transition-colors">
-                    <i class="fas fa-headset mr-2"></i>Support
-                </a>
             </div>
         </div>
     </nav>
@@ -328,4 +352,5 @@ document.getElementById('topupModal').addEventListener('click', function(e) {
 });
 </script>
 
-<?php renderFooter(); ?>
+</body>
+</html>
