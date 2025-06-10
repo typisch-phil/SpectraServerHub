@@ -1,36 +1,67 @@
 RewriteEngine On
+RewriteBase /
 
-# Handle static files directly
-RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule ^(.*)$ - [L]
+# Disable directory browsing
+Options -Indexes -MultiViews
 
-# Handle API requests directly to their files
-RewriteCond %{REQUEST_URI} ^/api/
-RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule ^(.*)$ - [L]
+# Force UTF-8 encoding
+AddDefaultCharset UTF-8
+
+# PHP settings for Plesk
+<IfModule mod_php8.c>
+    php_value session.use_cookies 1
+    php_value session.use_only_cookies 1
+    php_value session.cookie_httponly 1
+    php_value session.cookie_secure 0
+    php_value session.gc_maxlifetime 7200
+</IfModule>
+
+# Handle existing files and directories
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
 
 # Route all other requests to index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ /index.php [QSA,L]
+RewriteRule ^(.*)$ index.php [QSA,L]
 
-# Security Headers
-Header always set X-Content-Type-Options nosniff
-Header always set X-Frame-Options DENY
-Header always set X-XSS-Protection "1; mode=block"
-Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
-Header always set Referrer-Policy "strict-origin-when-cross-origin"
+# Security Headers (Plesk compatible)
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Only set HSTS if HTTPS is available
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+</IfModule>
 
-# Hide sensitive files
-<Files ".env">
-    Order allow,deny
-    Deny from all
-</Files>
+# Hide sensitive files (Plesk compatible)
+<FilesMatch "\.(env|sql|log|bak)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
 
-<Files "*.sql">
-    Order allow,deny
-    Deny from all
-</Files>
+# Protect configuration files
+<FilesMatch "^(composer\.(json|lock)|package\.(json|lock)|\.htaccess)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Block access to includes directory
+<IfModule mod_alias.c>
+    RedirectMatch 403 ^.*/includes/.*$
+</IfModule>
 
 # Enable compression
 <IfModule mod_deflate.c>
@@ -59,4 +90,24 @@ Header always set Referrer-Policy "strict-origin-when-cross-origin"
     ExpiresByType text/plain "access plus 1 month"
     ExpiresByType application/pdf "access plus 1 month"
     ExpiresByType video/mp4 "access plus 1 year"
+</IfModule>
+
+# Custom error pages
+ErrorDocument 404 /index.php
+ErrorDocument 403 /index.php
+ErrorDocument 500 /index.php
+
+# Prevent access to sensitive directories
+<IfModule mod_rewrite.c>
+    RewriteRule ^includes/ - [F,L]
+    RewriteRule ^vendor/ - [F,L]
+    RewriteRule ^\.git/ - [F,L]
+</IfModule>
+
+# MIME types for common files
+<IfModule mod_mime.c>
+    AddType application/javascript .js
+    AddType text/css .css
+    AddType image/svg+xml .svg
+    AddType application/json .json
 </IfModule>
