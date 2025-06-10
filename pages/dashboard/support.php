@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/dashboard-layout.php';
 
@@ -8,7 +9,7 @@ if (!isLoggedIn()) {
     exit;
 }
 
-$user = getCurrentUser();
+$user = getDashboardUser();
 if (!$user) {
     header("Location: /login");
     exit;

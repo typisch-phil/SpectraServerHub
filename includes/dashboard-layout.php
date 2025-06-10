@@ -1,16 +1,10 @@
 <?php
+require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/database.php';
 
-// Authentifizierungsfunktionen
-function isLoggedIn() {
-    if (session_status() == PHP_SESSION_NONE) {
-        session_start();
-    }
-    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
-}
-
-function getCurrentUser() {
-    if (!isLoggedIn()) {
+// Erweiterte getCurrentUser Funktion für Dashboard
+function getDashboardUser() {
+    if (!function_exists('isLoggedIn') || !isLoggedIn()) {
         return null;
     }
     
@@ -21,11 +15,8 @@ function getCurrentUser() {
     
     try {
         $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
-        $stmt->bind_param("i", $_SESSION['user_id']);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
-        $stmt->close();
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
         return $user;
     } catch (Exception $e) {
         error_log("Error getting current user: " . $e->getMessage());
@@ -88,7 +79,7 @@ function renderDashboardHeader($title = 'Dashboard - SpectraHost', $description 
 }
 
 function renderDashboardNavigation($currentPage = 'dashboard') {
-    $user = getCurrentUser();
+    $user = getDashboardUser();
     if (!$user) return;
 ?>
     <!-- Dashboard Navigation -->
