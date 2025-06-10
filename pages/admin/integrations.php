@@ -263,6 +263,8 @@ renderHeader($title, $description);
                 let response;
                 if (integration === 'proxmox') {
                     response = await fetch('/api/test-proxmox-direct.php');
+                } else if (integration === 'mollie') {
+                    response = await fetch('/api/test-mollie-direct.php');
                 } else {
                     response = await fetch('/api/admin/integrations.php?action=test', {
                         method: 'POST',
@@ -379,7 +381,7 @@ renderHeader($title, $description);
                     `;
                 case 'mollie':
                     return `
-                        <form onsubmit="saveConfig('mollie', event)">
+                        <form onsubmit="saveMollieConfig(event)">
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
@@ -445,6 +447,42 @@ renderHeader($title, $description);
                             </div>
                         </div>
                     `;
+            }
+        }
+
+        async function saveMollieConfig(event) {
+            event.preventDefault();
+            const form = event.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Speichere...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/save-mollie-config.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('success', result.message + (result.webhook_url ? '<br>Webhook: ' + result.webhook_url : ''));
+                    closeConfigModal();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showNotification('error', result.message || 'Fehler beim Speichern der Konfiguration');
+                }
+            } catch (error) {
+                console.error('Speicherfehler:', error);
+                showNotification('error', 'Verbindungsfehler beim Speichern');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         }
 
