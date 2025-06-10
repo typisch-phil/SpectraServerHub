@@ -1,21 +1,10 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/layout.php';
 
-// Check if user is logged in and is admin
-if (!isset($_SESSION['user'])) {
-    header('Location: /login');
-    exit;
-}
-
-$user = $_SESSION['user'];
-if (!$user || $user['role'] !== 'admin') {
-    header('Location: /dashboard');
-    exit;
-}
+requireAdmin();
 
 $database = Database::getInstance();
 

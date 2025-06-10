@@ -1,25 +1,10 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/layout.php';
 
-// Check if user is logged in and is admin
-if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
-    exit;
-}
-
-$database = Database::getInstance();
-$stmt = $database->prepare("SELECT role FROM users WHERE id = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$user = $stmt->fetch();
-
-if (!$user || $user['role'] !== 'admin') {
-    header('Location: /dashboard');
-    exit;
-}
+requireAdmin();
 
 $title = 'Service-Verwaltung - SpectraHost Admin';
 $description = 'Verwalten Sie Hosting-Services und Pakete';
