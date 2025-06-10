@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../includes/dashboard-layout.php';
+
 // Dark Version Support Dashboard
 if (!isLoggedIn()) {
     header('Location: /login');
@@ -53,7 +55,7 @@ try {
     $user_services = [];
 }
 
-renderHeader('Support - Dashboard');
+renderDashboardHeader('Support - Dashboard');
 ?>
 
 <div class="min-h-screen bg-gray-900">
@@ -373,4 +375,4 @@ function toggleFaq(id) {
 <!-- Font Awesome für Icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-<?php renderFooter(); ?>
+<?php renderDashboardFooter(); ?>

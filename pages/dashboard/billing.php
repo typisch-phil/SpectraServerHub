@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../includes/dashboard-layout.php';
+
 // Dark Version Billing Dashboard
 if (!isLoggedIn()) {
     header('Location: /login');
@@ -73,7 +75,7 @@ foreach ($invoice_stats as $stat) {
     }
 }
 
-renderHeader('Billing - Dashboard');
+renderDashboardHeader('Billing - Dashboard');
 ?>
 
 <div class="min-h-screen bg-gray-900">
@@ -362,4 +364,4 @@ function hideAddFundsModal() {
 <!-- Font Awesome für Icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-<?php renderFooter(); ?>
+<?php renderDashboardFooter(); ?>

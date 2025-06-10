@@ -81,7 +81,7 @@ renderDashboardHeader('Dashboard - SpectraHost');
 ?>
 
 <div class="min-h-screen bg-gray-900">
-    <!-- Top Navigation -->
+    <!-- Dashboard Navigation -->
     <nav class="bg-gray-800 shadow-lg border-b border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -90,7 +90,7 @@ renderDashboardHeader('Dashboard - SpectraHost');
                         <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                             <span class="text-white font-bold text-sm">S</span>
                         </div>
-                        <span class="text-xl font-bold text-white">SpectraHost</span>
+                        <span class="text-xl font-bold text-white">SpectraHost Dashboard</span>
                     </a>
                     <div class="ml-10 flex space-x-8">
                         <a href="/dashboard" class="text-blue-400 border-b-2 border-blue-400 px-1 pb-4 text-sm font-medium">Dashboard</a>
@@ -103,12 +103,16 @@ renderDashboardHeader('Dashboard - SpectraHost');
                     <div class="text-sm text-gray-300">
                         Guthaben: <span class="font-bold text-green-400">€<?php echo number_format($account_balance, 2); ?></span>
                     </div>
+                    <a href="/" class="text-gray-300 hover:text-blue-400 px-3 py-1 rounded">
+                        <i class="fas fa-arrow-left mr-1"></i>Zur Website
+                    </a>
                     <div class="relative">
-                        <button class="flex items-center space-x-2 text-gray-300 hover:text-white">
+                        <button onclick="logout()" class="flex items-center space-x-2 text-gray-300 hover:text-red-400">
                             <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
                                 <span class="text-sm font-medium"><?php echo strtoupper(substr($user['first_name'], 0, 1)); ?></span>
                             </div>
                             <span class="text-sm font-medium"><?php echo htmlspecialchars($user['first_name']); ?></span>
+                            <i class="fas fa-sign-out-alt ml-2"></i>
                         </button>
                     </div>
                 </div>
