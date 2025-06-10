@@ -161,11 +161,13 @@ foreach ($api_tests as $name => $endpoint) {
         echo "<span class='success'>✓ $name: Datei existiert ($endpoint)</span><br>";
         
         // Test ob die Datei PHP-Syntaxfehler hat
-        $check_result = exec("php -l $file_path 2>&1", $output, $return_code);
-        if ($return_code === 0) {
+        $output = [];
+        $return_code = 0;
+        $check_result = exec("php -l \"$file_path\" 2>&1", $output, $return_code);
+        if ($return_code === 0 && strpos(implode('', $output), 'No syntax errors') !== false) {
             echo "<span class='success'>✓ $name: PHP-Syntax korrekt</span><br>";
         } else {
-            echo "<span class='error'>✗ $name: PHP-Syntaxfehler gefunden</span><br>";
+            echo "<span class='error'>✗ $name: PHP-Syntaxfehler - " . implode(' ', $output) . "</span><br>";
         }
     } else {
         echo "<span class='warning'>⚠ $name: Datei nicht gefunden ($endpoint)</span><br>";
@@ -177,11 +179,13 @@ echo "<br><strong>Hauptseite Test:</strong><br>";
 if (file_exists('index.php')) {
     echo "<span class='success'>✓ index.php existiert</span><br>";
     
+    $output = [];
+    $return_code = 0;
     $check_result = exec("php -l index.php 2>&1", $output, $return_code);
-    if ($return_code === 0) {
+    if ($return_code === 0 && strpos(implode('', $output), 'No syntax errors') !== false) {
         echo "<span class='success'>✓ index.php: PHP-Syntax korrekt</span><br>";
     } else {
-        echo "<span class='error'>✗ index.php: PHP-Syntaxfehler</span><br>";
+        echo "<span class='error'>✗ index.php: PHP-Syntaxfehler - " . implode(' ', $output) . "</span><br>";
     }
 } else {
     echo "<span class='error'>✗ index.php nicht gefunden</span><br>";

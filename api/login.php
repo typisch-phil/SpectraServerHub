@@ -27,7 +27,8 @@ try {
     }
     
     $database = Database::getInstance();
-    $stmt = $database->prepare("SELECT id, email, password, first_name, last_name, role, balance FROM users WHERE email = ?");
+    $connection = $database->getConnection();
+    $stmt = $connection->prepare("SELECT id, email, password, first_name, last_name, role, balance FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     

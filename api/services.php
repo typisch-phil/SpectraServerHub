@@ -7,7 +7,8 @@ header('Content-Type: application/json');
 
 try {
     $db = Database::getInstance();
-    $stmt = $db->prepare("SELECT * FROM services WHERE active = 1 ORDER BY name ASC");
+    $connection = $db->getConnection();
+    $stmt = $connection->prepare("SELECT * FROM services WHERE active = 1 ORDER BY name ASC");
     $stmt->execute();
     $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
