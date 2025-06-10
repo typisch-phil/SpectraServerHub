@@ -27,11 +27,8 @@ if (!$db) {
 
 try {
     $stmt = $db->prepare("SELECT id, email, password, first_name, last_name FROM users WHERE email = ?");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
-    $stmt->close();
+    $stmt->execute([$email]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user || !password_verify($password, $user['password'])) {
         http_response_code(401);
