@@ -3,17 +3,11 @@
 $request_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $request_method = $_SERVER['REQUEST_METHOD'];
 
-// Route API requests
+// Route API requests through index.php
 if (strpos($request_uri, '/api/') === 0) {
-    $api_file = '.' . $request_uri;
-    if (file_exists($api_file)) {
-        include $api_file;
-        exit;
-    } else {
-        http_response_code(404);
-        echo json_encode(['error' => 'API endpoint not found']);
-        exit;
-    }
+    $_GET['route'] = ltrim($request_uri, '/');
+    include 'index.php';
+    exit;
 }
 
 // Route static files (CSS, JS, images)

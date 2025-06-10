@@ -58,7 +58,7 @@ function getAssetUrl($asset) {
     return BASE_URL . '/assets/' . ltrim($asset, '/');
 }
 
-function redirectTo($path) {
+function pleskRedirectTo($path) {
     $url = (strpos($path, 'http') === 0) ? $path : BASE_URL . '/' . ltrim($path, '/');
     header('Location: ' . $url);
     exit;
