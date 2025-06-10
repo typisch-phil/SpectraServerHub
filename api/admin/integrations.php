@@ -155,6 +155,8 @@ function testProxmoxConnection() {
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $sslVerify ? 2 : 0);
         curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
         
         $authResponse = curl_exec($ch);
@@ -166,29 +168,35 @@ function testProxmoxConnection() {
         if ($curlError) {
             return [
                 'success' => false,
-                'message' => "Proxmox-Verbindungsfehler: $curlError"
+                'message' => "Proxmox-Verbindungsfehler: $curlError",
+                'details' => ['host' => $host, 'port' => '8006']
             ];
         }
         
         if ($authHttpCode !== 200) {
             $errorData = json_decode($authResponse, true);
-            $errorMsg = $errorData['errors'] ?? "HTTP $authHttpCode";
+            $errorMsg = $errorData['errors'] ?? ($errorData['message'] ?? "HTTP $authHttpCode");
             return [
                 'success' => false,
-                'message' => "Proxmox-Authentifizierung fehlgeschlagen: $errorMsg"
+                'message' => "Proxmox-Authentifizierung fehlgeschlagen: $errorMsg",
+                'details' => [
+                    'http_code' => $authHttpCode,
+                    'response' => substr($authResponse, 0, 200)
+                ]
             ];
         }
         
-        $authData = json_decode($authResponse, true);
-        if (!$authData || !isset($authData['data']['ticket'])) {
+        $authDataResponse = json_decode($authResponse, true);
+        if (!$authDataResponse || !isset($authDataResponse['data']['ticket'])) {
             return [
                 'success' => false,
-                'message' => 'Proxmox-Authentifizierung ungültig'
+                'message' => 'Proxmox-Authentifizierung ungültig - Kein Ticket erhalten',
+                'details' => ['response' => substr($authResponse, 0, 200)]
             ];
         }
         
-        $ticket = $authData['data']['ticket'];
-        $csrfToken = $authData['data']['CSRFPreventionToken'];
+        $ticket = $authDataResponse['data']['ticket'];
+        $csrfToken = $authDataResponse['data']['CSRFPreventionToken'];
         
         // Step 2: Test API access with version endpoint
         $ch = curl_init();
