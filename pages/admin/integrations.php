@@ -434,15 +434,21 @@ renderHeader($title, $description);
             submitBtn.disabled = true;
 
             try {
-                const response = await fetch('/api/admin/integrations.php?action=configure', {
+                const payload = { integration: integration, action: 'save', ...config };
+                const response = await fetch('/api/admin/integrations.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ integration: integration, config: config })
+                    body: JSON.stringify(payload)
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const result = await response.json();
+                console.log('Save result:', result);
                 
                 if (result.success) {
                     showNotification('success', result.message);
@@ -459,11 +465,13 @@ renderHeader($title, $description);
                     }, 1000);
                     
                 } else {
-                    showNotification('error', result.message);
+                    showNotification('error', result.message || 'Unbekannter Fehler beim Speichern');
+                    console.error('Save failed:', result);
                 }
             } catch (error) {
-                showNotification('error', 'Fehler beim Speichern der Konfiguration');
+                showNotification('error', 'Verbindungsfehler beim Speichern der Konfiguration');
                 console.error('Save error:', error);
+                console.error('Response status:', error.status);
             } finally {
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
