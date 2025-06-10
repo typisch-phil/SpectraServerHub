@@ -38,19 +38,22 @@ try {
     
     $db = Database::getInstance();
     
-    // Prüfen ob Ticket dem Benutzer gehört
+    // Ticket suchen (zunächst ohne User-Einschränkung für Entwicklung)
     $ticket = $db->fetchOne("
-        SELECT id, status FROM support_tickets 
-        WHERE id = ? AND user_id = ?
-    ", [$ticket_id, $user_id]);
+        SELECT id, status, user_id FROM support_tickets 
+        WHERE id = ?
+    ", [$ticket_id]);
     
     if (!$ticket) {
-        // Debug-Information für Entwicklung
-        $debug_ticket = $db->fetchOne("SELECT id, user_id FROM support_tickets WHERE id = ?", [$ticket_id]);
-        error_log("Ticket Debug: " . print_r($debug_ticket, true) . " - Requested user_id: " . $user_id);
-        
         http_response_code(404);
-        echo json_encode(['error' => 'Ticket nicht gefunden', 'debug' => $debug_ticket]);
+        echo json_encode(['error' => 'Ticket nicht gefunden']);
+        exit;
+    }
+    
+    // Sicherheitsprüfung: Ticket gehört dem Benutzer
+    if ($ticket['user_id'] != $user_id) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Zugriff verweigert']);
         exit;
     }
     
