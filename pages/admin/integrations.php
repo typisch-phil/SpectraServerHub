@@ -380,23 +380,34 @@ renderHeader($title, $description);
                         </form>
                     `;
                 case 'mollie':
+                    const webhookUrl = 'https://' + window.location.host + '/api/webhooks/mollie.php';
                     return `
                         <form onsubmit="saveMollieConfig(event)">
                             <div class="space-y-4">
+                                <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-4">
+                                    <h4 class="font-medium text-blue-800 dark:text-blue-200 mb-2">Mollie Payment Gateway</h4>
+                                    <p class="text-sm text-blue-700 dark:text-blue-300">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        API-Schlüssel aus Umgebungsvariablen konfiguriert
+                                    </p>
+                                </div>
+                                
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
-                                    <input type="password" name="api_key" placeholder="live_... oder test_..." class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
-                                    <p class="text-xs text-gray-500 mt-1">Für Live-Modus: live_... / Für Test-Modus: test_...</p>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key Status</label>
+                                    <input type="text" value="••••••••" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
+                                    <p class="text-xs text-gray-500 mt-1">API-Schlüssel ist aus Umgebungsvariablen geladen</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Webhook URL</label>
-                                    <input type="url" name="webhook_url" placeholder="https://spectrahost.de/api/mollie/webhook" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required>
+                                    <input type="url" value="${webhookUrl}" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-600 dark:border-gray-500" readonly>
+                                    <p class="text-xs text-gray-500 mt-1">Automatisch konfigurierte Webhook-URL</p>
                                 </div>
                                 <div>
                                     <label class="flex items-center">
-                                        <input type="checkbox" name="test_mode" class="mr-2">
+                                        <input type="checkbox" name="test_mode" checked class="mr-2">
                                         <span class="text-sm text-gray-700 dark:text-gray-300">Test-Modus aktivieren</span>
                                     </label>
+                                    <p class="text-xs text-gray-500 mt-1">Sichere Testumgebung für Entwicklung</p>
                                 </div>
                                 <div class="flex justify-end space-x-3 pt-4">
                                     <button type="button" onclick="closeConfigModal()" class="px-4 py-2 text-gray-600 border rounded hover:bg-gray-50">Abbrechen</button>
