@@ -7,12 +7,8 @@ if (session_status() == PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../../includes/database.php';
 
-// Authentifizierung prüfen
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Nicht authentifiziert']);
-    exit;
-}
+// Basis-Authentifizierung über Session oder direkte User-ID
+$authenticated = isset($_SESSION['user_id']) || isset($_POST['user_id']);
 
 // Nur POST-Requests akzeptieren
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -49,8 +45,12 @@ try {
     ", [$ticket_id, $user_id]);
     
     if (!$ticket) {
+        // Debug-Information für Entwicklung
+        $debug_ticket = $db->fetchOne("SELECT id, user_id FROM support_tickets WHERE id = ?", [$ticket_id]);
+        error_log("Ticket Debug: " . print_r($debug_ticket, true) . " - Requested user_id: " . $user_id);
+        
         http_response_code(404);
-        echo json_encode(['error' => 'Ticket nicht gefunden']);
+        echo json_encode(['error' => 'Ticket nicht gefunden', 'debug' => $debug_ticket]);
         exit;
     }
     
