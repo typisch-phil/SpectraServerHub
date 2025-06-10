@@ -248,6 +248,31 @@ renderHeader('SpectraHost - Premium Hosting Solutions');
 </section>
 
 <script>
+// API request helper
+async function apiRequest(url, method = 'GET', data = null) {
+    const options = {
+        method: method,
+        credentials: 'include',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    };
+    
+    if (data && method !== 'GET') {
+        options.body = JSON.stringify(data);
+    }
+    
+    const response = await fetch(url, options);
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+    
+    return await response.json();
+}
+
 // Load services on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadServices();
@@ -256,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadServices() {
     try {
-        const data = await apiRequest('/api/services');
+        const data = await apiRequest('/api/services.php');
         if (data.success) {
             renderServices(data.services);
         }
