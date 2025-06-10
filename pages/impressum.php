@@ -1,5 +1,5 @@
 <?php
-require_once '../includes/layout.php';
+// Impressum wird über index.php geladen - alle includes sind bereits verfügbar
 renderHeader('Impressum - SpectraHost');
 ?>
 

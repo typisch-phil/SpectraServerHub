@@ -1,10 +1,5 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-require_once '../includes/layout.php';
-require_once '../includes/auth.php';
-require_once '../includes/functions.php';
+// Dashboard wird über index.php geladen - alle includes sind bereits verfügbar
 
 // Check if user is logged in
 if (!isLoggedIn()) {

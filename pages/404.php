@@ -1,5 +1,5 @@
 <?php
-require_once '../includes/layout.php';
+// 404 wird über index.php geladen - alle includes sind bereits verfügbar
 renderHeader('Seite nicht gefunden - SpectraHost');
 ?>
 
