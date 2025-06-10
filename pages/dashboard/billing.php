@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/dashboard-layout.php';
+require_once __DIR__ . '/../../includes/mollie.php';
 
 $db = Database::getInstance();
 $user_id = $_SESSION['user_id'];
@@ -267,9 +268,7 @@ renderDashboardHeader('Billing - SpectraHost Dashboard', 'SpectraHost Billing - 
             <h3 class="text-lg font-semibold text-white">Guthaben aufladen</h3>
         </div>
         
-        <form method="POST" class="p-6 space-y-6">
-            <input type="hidden" name="action" value="topup">
-            
+        <form id="topupForm" class="p-6 space-y-6">
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Betrag auswählen</label>
                 <div class="grid grid-cols-3 gap-3 mb-4">
@@ -287,18 +286,30 @@ renderDashboardHeader('Billing - SpectraHost Dashboard', 'SpectraHost Billing - 
             
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-300 mb-2">Zahlungsmethode</label>
-                <select class="w-full border border-gray-600 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="mollie">Mollie (Kreditkarte, PayPal, etc.)</option>
-                    <option value="bank">Banküberweisung</option>
-                </select>
+                <div class="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-8 bg-blue-600 rounded flex items-center justify-center">
+                            <span class="text-white text-xs font-bold">M</span>
+                        </div>
+                        <div>
+                            <p class="text-white font-medium">Mollie Payments</p>
+                            <p class="text-sm text-gray-400">Kreditkarte, PayPal, Banküberweisung, iDEAL</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">
+                    <i class="fas fa-lock mr-1"></i>
+                    Sichere Zahlung über Mollie. Ihre Daten werden verschlüsselt übertragen.
+                </p>
             </div>
             
             <div class="flex justify-end space-x-3">
                 <button type="button" onclick="closeTopupModal()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
                     Abbrechen
                 </button>
-                <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                    Aufladen
+                <button type="submit" id="topupSubmitBtn" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <span id="topupBtnText">Zur Zahlung</span>
+                    <i id="topupLoader" class="fas fa-spinner fa-spin ml-2 hidden"></i>
                 </button>
             </div>
         </form>
