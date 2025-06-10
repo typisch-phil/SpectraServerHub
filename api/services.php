@@ -1,10 +1,12 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 header('Content-Type: application/json');
 
 try {
+    $db = Database::getInstance();
     $stmt = $db->prepare("SELECT * FROM services WHERE active = 1 ORDER BY name ASC");
     $stmt->execute();
     $services = $stmt->fetchAll(PDO::FETCH_ASSOC);

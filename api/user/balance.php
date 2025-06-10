@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/functions.php';
 
 header('Content-Type: application/json');
@@ -12,6 +13,7 @@ if (!isLoggedIn()) {
 }
 
 try {
+    $db = Database::getInstance();
     $user_id = $_SESSION['user']['id'];
     
     // Get current balance from database

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/functions.php';
 
 header('Content-Type: application/json');
@@ -20,6 +21,7 @@ if (!$payment_id) {
 }
 
 try {
+    $db = Database::getInstance();
     // Get payment from database
     $stmt = $db->prepare("SELECT * FROM payments WHERE id = ? AND user_id = ?");
     $stmt->execute([$payment_id, $_SESSION['user_id']]);

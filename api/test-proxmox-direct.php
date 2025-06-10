@@ -1,9 +1,11 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/database.php';
 
 header('Content-Type: application/json');
 
 try {
+    $db = Database::getInstance();
     // Get stored Proxmox configuration
     $stmt = $db->prepare("SELECT config FROM integrations WHERE name = 'proxmox'");
     $stmt->execute();

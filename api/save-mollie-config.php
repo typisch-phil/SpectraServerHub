@@ -1,9 +1,12 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/database.php';
 
 header('Content-Type: application/json');
 
 try {
+    $db = Database::getInstance();
+    
     // Use environment variable for Mollie API key
     $config = [
         'api_key' => $_ENV['MOLLIE_API_KEY'],
