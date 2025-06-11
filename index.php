@@ -63,8 +63,35 @@ $routes = [
     'impressum' => 'impressum'
 ];
 
+// Admin-Routing - spezielle Behandlung für /admin/ Ordner
+if (strpos($route, 'admin') === 0) {
+    $adminParts = explode('/', $route);
+    if (count($adminParts) == 1) {
+        // /admin -> /admin/index.php
+        $page = 'admin/index';
+    } else {
+        // Spezielle Admin-Routen
+        $adminRoutes = [
+            'users' => 'admin/users',
+            'services' => 'admin/services',
+            'orders' => 'admin/orders',
+            'tickets' => 'admin/tickets',
+            'settings' => 'admin/settings',
+            'ip-management' => 'admin/ip-management',
+            'proxmox' => 'admin/proxmox',
+            'logs' => 'admin/logs'
+        ];
+        
+        if (isset($adminRoutes[$adminParts[1]])) {
+            $page = $adminRoutes[$adminParts[1]];
+        } else {
+            // /admin/something -> /admin/something.php
+            $page = 'admin/' . $adminParts[1];
+        }
+    }
+}
 // Dashboard-Routing - spezielle Behandlung für /dashboard/ Ordner
-if (strpos($route, 'dashboard') === 0) {
+elseif (strpos($route, 'dashboard') === 0) {
     $dashboardParts = explode('/', $route);
     if (count($dashboardParts) == 1) {
         // /dashboard -> /dashboard/index.php
