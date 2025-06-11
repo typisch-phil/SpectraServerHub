@@ -155,7 +155,23 @@ class ProxmoxAPI {
         $endpoint = $type === 'lxc' ? 'lxc' : 'qemu';
         $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/{$endpoint}/{$vmid}/status/current";
         
-        return $this->makeRequest($url, 'GET');
+        $response = $this->makeRequest($url, 'GET');
+        return $response['data']['status'] ?? 'unknown';
+    }
+    
+    /**
+     * VM neu starten
+     */
+    public function restartVM($vmid, $type = 'lxc') {
+        if (!$this->authenticate()) {
+            return false;
+        }
+        
+        $endpoint = $type === 'lxc' ? 'lxc' : 'qemu';
+        $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/{$endpoint}/{$vmid}/status/reboot";
+        
+        $response = $this->makeRequest('POST', $url);
+        return $response !== false;
     }
     
     /**
@@ -235,6 +251,123 @@ class ProxmoxAPI {
         }
         
         return $decoded;
+    }
+    
+    /**
+     * VM-Konfiguration abrufen
+     */
+    public function getVMConfig($vmid) {
+        if (!$this->authenticate()) {
+            return null;
+        }
+        
+        $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/lxc/{$vmid}/config";
+        
+        $response = $this->makeRequest('GET', $url);
+        if ($response && isset($response['data'])) {
+            return $response['data'];
+        }
+        
+        return null;
+    }
+    
+    /**
+     * VM-Statistiken abrufen
+     */
+    public function getVMStats($vmid) {
+        if (!$this->authenticate()) {
+            return null;
+        }
+        
+        $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/lxc/{$vmid}/status/current";
+        
+        $response = $this->makeRequest('GET', $url);
+        if ($response && isset($response['data'])) {
+            return $response['data'];
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Passwort zurücksetzen
+     */
+    public function resetPassword($vmid, $user = 'root', $password = null) {
+        if (!$this->authenticate()) {
+            return false;
+        }
+        
+        if (!$password) {
+            $password = bin2hex(random_bytes(8));
+        }
+        
+        $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/lxc/{$vmid}/config";
+        
+        $data = [
+            'password' => $password,
+            'user' => $user
+        ];
+        
+        $response = $this->makeRequest('PUT', $url, $data);
+        return $response !== false ? $password : false;
+    }
+    
+    /**
+     * Betriebssystem neu installieren
+     */
+    public function reinstallOS($vmid, $ostemplate) {
+        if (!$this->authenticate()) {
+            return false;
+        }
+        
+        // Zuerst VM stoppen
+        $this->stopVM($vmid);
+        
+        // Warten bis VM gestoppt ist
+        sleep(5);
+        
+        // VM mit neuem Template neu erstellen
+        $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/lxc/{$vmid}/config";
+        
+        $data = [
+            'ostemplate' => $ostemplate,
+            'force' => 1
+        ];
+        
+        $response = $this->makeRequest('PUT', $url, $data);
+        
+        if ($response) {
+            // VM nach Neuinstallation starten
+            sleep(10);
+            $this->startVM($vmid);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Verfügbare OS-Templates abrufen
+     */
+    public function getOSTemplates() {
+        if (!$this->authenticate()) {
+            return [];
+        }
+        
+        $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/storage/local/content";
+        
+        $response = $this->makeRequest('GET', $url);
+        if ($response && isset($response['data'])) {
+            $templates = [];
+            foreach ($response['data'] as $item) {
+                if ($item['content'] === 'vztmpl') {
+                    $templates[$item['volid']] = $item['volid'];
+                }
+            }
+            return $templates;
+        }
+        
+        return [];
     }
 }
 ?>

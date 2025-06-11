@@ -363,6 +363,19 @@ renderHeader($pageTitle, $pageDescription);
                         </details>
                         <?php endif; ?>
                         
+                        <!-- Service Details Link -->
+                        <?php if ($service['category'] === 'vserver' && $service['proxmox_vmid']): ?>
+                        <div class="bg-purple-900/30 rounded-xl p-6 border border-purple-600">
+                            <h4 class="text-white font-semibold mb-4 flex items-center">
+                                <i class="fas fa-chart-line mr-2"></i>Server-Details
+                            </h4>
+                            <a href="/dashboard/service-details?id=<?php echo $service['id']; ?>" 
+                               class="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center">
+                                <i class="fas fa-eye mr-2"></i>Detailansicht öffnen
+                            </a>
+                        </div>
+                        <?php endif; ?>
+
                         <!-- General Service Actions -->
                         <div class="bg-gray-700/30 rounded-xl p-6 border border-gray-600">
                             <h4 class="text-white font-semibold mb-4 flex items-center">
