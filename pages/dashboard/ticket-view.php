@@ -291,7 +291,7 @@ $page_title = "Support Ticket #" . $ticket['id'];
                             <p class="text-blue-50 leading-relaxed"><?php echo nl2br(htmlspecialchars($ticket['description'])); ?></p>
                             <div class="mt-3 flex items-center text-xs text-blue-200">
                                 <i class="fas fa-clock mr-1"></i>
-                                <?php echo date('d.m.Y, H:i \U\h\r', strtotime($ticket['created_at'])); ?>
+                                <?php echo formatGermanDateTime($ticket['created_at']); ?>
                             </div>
                         </div>
                     </div>
@@ -327,7 +327,7 @@ $page_title = "Support Ticket #" . $ticket['id'];
                                 <p class="<?php echo $isStaff ? 'text-green-50' : 'text-blue-50'; ?> leading-relaxed whitespace-pre-wrap"><?php echo htmlspecialchars($message['message']); ?></p>
                                 <div class="mt-3 flex items-center text-xs <?php echo $isStaff ? 'text-green-200' : 'text-blue-200'; ?>">
                                     <i class="fas fa-clock mr-1"></i>
-                                    <?php echo date('d.m.Y, H:i \U\h\r', strtotime($message['created_at'])); ?>
+                                    <?php echo formatGermanDateTime($message['created_at']); ?>
                                     <?php if ($index === count($messages) - 1): ?>
                                         <span class="ml-2 px-2 py-1 bg-white bg-opacity-20 rounded-full text-xs">
                                             <i class="fas fa-clock mr-1"></i>Neueste Nachricht
