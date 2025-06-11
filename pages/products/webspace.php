@@ -11,7 +11,7 @@ renderHeader($pageTitle);
 $webspaceServices = [];
 try {
     $db = Database::getInstance();
-    $stmt = $db->prepare("SELECT * FROM service_types WHERE category = 'webspace' ORDER BY price ASC");
+    $stmt = $db->prepare("SELECT * FROM service_types WHERE category = 'webspace' ORDER BY id ASC");
     $stmt->execute();
     $webspaceServices = $stmt->fetchAll();
 } catch (Exception $e) {
@@ -20,7 +20,7 @@ try {
 }
 ?>
 
-<div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
+<div class="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center">
             <h1 class="text-4xl font-bold sm:text-5xl">
@@ -34,11 +34,11 @@ try {
 </div>
 
 <!-- Features Section -->
-<div class="py-16 bg-gray-50">
+<div class="py-16 bg-gray-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center">
-            <h2 class="text-3xl font-bold text-gray-900">Webspace Features</h2>
-            <p class="mt-4 text-lg text-gray-600">Alles was Sie für erfolgreiches Webhosting benötigen</p>
+            <h2 class="text-3xl font-bold text-white">Webspace Features</h2>
+            <p class="mt-4 text-lg text-gray-300">Alles was Sie für erfolgreiches Webhosting benötigen</p>
         </div>
         
         <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -46,32 +46,32 @@ try {
                 <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-rocket text-white text-xl"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900">SSD-Speicher</h3>
-                <p class="mt-2 text-gray-600">Ultraschnelle SSD-Festplatten für maximale Performance</p>
+                <h3 class="text-lg font-semibold text-white">SSD-Speicher</h3>
+                <p class="mt-2 text-gray-300">Ultraschnelle SSD-Festplatten für maximale Performance</p>
             </div>
             
             <div class="text-center">
                 <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-shield-alt text-white text-xl"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900">SSL-Zertifikate</h3>
-                <p class="mt-2 text-gray-600">Kostenlose SSL-Zertifikate für sichere Verbindungen</p>
+                <h3 class="text-lg font-semibold text-white">SSL-Zertifikate</h3>
+                <p class="mt-2 text-gray-300">Kostenlose SSL-Zertifikate für sichere Verbindungen</p>
             </div>
             
             <div class="text-center">
                 <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-database text-white text-xl"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900">MySQL Datenbanken</h3>
-                <p class="mt-2 text-gray-600">Unbegrenzte MySQL-Datenbanken inklusive</p>
+                <h3 class="text-lg font-semibold text-white">MySQL Datenbanken</h3>
+                <p class="mt-2 text-gray-300">Unbegrenzte MySQL-Datenbanken inklusive</p>
             </div>
             
             <div class="text-center">
                 <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-envelope text-white text-xl"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900">E-Mail Postfächer</h3>
-                <p class="mt-2 text-gray-600">Professionelle E-Mail-Adressen mit Ihrer Domain</p>
+                <h3 class="text-lg font-semibold text-white">E-Mail Postfächer</h3>
+                <p class="mt-2 text-gray-300">Professionelle E-Mail-Adressen mit Ihrer Domain</p>
             </div>
             
             <div class="text-center">

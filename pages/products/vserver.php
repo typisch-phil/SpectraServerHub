@@ -11,7 +11,7 @@ renderHeader($pageTitle);
 $vserverServices = [];
 try {
     $db = Database::getInstance();
-    $stmt = $db->prepare("SELECT * FROM service_types WHERE category = 'vserver' ORDER BY price ASC");
+    $stmt = $db->prepare("SELECT * FROM service_types WHERE category = 'vserver' ORDER BY id ASC");
     $stmt->execute();
     $vserverServices = $stmt->fetchAll();
 } catch (Exception $e) {
@@ -20,7 +20,7 @@ try {
 }
 ?>
 
-<div class="bg-gradient-to-r from-green-600 to-green-800 text-white py-20">
+<div class="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center">
             <h1 class="text-4xl font-bold sm:text-5xl">
