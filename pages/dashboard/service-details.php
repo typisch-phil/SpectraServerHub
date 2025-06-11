@@ -116,20 +116,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $vpsStatus = 'unknown';
 $vpsDetails = null;
 $vmStats = null;
+$serverConfig = null;
 
 try {
     $proxmox = new ProxmoxAPI();
     $vpsStatus = $proxmox->getVMStatus($service['proxmox_vmid']);
+    $vpsDetails = $proxmox->getVMConfig($service['proxmox_vmid']);
+    $vmStats = $proxmox->getVMStats($service['proxmox_vmid']);
     
-    // Falls getVMConfig und getVMStats nicht verfügbar sind, verwenden wir Fallback-Daten
-    if (method_exists($proxmox, 'getVMConfig')) {
-        $vpsDetails = $proxmox->getVMConfig($service['proxmox_vmid']);
-    }
-    if (method_exists($proxmox, 'getVMStats')) {
-        $vmStats = $proxmox->getVMStats($service['proxmox_vmid']);
+    // Server-Konfiguration aus den bestellten Spezifikationen laden
+    if ($service['order_specifications']) {
+        $serverConfig = json_decode($service['order_specifications'], true);
     }
 } catch (Exception $e) {
     error_log("Proxmox API Error: " . $e->getMessage());
+}
+
+// IP-Adresse aus Netzwerk-Konfiguration extrahieren
+$serverIP = 'Nicht zugewiesen';
+if ($vpsDetails && isset($vpsDetails['net0'])) {
+    if (preg_match('/ip=([^,\s]+)/', $vpsDetails['net0'], $matches)) {
+        $serverIP = $matches[1];
+    }
+}
+
+// Formatierungsfunktion für Bytes
+function formatBytes($bytes, $precision = 2) {
+    $units = array('B', 'KB', 'MB', 'GB', 'TB');
+    
+    for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+        $bytes /= 1024;
+    }
+    
+    return round($bytes, $precision) . ' ' . $units[$i];
 }
 
 // Verfügbare OS-Templates
@@ -293,44 +312,99 @@ renderHeader($pageTitle, $pageDescription);
                         <i class="fas fa-cog mr-3"></i>Server-Konfiguration
                     </h2>
                     
-                    <?php if ($vpsDetails): ?>
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="bg-gray-700/50 rounded-lg p-4">
-                            <div class="text-gray-400 text-sm">Betriebssystem</div>
-                            <div class="text-white font-semibold"><?php echo $vpsDetails['ostype'] ?? 'Unbekannt'; ?></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- IP-Adresse -->
+                        <div class="bg-gray-700/50 rounded-xl p-6 border border-gray-600">
+                            <div class="flex items-center mb-3">
+                                <i class="fas fa-globe text-blue-400 mr-3"></i>
+                                <div class="text-gray-400 text-sm font-medium">IP-Adresse</div>
+                            </div>
+                            <div class="text-white font-mono text-lg"><?php echo htmlspecialchars($serverIP); ?></div>
                         </div>
-                        <div class="bg-gray-700/50 rounded-lg p-4">
-                            <div class="text-gray-400 text-sm">CPU Kerne</div>
-                            <div class="text-white font-semibold"><?php echo $vpsDetails['cores'] ?? 'N/A'; ?></div>
-                        </div>
-                        <div class="bg-gray-700/50 rounded-lg p-4">
-                            <div class="text-gray-400 text-sm">Arbeitsspeicher</div>
-                            <div class="text-white font-semibold"><?php echo formatBytes(($vpsDetails['memory'] ?? 0) * 1024 * 1024); ?></div>
-                        </div>
-                        <div class="bg-gray-700/50 rounded-lg p-4">
-                            <div class="text-gray-400 text-sm">Festplatte</div>
-                            <div class="text-white font-semibold"><?php echo $vpsDetails['rootfs'] ?? 'N/A'; ?></div>
-                        </div>
-                        <?php if (isset($vpsDetails['net0'])): ?>
-                        <div class="bg-gray-700/50 rounded-lg p-4 col-span-2">
-                            <div class="text-gray-400 text-sm">IP-Adresse</div>
-                            <div class="text-white font-mono text-lg">
+                        
+                        <!-- CPU Kerne -->
+                        <div class="bg-gray-700/50 rounded-xl p-6 border border-gray-600">
+                            <div class="flex items-center mb-3">
+                                <i class="fas fa-microchip text-purple-400 mr-3"></i>
+                                <div class="text-gray-400 text-sm font-medium">CPU Kerne</div>
+                            </div>
+                            <div class="text-white font-semibold text-lg">
                                 <?php 
-                                // Extract IP from net0 configuration
-                                $net0 = $vpsDetails['net0'];
-                                if (preg_match('/ip=([^,]+)/', $net0, $matches)) {
-                                    echo $matches[1];
+                                if ($vmStats && isset($vmStats['cpus'])) {
+                                    echo $vmStats['cpus'] . ' Kerne';
+                                } elseif ($serverConfig && isset($serverConfig['cpu'])) {
+                                    echo $serverConfig['cpu'] . ' Kerne';
                                 } else {
-                                    echo 'DHCP';
+                                    echo 'N/A';
                                 }
                                 ?>
                             </div>
                         </div>
-                        <?php endif; ?>
-                    </div>
-                    <?php else: ?>
-                    <p class="text-gray-400">Konfigurationsdaten nicht verfügbar</p>
-                    <?php endif; ?>
+                        
+                        <!-- Arbeitsspeicher -->
+                        <div class="bg-gray-700/50 rounded-xl p-6 border border-gray-600">
+                            <div class="flex items-center mb-3">
+                                <i class="fas fa-memory text-blue-400 mr-3"></i>
+                                <div class="text-gray-400 text-sm font-medium">Arbeitsspeicher</div>
+                            </div>
+                            <div class="text-white font-semibold text-lg">
+                                <?php 
+                                if ($vmStats && isset($vmStats['maxmem'])) {
+                                    echo formatBytes($vmStats['maxmem']);
+                                } elseif ($serverConfig && isset($serverConfig['ram'])) {
+                                    echo $serverConfig['ram'] . ' GB';
+                                } else {
+                                    echo 'N/A';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                        
+                        <!-- SSD Speicher -->
+                        <div class="bg-gray-700/50 rounded-xl p-6 border border-gray-600">
+                            <div class="flex items-center mb-3">
+                                <i class="fas fa-hdd text-green-400 mr-3"></i>
+                                <div class="text-gray-400 text-sm font-medium">SSD Speicher</div>
+                            </div>
+                            <div class="text-white font-semibold text-lg">
+                                <?php 
+                                if ($vmStats && isset($vmStats['maxdisk'])) {
+                                    echo formatBytes($vmStats['maxdisk']);
+                                } elseif ($serverConfig && isset($serverConfig['storage'])) {
+                                    echo $serverConfig['storage'] . ' GB';
+                                } else {
+                                    echo 'N/A';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                        
+                        <!-- Betriebssystem -->
+                        <div class="bg-gray-700/50 rounded-xl p-6 border border-gray-600">
+                            <div class="flex items-center mb-3">
+                                <i class="fab fa-linux text-orange-400 mr-3"></i>
+                                <div class="text-gray-400 text-sm font-medium">Betriebssystem</div>
+                            </div>
+                            <div class="text-white font-semibold text-lg">
+                                <?php 
+                                if ($vpsDetails && isset($vpsDetails['ostype'])) {
+                                    echo ucfirst($vpsDetails['ostype']);
+                                } else {
+                                    echo 'Debian 12';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                        
+                        <!-- VM-ID -->
+                        <div class="bg-gray-700/50 rounded-xl p-6 border border-gray-600">
+                            <div class="flex items-center mb-3">
+                                <i class="fas fa-server text-gray-400 mr-3"></i>
+                                <div class="text-gray-400 text-sm font-medium">VM-ID</div>
+                            </div>
+                            <div class="text-white font-mono text-lg"><?php echo $service['proxmox_vmid']; ?></div>
+                        </div>
+                </div>
                 </div>
             </div>
 

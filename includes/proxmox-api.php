@@ -184,7 +184,44 @@ class ProxmoxAPI {
         $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/{$endpoint}/{$vmid}/status/current";
         
         $response = $this->makeRequest($url, 'GET');
+        error_log("VPS {$vmid} status retrieved: " . ($response['data']['status'] ?? 'unknown'));
         return $response['data']['status'] ?? 'unknown';
+    }
+    
+    /**
+     * Holt die VM-Konfiguration
+     */
+    public function getVMConfig($vmid, $type = 'lxc') {
+        if (!$this->authenticate()) {
+            throw new Exception('Proxmox authentication failed');
+        }
+        
+        $endpoint = $type === 'lxc' ? 'lxc' : 'qemu';
+        $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/{$endpoint}/{$vmid}/config";
+        
+        $response = $this->makeRequest($url, 'GET');
+        return $response['data'] ?? null;
+    }
+    
+    /**
+     * Holt VM-Statistiken für Auslastung
+     */
+    public function getVMStats($vmid, $type = 'lxc') {
+        if (!$this->authenticate()) {
+            throw new Exception('Proxmox authentication failed');
+        }
+        
+        $endpoint = $type === 'lxc' ? 'lxc' : 'qemu';
+        $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/{$endpoint}/{$vmid}/status/current";
+        
+        $response = $this->makeRequest($url, 'GET');
+        error_log("VPS {$vmid} status retrieved: " . ($response['data']['status'] ?? 'unknown'));
+        
+        if (isset($response['data'])) {
+            return $response['data'];
+        }
+        
+        return null;
     }
     
     /**
