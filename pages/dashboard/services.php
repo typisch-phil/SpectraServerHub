@@ -133,8 +133,7 @@ if (!empty($services)) {
     }
 }
 
-// Layout-Header rendern (beginnt HTML-Ausgabe)
-startHTML($pageTitle, $pageDescription);
+renderHeader($pageTitle, $pageDescription);
 ?>
 
 <div class="min-h-screen bg-gray-900 py-8">
@@ -353,4 +352,4 @@ setTimeout(function() {
 }, 30000);
 </script>
 
-<?php endHTML(); ?>
+<?php renderFooter(); ?>
