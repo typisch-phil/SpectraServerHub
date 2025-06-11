@@ -482,6 +482,13 @@ async function viewTicket(ticketId) {
                 </div>
             </div>
             
+            <div class="border-t border-gray-600 pt-6 mb-6">
+                <h5 class="text-lg font-bold text-white mb-4">Anhänge</h5>
+                <div id="ticket-attachments-${ticket.id}" class="space-y-2">
+                    <!-- Anhänge werden hier geladen -->
+                </div>
+            </div>
+            
             <div class="border-t border-gray-600 pt-6">
                 <h5 class="text-lg font-bold text-white mb-4">Nachrichten (${ticket.messages.length})</h5>
                 <div class="space-y-4 max-h-64 overflow-y-auto">
@@ -523,6 +530,9 @@ async function viewTicket(ticketId) {
         `;
         
         document.getElementById('ticketModal').classList.remove('hidden');
+        
+        // Anhänge laden
+        loadAdminAttachments(ticketId);
     } catch (error) {
         alert('Fehler beim Laden des Tickets: ' + error.message);
     }
@@ -694,6 +704,61 @@ function formatFileSize(bytes) {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Anhänge für Admin-Ticket-Details laden
+async function loadAdminAttachments(ticketId) {
+    try {
+        const response = await fetch(`/api/admin/attachments.php?ticket_id=${ticketId}`);
+        const data = await response.json();
+        
+        if (response.ok && data.attachments) {
+            const container = document.getElementById(`ticket-attachments-${ticketId}`);
+            
+            if (data.attachments.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-sm">Keine Anhänge vorhanden</p>';
+                return;
+            }
+            
+            const attachmentHtml = data.attachments.map(attachment => {
+                const isImage = attachment.mime_type && attachment.mime_type.startsWith('image/');
+                const isPdf = attachment.mime_type === 'application/pdf';
+                
+                let icon = 'fas fa-file';
+                let iconColor = 'text-gray-400';
+                
+                if (isImage) {
+                    icon = 'fas fa-image';
+                    iconColor = 'text-blue-400';
+                } else if (isPdf) {
+                    icon = 'fas fa-file-pdf';
+                    iconColor = 'text-red-400';
+                }
+                
+                return `
+                    <div class="flex items-center space-x-3 bg-gray-800 rounded-lg p-3">
+                        <div class="flex-shrink-0">
+                            <i class="${icon} ${iconColor}"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-white text-sm font-medium truncate">${attachment.original_filename}</p>
+                            <p class="text-gray-400 text-xs">${formatFileSize(attachment.file_size)} - von ${attachment.uploaded_by_name || 'Unbekannt'}</p>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <a href="/dashboard/download?id=${attachment.id}" 
+                               class="text-blue-400 hover:text-blue-300" target="_blank">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = attachmentHtml;
+        }
+    } catch (error) {
+        console.error('Error loading attachments:', error);
+    }
 }
 
 // Drag and Drop für Admin-Upload
