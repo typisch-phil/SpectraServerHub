@@ -343,11 +343,11 @@ renderHeader($pageTitle, $pageDescription);
                     <div class="mb-4">
                         <label class="block text-gray-300 text-sm font-medium mb-2">Status ändern (optional)</label>
                         <select id="replyStatus" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500">
-                            <option value="">Status nicht ändern</option>
+                            <option value="waiting_customer">Warten auf Kunde (Standard)</option>
                             <option value="in_progress">In Bearbeitung</option>
-                            <option value="waiting_customer">Warten auf Kunde</option>
                             <option value="resolved">Gelöst</option>
                             <option value="closed">Geschlossen</option>
+                            <option value="">Status nicht ändern</option>
                         </select>
                     </div>
                     <div class="flex justify-end space-x-3">
@@ -501,7 +501,7 @@ function closeTicketModal() {
 function replyTicket(ticketId) {
     document.getElementById('replyTicketId').value = ticketId;
     document.getElementById('replyMessage').value = '';
-    document.getElementById('replyStatus').value = '';
+    document.getElementById('replyStatus').value = 'waiting_customer';
     document.getElementById('replyModal').classList.remove('hidden');
     closeTicketModal();
 }
