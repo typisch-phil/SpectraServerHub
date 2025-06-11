@@ -15,19 +15,19 @@ $user_id = $_SESSION['user_id'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $subject = trim($_POST['subject'] ?? '');
-        $description = trim($_POST['description'] ?? '');
+        $message = trim($_POST['message'] ?? '');
         $category = $_POST['category'] ?? 'general';
         $priority = $_POST['priority'] ?? 'medium';
         $service_id = !empty($_POST['service_id']) ? (int)$_POST['service_id'] : null;
         
-        if (empty($subject) || empty($description)) {
-            throw new Exception('Betreff und Beschreibung sind erforderlich');
+        if (empty($subject) || empty($message)) {
+            throw new Exception('Betreff und Nachricht sind erforderlich');
         }
         
         $ticket_id = $db->execute("
-            INSERT INTO support_tickets (user_id, service_id, subject, description, category, priority, status) 
-            VALUES (?, ?, ?, ?, ?, ?, 'open')
-        ", [$user_id, $service_id, $subject, $description, $category, $priority]);
+            INSERT INTO support_tickets (user_id, subject, message, priority, status, created_at, updated_at) 
+            VALUES (?, ?, ?, ?, 'open', NOW(), NOW())
+        ", [$user_id, $subject, $message, $priority]);
         
         header('Location: /dashboard/support?created=1');
         exit;
