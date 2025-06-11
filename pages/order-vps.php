@@ -65,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         $memory = $specs['memory'] ?? 2048;
         $cores = $specs['cores'] ?? 2;
         $disk = $specs['disk'] ?? 25;
+        $monthlyPrice = $package['monthly_price'] ?? 9.99;
         
         // Initialize Proxmox API
         $proxmox = new ProxmoxAPI();
@@ -77,17 +78,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         
         // Create order in database first
         $stmt = $db->prepare("
-            INSERT INTO orders (user_id, service_type_id, status, vmid, hostname, specifications, created_at) 
-            VALUES (?, ?, 'pending', ?, ?, ?, NOW())
+            INSERT INTO orders (user_id, service_id, total_amount, billing_period, status, notes, created_at) 
+            VALUES (?, ?, ?, 'monthly', 'pending', ?, NOW())
         ");
-        $orderSpecs = json_encode([
+        $orderNotes = json_encode([
+            'service_type' => 'vps',
+            'vmid' => $vmid,
+            'hostname' => $hostname,
             'memory' => $memory,
             'cores' => $cores,
             'disk' => $disk,
-            'os_template' => $osTemplate,
-            'hostname' => $hostname
+            'os_template' => $osTemplate
         ]);
-        $stmt->execute([$_SESSION['user_id'], $packageId, $vmid, $hostname, $orderSpecs]);
+        $stmt->execute([$_SESSION['user_id'], $packageId, $monthlyPrice, $orderNotes]);
         $orderId = $db->lastInsertId();
         
         // Create container in Proxmox
@@ -103,16 +106,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         $result = $proxmox->createContainer($vmid, $containerConfig);
         
         if ($result) {
-            // Update order status to active
-            $stmt = $db->prepare("UPDATE orders SET status = 'active', proxmox_vmid = ? WHERE id = ?");
-            $stmt->execute([$vmid, $orderId]);
+            // Update order status to paid (VPS is active)
+            $stmt = $db->prepare("UPDATE orders SET status = 'paid' WHERE id = ?");
+            $stmt->execute([$orderId]);
             
             // Create service entry
             $stmt = $db->prepare("
-                INSERT INTO services (user_id, service_type_id, order_id, status, vmid, hostname, root_password, created_at) 
-                VALUES (?, ?, ?, 'active', ?, ?, ?, NOW())
+                INSERT INTO services (user_id, name, service_type_id, monthly_price, server_ip, type, description, price, cpu_cores, memory_gb, storage_gb, status, created_at) 
+                VALUES (?, ?, ?, ?, NULL, 'vps', ?, ?, ?, ?, ?, 'active', NOW())
             ");
-            $stmt->execute([$_SESSION['user_id'], $packageId, $orderId, $vmid, $hostname, password_hash($rootPassword, PASSWORD_DEFAULT)]);
+            $stmt->execute([
+                $_SESSION['user_id'], 
+                $hostname, 
+                $packageId, 
+                $monthlyPrice, 
+                "VPS Server: {$hostname}",
+                $monthlyPrice,
+                $cores,
+                ($memory / 1024), // Convert MB to GB
+                $disk
+            ]);
             
             $orderSuccess = true;
             $_SESSION['order_vmid'] = $vmid;
