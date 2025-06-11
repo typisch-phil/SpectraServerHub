@@ -17,6 +17,8 @@ if (!isset($_GET['id'])) {
 }
 
 $ticket_id = (int)$_GET['id'];
+require_once __DIR__ . '/../../includes/database.php';
+require_once __DIR__ . '/../../includes/unread-notifications.php';
 $db = Database::getInstance();
 $user_id = $_SESSION['user_id'];
 
