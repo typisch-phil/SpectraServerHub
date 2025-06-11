@@ -118,9 +118,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // Services abrufen
 $db = Database::getInstance();
 $stmt = $db->prepare("
-    SELECT us.*, st.name as service_name, st.category, st.specifications, st.monthly_price 
+    SELECT us.*, 
+           COALESCE(st.name, 'Custom Service') as service_name, 
+           COALESCE(st.category, 'custom') as category, 
+           COALESCE(st.specifications, 'Individual Configuration') as specifications, 
+           COALESCE(st.monthly_price, 0) as monthly_price 
     FROM user_services us 
-    JOIN service_types st ON us.service_id = st.id 
+    LEFT JOIN service_types st ON us.service_id = st.id 
     WHERE us.user_id = ? 
     ORDER BY us.created_at DESC
 ");
