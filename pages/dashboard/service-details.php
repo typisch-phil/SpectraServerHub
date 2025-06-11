@@ -20,7 +20,7 @@ if (!$serviceId) {
 }
 
 // Database connection
-$db = new Database();
+$db = Database::getInstance();
 
 // Service-Details laden
 $stmt = $db->prepare("
