@@ -223,7 +223,9 @@ class ProxmoxAPI {
         $ch = curl_init();
         
         $headers = [
-            'Content-Type: application/x-www-form-urlencoded'
+            'Content-Type: application/x-www-form-urlencoded',
+            'Connection: close',
+            'Transfer-Encoding:'
         ];
         
         if ($auth && $this->ticket && $this->csrf_token) {
@@ -239,7 +241,10 @@ class ProxmoxAPI {
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_TIMEOUT => 30,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_USERAGENT => 'SpectraHost-Proxmox-Client/1.0'
+            CURLOPT_USERAGENT => 'SpectraHost-Proxmox-Client/1.0',
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_FORBID_REUSE => true,
+            CURLOPT_FRESH_CONNECT => true
         ]);
         
         // Debug logging
@@ -249,21 +254,34 @@ class ProxmoxAPI {
             case 'POST':
                 curl_setopt($ch, CURLOPT_POST, true);
                 if ($data) {
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+                    $postData = http_build_query($data);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+                    // Explizite Content-Length für Proxmox VE
+                    $headers[] = 'Content-Length: ' . strlen($postData);
+                } else {
+                    $headers[] = 'Content-Length: 0';
                 }
                 break;
                 
             case 'DELETE':
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
                 if ($data) {
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+                    $postData = http_build_query($data);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+                    $headers[] = 'Content-Length: ' . strlen($postData);
+                } else {
+                    $headers[] = 'Content-Length: 0';
                 }
                 break;
                 
             case 'PUT':
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
                 if ($data) {
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+                    $postData = http_build_query($data);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+                    $headers[] = 'Content-Length: ' . strlen($postData);
+                } else {
+                    $headers[] = 'Content-Length: 0';
                 }
                 break;
                 
@@ -274,6 +292,9 @@ class ProxmoxAPI {
                 }
                 break;
         }
+        
+        // Header nach POST-Daten setzen
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
