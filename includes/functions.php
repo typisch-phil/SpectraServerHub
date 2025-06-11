@@ -54,8 +54,9 @@ function formatBytes($size, $precision = 2) {
 }
 
 function timeAgo($datetime, $full = false) {
-    $now = new DateTime;
+    $now = new DateTime('now', new DateTimeZone('Europe/Berlin'));
     $ago = new DateTime($datetime);
+    $ago->setTimezone(new DateTimeZone('Europe/Berlin'));
     $diff = $now->diff($ago);
 
     $diff->w = floor($diff->d / 7);

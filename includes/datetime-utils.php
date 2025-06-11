@@ -42,7 +42,7 @@ function getGermanDateTime($datetime = null) {
     }
 }
 
-function timeAgo($datetime) {
+function formatTimeAgo($datetime) {
     if (empty($datetime)) {
         return '';
     }
