@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['attachment'])) {
                 // In Datenbank speichern
                 try {
                     $stmt = $db->prepare("
-                        INSERT INTO ticket_attachments (ticket_id, original_filename, stored_filename, file_path, file_size, mime_type, uploaded_by, created_at)
+                        INSERT INTO ticket_attachments (ticket_id, original_filename, filename, file_path, file_size, mime_type, uploaded_by, created_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
                     ");
                     $stmt->execute([
@@ -71,7 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['attachment'])) {
                     $db->execute("UPDATE support_tickets SET status = 'waiting_support', updated_at = NOW() WHERE id = ?", [$ticket_id]);
                     
                 } catch (Exception $e) {
-                    $uploadError = 'Fehler beim Speichern der Datei';
+                    $uploadError = 'Fehler beim Speichern der Datei: ' . $e->getMessage();
+                    error_log("Upload error: " . $e->getMessage());
                     if (file_exists($file_path)) {
                         unlink($file_path);
                     }
@@ -138,7 +139,7 @@ $messages = $db->fetchAll("
 
 // Ticket-Anhänge abrufen
 $attachments = $db->fetchAll("
-    SELECT a.*, 
+    SELECT a.id, a.ticket_id, a.original_filename, a.filename, a.file_path, a.file_size, a.mime_type, a.uploaded_by, a.created_at,
            CONCAT(u.first_name, ' ', u.last_name) as uploaded_by_name
     FROM ticket_attachments a
     LEFT JOIN users u ON a.uploaded_by = u.id
