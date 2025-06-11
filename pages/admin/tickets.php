@@ -341,6 +341,31 @@ renderHeader($pageTitle, $pageDescription);
                         <textarea id="replyMessage" rows="6" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" placeholder="Ihre Antwort..." required></textarea>
                     </div>
                     <div class="mb-4">
+                        <label class="block text-gray-300 text-sm font-medium mb-2">Anhang hinzufügen (optional)</label>
+                        <div class="relative">
+                            <input type="file" id="adminAttachment" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt" 
+                                   class="hidden" onchange="updateAdminFileName(this)">
+                            <label for="adminAttachment" class="flex items-center justify-center w-full px-4 py-3 bg-gray-700 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:bg-gray-600 hover:border-gray-500 transition-colors">
+                                <div class="text-center">
+                                    <i class="fas fa-cloud-upload-alt text-gray-400 text-xl mb-1"></i>
+                                    <p class="text-gray-300 text-sm">Datei auswählen</p>
+                                    <p class="text-gray-400 text-xs">JPG, PNG, GIF, PDF, TXT - Max. 5MB</p>
+                                </div>
+                            </label>
+                            <div id="admin-file-info" class="mt-2 hidden">
+                                <div class="flex items-center justify-between bg-gray-800 px-3 py-2 rounded-lg">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-file text-blue-400 mr-2"></i>
+                                        <span id="admin-file-name" class="text-white text-sm"></span>
+                                    </div>
+                                    <button type="button" onclick="removeAdminFile()" class="text-red-400 hover:text-red-300">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
                         <label class="block text-gray-300 text-sm font-medium mb-2">Status ändern (optional)</label>
                         <select id="replyStatus" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500">
                             <option value="waiting_customer">Warten auf Kunde (Standard)</option>
@@ -538,23 +563,25 @@ document.getElementById('replyForm').addEventListener('submit', async function(e
     const ticketId = document.getElementById('replyTicketId').value;
     const message = document.getElementById('replyMessage').value;
     const status = document.getElementById('replyStatus').value;
+    const fileInput = document.getElementById('adminAttachment');
     
-    const data = {
-        ticket_id: parseInt(ticketId),
-        message: message
-    };
+    // FormData für File-Upload
+    const formData = new FormData();
+    formData.append('ticket_id', ticketId);
+    formData.append('message', message.trim());
     
     if (status) {
-        data.status = status;
+        formData.append('status', status);
+    }
+    
+    if (fileInput.files[0]) {
+        formData.append('attachment', fileInput.files[0]);
     }
     
     try {
-        const response = await fetch('/api/admin/tickets.php', {
+        const response = await fetch('/api/admin/upload-reply.php', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
+            body: formData
         });
         
         const result = await response.json();
@@ -637,6 +664,63 @@ document.addEventListener('DOMContentLoaded', function() {
                 url.searchParams.delete('priority');
             }
             window.location.href = url.toString();
+        });
+    }
+});
+
+// Admin Upload-Funktionen
+function updateAdminFileName(input) {
+    const fileInfo = document.getElementById('admin-file-info');
+    const fileName = document.getElementById('admin-file-name');
+    
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        fileName.textContent = file.name + ' (' + formatFileSize(file.size) + ')';
+        fileInfo.classList.remove('hidden');
+    }
+}
+
+function removeAdminFile() {
+    const fileInput = document.getElementById('adminAttachment');
+    const fileInfo = document.getElementById('admin-file-info');
+    
+    fileInput.value = '';
+    fileInfo.classList.add('hidden');
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Drag and Drop für Admin-Upload
+document.addEventListener('DOMContentLoaded', function() {
+    const adminDropZone = document.querySelector('label[for="adminAttachment"]');
+    
+    if (adminDropZone) {
+        adminDropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('border-blue-500', 'bg-gray-600');
+        });
+        
+        adminDropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('border-blue-500', 'bg-gray-600');
+        });
+        
+        adminDropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('border-blue-500', 'bg-gray-600');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const fileInput = document.getElementById('adminAttachment');
+                fileInput.files = files;
+                updateAdminFileName(fileInput);
+            }
         });
     }
 });
