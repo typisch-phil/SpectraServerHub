@@ -1,8 +1,8 @@
 <?php
-require_once '../includes/auth.php';
-require_once '../includes/database.php';
-require_once '../includes/layout.php';
-require_once '../includes/proxmox-api.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/database.php';
+require_once __DIR__ . '/../../includes/layout.php';
+require_once __DIR__ . '/../../includes/proxmox-api.php';
 
 // Benutzer-Authentifizierung überprüfen
 if (!isset($_SESSION['user_id'])) {
