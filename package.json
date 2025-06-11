@@ -7,6 +7,15 @@
     "dev": "node server.js",
     "start": "node server.js"
   },
-  "keywords": ["hosting", "servers", "php"],
-  "license": "MIT"
+  "keywords": [
+    "hosting",
+    "servers",
+    "php"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@stripe/react-stripe-js": "^3.7.0",
+    "@stripe/stripe-js": "^7.3.1",
+    "stripe": "^18.2.1"
+  }
 }
