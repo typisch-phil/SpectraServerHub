@@ -114,11 +114,11 @@ try {
     
     // Ticket-Status aktualisieren
     if (!empty($status)) {
-        $stmt = $db->prepare("UPDATE support_tickets SET status = ?, admin_last_seen = NOW(), updated_at = NOW() WHERE id = ?");
+        $stmt = $db->prepare("UPDATE support_tickets SET status = ?, updated_at = NOW() WHERE id = ?");
         $stmt->execute([$status, $ticketId]);
     } else {
         // Standard: waiting_customer wenn Admin antwortet
-        $stmt = $db->prepare("UPDATE support_tickets SET status = 'waiting_customer', admin_last_seen = NOW(), updated_at = NOW() WHERE id = ?");
+        $stmt = $db->prepare("UPDATE support_tickets SET status = 'waiting_customer', updated_at = NOW() WHERE id = ?");
         $stmt->execute([$ticketId]);
     }
     
