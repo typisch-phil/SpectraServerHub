@@ -49,6 +49,8 @@ $routes = [
     'products/domain' => 'products/domain',
     'products/domains' => 'products/domain',
     'products/gameserver' => 'products/gameserver',
+    'order' => 'order',
+    'bestellen' => 'order',
     'contact' => 'contact',
     'impressum' => 'impressum'
 ];
