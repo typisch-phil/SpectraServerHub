@@ -5,9 +5,15 @@ if (session_status() == PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/includes/database.php';
 
+// Debug: Prüfe ob die Datei gefunden wird
+if (!file_exists(__DIR__ . '/includes/database.php')) {
+    echo "Database include nicht gefunden. Pfad: " . __DIR__ . '/includes/database.php';
+    exit;
+}
+
 // Benutzer-Authentifizierung prüfen
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
+    echo "Nicht eingeloggt - User ID: " . ($_SESSION['user_id'] ?? 'nicht gesetzt');
     exit;
 }
 

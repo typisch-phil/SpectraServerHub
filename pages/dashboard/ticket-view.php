@@ -407,7 +407,7 @@ function formatFileSize($bytes) {
                                             <p class="text-blue-200 text-xs"><?php echo formatFileSize($attachment['file_size']); ?></p>
                                         </div>
                                         <div class="flex-shrink-0">
-                                            <a href="/view-attachment.php?id=<?php echo $attachment['id']; ?>" 
+                                            <a href="/dashboard/download?id=<?php echo $attachment['id']; ?>" 
                                                class="text-blue-300 hover:text-blue-200" target="_blank">
                                                 <i class="fas fa-download"></i>
                                             </a>
