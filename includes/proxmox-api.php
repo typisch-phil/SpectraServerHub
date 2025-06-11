@@ -20,7 +20,7 @@ class ProxmoxAPI {
         
         if (empty($this->host) || empty($this->username) || empty($this->password)) {
             error_log("Proxmox credentials missing: HOST={$this->host}, USER={$this->username}, NODE={$this->node}");
-            throw new Exception('Proxmox credentials not configured');
+            // Nur warnen, nicht fehlschlagen lassen
         }
     }
     
@@ -28,6 +28,16 @@ class ProxmoxAPI {
      * Authentifizierung bei Proxmox VE
      */
     public function authenticate() {
+        // Prüfe ob Credentials verfügbar sind
+        if (empty($this->host) || empty($this->username) || empty($this->password)) {
+            error_log("Proxmox credentials not configured - authentication skipped");
+            return false;
+        }
+
+        if ($this->ticket && $this->csrf_token) {
+            return true;
+        }
+        
         $url = "https://{$this->host}:8006/api2/json/access/ticket";
         
         $data = [
@@ -35,12 +45,17 @@ class ProxmoxAPI {
             'password' => $this->password
         ];
         
-        $response = $this->makeRequest($url, 'POST', $data, false);
-        
-        if ($response && isset($response['data'])) {
-            $this->ticket = $response['data']['ticket'];
-            $this->csrf_token = $response['data']['CSRFPreventionToken'];
-            return true;
+        try {
+            $response = $this->makeRequest($url, 'POST', $data, false);
+            
+            if ($response && isset($response['data'])) {
+                $this->ticket = $response['data']['ticket'];
+                $this->csrf_token = $response['data']['CSRFPreventionToken'];
+                error_log("Proxmox authentication successful for {$this->username}");
+                return true;
+            }
+        } catch (Exception $e) {
+            error_log("Proxmox authentication failed: " . $e->getMessage());
         }
         
         return false;
