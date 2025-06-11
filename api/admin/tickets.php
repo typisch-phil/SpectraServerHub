@@ -56,7 +56,11 @@ try {
                            CASE 
                                WHEN tm.is_admin_reply = 1 THEN au.email
                                ELSE u.email
-                           END as author_email
+                           END as author_email,
+                           CASE 
+                               WHEN tm.is_admin_reply = 1 THEN 'Support Team'
+                               ELSE 'Kunde'
+                           END as author_role
                     FROM ticket_messages tm
                     LEFT JOIN users u ON tm.user_id = u.id
                     LEFT JOIN users au ON tm.admin_id = au.id
@@ -162,7 +166,8 @@ try {
             $newMessage = $db->fetchOne("
                 SELECT tm.*, 
                        CONCAT(u.first_name, ' ', u.last_name) as author_name,
-                       u.email as author_email
+                       u.email as author_email,
+                       'Support Team' as author_role
                 FROM ticket_messages tm
                 LEFT JOIN users u ON tm.admin_id = u.id
                 WHERE tm.id = ?

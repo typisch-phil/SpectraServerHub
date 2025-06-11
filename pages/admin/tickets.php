@@ -461,16 +461,25 @@ async function viewTicket(ticketId) {
                 <h5 class="text-lg font-bold text-white mb-4">Nachrichten (${ticket.messages.length})</h5>
                 <div class="space-y-4 max-h-64 overflow-y-auto">
                     ${ticket.messages.map(message => `
-                        <div class="bg-${message.is_admin_reply ? 'blue-900/30 border-blue-700' : 'gray-700'} rounded-lg p-4 border">
-                            <div class="flex justify-between items-start mb-2">
-                                <span class="font-medium text-white">
-                                    ${message.author_name} ${message.is_admin_reply ? '(Admin)' : ''}
-                                </span>
+                        <div class="relative ${message.is_admin_reply ? 'bg-gradient-to-r from-blue-900/30 to-blue-800/30 border border-blue-600' : 'bg-gray-700 border border-gray-600'} rounded-lg p-4">
+                            ${message.is_admin_reply ? '<div class="absolute -top-2 -left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center"><i class="fas fa-headset mr-1"></i>Support Team</div>' : ''}
+                            <div class="flex justify-between items-start mb-2 ${message.is_admin_reply ? 'mt-2' : ''}">
+                                <div class="flex items-center">
+                                    <span class="font-medium text-white flex items-center">
+                                        ${message.is_admin_reply ? '<i class="fas fa-user-shield text-blue-400 mr-2"></i>' : '<i class="fas fa-user text-gray-400 mr-2"></i>'}
+                                        ${message.author_name}
+                                    </span>
+                                    <span class="ml-2 px-2 py-1 text-xs rounded-full ${message.is_admin_reply ? 'bg-blue-600 text-white' : 'bg-gray-600 text-gray-300'}">
+                                        ${message.is_admin_reply ? 'Support Team' : 'Kunde'}
+                                    </span>
+                                </div>
                                 <span class="text-gray-400 text-sm">
                                     ${new Date(message.created_at).toLocaleString('de-DE')}
                                 </span>
                             </div>
-                            <p class="text-gray-300">${message.message}</p>
+                            <div class="pl-6">
+                                <p class="text-gray-300">${message.message}</p>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
