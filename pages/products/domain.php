@@ -4,222 +4,279 @@ require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/layout.php';
 
-$pageTitle = 'Domain - SpectraHost';
-renderHeader($pageTitle);
+$pageTitle = 'Domain-Registrierung - Über 500 TLDs verfügbar - SpectraHost';
+$pageDescription = 'Registrieren Sie Ihre Wunschdomain aus über 500 verfügbaren Endungen. DNS-Management, Domain-Transfer und Whois-Privacy inklusive.';
 
 // Get domain services from s9281_spectrahost database
 $domainServices = [];
 try {
     $db = Database::getInstance();
-    $stmt = $db->prepare("SELECT * FROM service_types WHERE category = 'domain' ORDER BY price ASC");
+    $stmt = $db->prepare("SELECT * FROM service_types WHERE category = 'domain' ORDER BY id ASC");
     $stmt->execute();
     $domainServices = $stmt->fetchAll();
 } catch (Exception $e) {
     error_log("Database error in domain.php: " . $e->getMessage());
     $domainServices = [];
 }
+
+renderHeader($pageTitle, $pageDescription);
 ?>
 
-<div class="bg-gradient-to-r from-orange-600 to-orange-800 text-white py-20">
+<div class="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center">
             <h1 class="text-4xl font-bold sm:text-5xl">
-                Domain Registration
+                Domain-Registrierung
             </h1>
-            <p class="mt-6 text-xl text-orange-100 max-w-3xl mx-auto">
-                Sichern Sie sich Ihre perfekte Domain. Über 500 TLDs verfügbar mit kostenlosem DNS-Management und WHOIS-Schutz.
+            <p class="mt-6 text-xl text-gray-300 max-w-3xl mx-auto">
+                Sichern Sie sich Ihre perfekte Domain aus über 500 verfügbaren Endungen. Professionelles DNS-Management inklusive.
             </p>
         </div>
     </div>
 </div>
 
 <!-- Domain Search -->
-<div class="py-16 bg-white">
+<div class="py-16 bg-gray-900">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center">
-            <h2 class="text-3xl font-bold text-gray-900">Finden Sie Ihre perfekte Domain</h2>
-            <p class="mt-4 text-lg text-gray-600">Prüfen Sie die Verfügbarkeit Ihrer Wunschdomain</p>
-        </div>
-        
-        <div class="mt-8">
-            <div class="flex flex-col sm:flex-row gap-4">
+        <div class="bg-gray-800 rounded-xl p-8 border border-gray-700">
+            <h2 class="text-2xl font-bold text-white text-center mb-6">Domain-Verfügbarkeit prüfen</h2>
+            <div class="flex flex-col md:flex-row gap-4">
                 <div class="flex-1">
                     <input type="text" placeholder="Ihre Wunschdomain eingeben..." 
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-lg">
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
-                <button class="px-8 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium">
-                    Domain suchen
+                <button class="bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors">
+                    <i class="fas fa-search mr-2"></i>Suchen
                 </button>
-            </div>
-            
-            <div class="mt-4 flex flex-wrap gap-2 justify-center">
-                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">.de</span>
-                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">.com</span>
-                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">.org</span>
-                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">.net</span>
-                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">.eu</span>
-                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">.info</span>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Popular TLDs -->
-<div class="py-16 bg-gray-50">
+<div class="py-16 bg-gray-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center">
-            <h2 class="text-3xl font-bold text-gray-900">Beliebte Domain-Endungen</h2>
-            <p class="mt-4 text-lg text-gray-600">Attraktive Preise für alle gängigen TLDs</p>
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white">Beliebte Domain-Endungen</h2>
+            <p class="mt-4 text-lg text-gray-300">Die gefragtesten TLDs zu Top-Preisen</p>
         </div>
         
-        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <?php if (empty($domainServices)): ?>
-                <!-- Fallback Domain-Preise wenn keine Daten aus DB -->
-                <div class="bg-white rounded-lg p-6 text-center border hover:shadow-lg transition-shadow">
-                    <h3 class="text-2xl font-bold text-gray-900">.de</h3>
-                    <p class="text-3xl font-bold text-orange-600 mt-2">€8.99</p>
-                    <p class="text-gray-600 mt-1">pro Jahr</p>
-                    <button class="mt-4 w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
-                        Registrieren
-                    </button>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-gray-700 rounded-lg p-6 text-center border border-gray-600">
+                <h3 class="text-2xl font-bold text-white">.de</h3>
+                <p class="text-gray-300 mt-2">Deutschland</p>
+                <div class="mt-4">
+                    <span class="text-2xl font-bold text-orange-400">€0,99</span>
+                    <span class="text-gray-400 text-sm">/Jahr</span>
                 </div>
-                
-                <div class="bg-white rounded-lg p-6 text-center border hover:shadow-lg transition-shadow">
-                    <h3 class="text-2xl font-bold text-gray-900">.com</h3>
-                    <p class="text-3xl font-bold text-orange-600 mt-2">€12.99</p>
-                    <p class="text-gray-600 mt-1">pro Jahr</p>
-                    <button class="mt-4 w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
-                        Registrieren
-                    </button>
+                <button class="mt-4 w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
+                    Registrieren
+                </button>
+            </div>
+            
+            <div class="bg-gray-700 rounded-lg p-6 text-center border border-gray-600">
+                <h3 class="text-2xl font-bold text-white">.com</h3>
+                <p class="text-gray-300 mt-2">International</p>
+                <div class="mt-4">
+                    <span class="text-2xl font-bold text-orange-400">€12,99</span>
+                    <span class="text-gray-400 text-sm">/Jahr</span>
                 </div>
-                
-                <div class="bg-white rounded-lg p-6 text-center border hover:shadow-lg transition-shadow">
-                    <h3 class="text-2xl font-bold text-gray-900">.org</h3>
-                    <p class="text-3xl font-bold text-orange-600 mt-2">€14.99</p>
-                    <p class="text-gray-600 mt-1">pro Jahr</p>
-                    <button class="mt-4 w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
-                        Registrieren
-                    </button>
+                <button class="mt-4 w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
+                    Registrieren
+                </button>
+            </div>
+            
+            <div class="bg-gray-700 rounded-lg p-6 text-center border border-gray-600">
+                <h3 class="text-2xl font-bold text-white">.org</h3>
+                <p class="text-gray-300 mt-2">Organisation</p>
+                <div class="mt-4">
+                    <span class="text-2xl font-bold text-orange-400">€14,99</span>
+                    <span class="text-gray-400 text-sm">/Jahr</span>
                 </div>
-                
-                <div class="bg-white rounded-lg p-6 text-center border hover:shadow-lg transition-shadow">
-                    <h3 class="text-2xl font-bold text-gray-900">.net</h3>
-                    <p class="text-3xl font-bold text-orange-600 mt-2">€15.99</p>
-                    <p class="text-gray-600 mt-1">pro Jahr</p>
-                    <button class="mt-4 w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
-                        Registrieren
-                    </button>
+                <button class="mt-4 w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
+                    Registrieren
+                </button>
+            </div>
+            
+            <div class="bg-gray-700 rounded-lg p-6 text-center border border-gray-600">
+                <h3 class="text-2xl font-bold text-white">.net</h3>
+                <p class="text-gray-300 mt-2">Netzwerk</p>
+                <div class="mt-4">
+                    <span class="text-2xl font-bold text-orange-400">€15,99</span>
+                    <span class="text-gray-400 text-sm">/Jahr</span>
                 </div>
-            <?php else: ?>
-                <?php foreach ($domainServices as $service): ?>
-                <div class="bg-white rounded-lg p-6 text-center border hover:shadow-lg transition-shadow">
-                    <h3 class="text-2xl font-bold text-gray-900"><?php echo htmlspecialchars($service['name']); ?></h3>
-                    <p class="text-3xl font-bold text-orange-600 mt-2">€<?php echo number_format($service['price'], 2); ?></p>
-                    <p class="text-gray-600 mt-1">pro Jahr</p>
-                    <button class="mt-4 w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
-                        Registrieren
-                    </button>
-                </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                <button class="mt-4 w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
+                    Registrieren
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Features -->
-<div class="py-16 bg-white">
+<div class="py-16 bg-gray-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center">
-            <h2 class="text-3xl font-bold text-gray-900">Domain Features</h2>
-            <p class="mt-4 text-lg text-gray-600">Alles inklusive für Ihre Domain-Verwaltung</p>
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white">Domain-Features</h2>
+            <p class="mt-4 text-lg text-gray-300">Professionelle Domain-Services inklusive</p>
         </div>
         
-        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div class="text-center">
                 <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-dns text-white text-xl"></i>
+                    <i class="fas fa-cogs text-white text-xl"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900">DNS-Management</h3>
-                <p class="mt-2 text-gray-600">Professionelles DNS mit Web-Interface</p>
+                <h3 class="text-lg font-semibold text-white">DNS-Management</h3>
+                <p class="mt-2 text-gray-300">Vollständige Kontrolle über Ihre DNS-Einstellungen</p>
             </div>
             
             <div class="text-center">
                 <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-shield-alt text-white text-xl"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900">WHOIS-Schutz</h3>
-                <p class="mt-2 text-gray-600">Kostenloser Schutz Ihrer persönlichen Daten</p>
+                <h3 class="text-lg font-semibold text-white">Whois-Privacy</h3>
+                <p class="mt-2 text-gray-300">Schutz Ihrer persönlichen Daten im Whois</p>
             </div>
             
             <div class="text-center">
                 <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-sync-alt text-white text-xl"></i>
+                    <i class="fas fa-exchange-alt text-white text-xl"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900">Domain Transfer</h3>
-                <p class="mt-2 text-gray-600">Einfacher Transfer von anderen Anbietern</p>
+                <h3 class="text-lg font-semibold text-white">Domain-Transfer</h3>
+                <p class="mt-2 text-gray-300">Einfacher Transfer bestehender Domains</p>
             </div>
             
             <div class="text-center">
                 <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-envelope text-white text-xl"></i>
+                    <i class="fas fa-redo text-white text-xl"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900">E-Mail Forwarding</h3>
-                <p class="mt-2 text-gray-600">Kostenlose E-Mail-Weiterleitung</p>
-            </div>
-            
-            <div class="text-center">
-                <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-globe text-white text-xl"></i>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900">Subdomain-Support</h3>
-                <p class="mt-2 text-gray-600">Unbegrenzte Subdomains inklusive</p>
+                <h3 class="text-lg font-semibold text-white">Auto-Renewal</h3>
+                <p class="mt-2 text-gray-300">Automatische Verlängerung Ihrer Domains</p>
             </div>
             
             <div class="text-center">
                 <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-lock text-white text-xl"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900">Domain Lock</h3>
-                <p class="mt-2 text-gray-600">Schutz vor unbefugtem Transfer</p>
+                <h3 class="text-lg font-semibold text-white">Domain-Lock</h3>
+                <p class="mt-2 text-gray-300">Schutz vor unauthorisierten Transfers</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-headset text-white text-xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white">24/7 Support</h3>
+                <p class="mt-2 text-gray-300">Deutschsprachiger Support bei Fragen</p>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Domain Extensions -->
-<div class="py-16 bg-gray-50">
+<!-- TLD Categories -->
+<div class="py-16 bg-gray-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center">
-            <h2 class="text-3xl font-bold text-gray-900">Alle verfügbaren Domain-Endungen</h2>
-            <p class="mt-4 text-lg text-gray-600">Über 500 TLDs für jeden Zweck</p>
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white">Domain-Kategorien</h2>
+            <p class="mt-4 text-lg text-gray-300">Über 500 Domain-Endungen verfügbar</p>
         </div>
         
-        <div class="mt-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <?php 
-            $tlds = ['.de', '.com', '.org', '.net', '.info', '.biz', '.eu', '.at', '.ch', '.uk', '.fr', '.it', '.es', '.nl', '.be', '.pl', '.cz', '.shop', '.store', '.online', '.tech', '.app', '.dev', '.io'];
-            foreach ($tlds as $tld): ?>
-            <div class="bg-white rounded-lg p-4 text-center border hover:shadow-md transition-shadow">
-                <span class="font-mono font-bold text-lg"><?php echo $tld; ?></span>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                <i class="fas fa-globe text-blue-400 text-2xl mb-4"></i>
+                <h3 class="text-lg font-semibold text-white mb-2">Generic</h3>
+                <p class="text-gray-300 text-sm mb-4">Internationale Domains für jeden Zweck</p>
+                <div class="text-xs text-gray-400">
+                    .com, .net, .org, .info, .biz
+                </div>
+            </div>
+            
+            <div class="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                <i class="fas fa-flag text-green-400 text-2xl mb-4"></i>
+                <h3 class="text-lg font-semibold text-white mb-2">Länder</h3>
+                <p class="text-gray-300 text-sm mb-4">Länderspezifische Domain-Endungen</p>
+                <div class="text-xs text-gray-400">
+                    .de, .at, .ch, .uk, .fr, .es
+                </div>
+            </div>
+            
+            <div class="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                <i class="fas fa-briefcase text-purple-400 text-2xl mb-4"></i>
+                <h3 class="text-lg font-semibold text-white mb-2">Business</h3>
+                <p class="text-gray-300 text-sm mb-4">Professionelle Business-Domains</p>
+                <div class="text-xs text-gray-400">
+                    .company, .business, .shop, .store
+                </div>
+            </div>
+            
+            <div class="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                <i class="fas fa-palette text-orange-400 text-2xl mb-4"></i>
+                <h3 class="text-lg font-semibold text-white mb-2">Kreativ</h3>
+                <p class="text-gray-300 text-sm mb-4">Domains für kreative Projekte</p>
+                <div class="text-xs text-gray-400">
+                    .design, .art, .photo, .blog
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Database Services -->
+<?php if (!empty($domainServices)): ?>
+<div class="py-16 bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white">Domain-Services</h2>
+            <p class="mt-4 text-lg text-gray-300">Unsere Domain-Pakete im Überblick</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <?php foreach ($domainServices as $service): ?>
+            <div class="border border-gray-600 rounded-lg p-6 hover:shadow-lg transition-shadow bg-gray-700">
+                <h3 class="text-xl font-semibold text-white"><?php echo htmlspecialchars($service['name']); ?></h3>
+                <p class="mt-2 text-gray-300"><?php echo htmlspecialchars($service['description'] ?? ''); ?></p>
+                <div class="mt-4">
+                    <span class="text-3xl font-bold text-white">€<?php echo number_format(floatval($service['monthly_price'] ?? $service['price'] ?? 0), 2); ?></span>
+                    <span class="text-gray-300">/Jahr</span>
+                </div>
+                <?php if (!empty($service['features'])): ?>
+                <ul class="mt-6 space-y-3">
+                    <?php 
+                    $features = is_string($service['features']) ? json_decode($service['features'], true) : $service['features'];
+                    if (is_array($features)):
+                        foreach ($features as $feature): ?>
+                    <li class="flex items-center text-gray-300">
+                        <i class="fas fa-check text-green-400 mr-2"></i>
+                        <?php echo htmlspecialchars($feature); ?>
+                    </li>
+                    <?php endforeach; endif; ?>
+                </ul>
+                <?php endif; ?>
+                <button class="mt-8 w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
+                    Jetzt registrieren
+                </button>
             </div>
             <?php endforeach; ?>
         </div>
-        
-        <div class="text-center mt-8">
-            <button class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
-                Alle TLDs anzeigen
-            </button>
-        </div>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- CTA Section -->
-<div class="bg-orange-600 py-16">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-3xl font-bold text-white">Bereit für Ihre neue Domain?</h2>
-        <p class="mt-4 text-xl text-orange-100">Registrieren Sie noch heute Ihre Wunschdomain</p>
-        <div class="mt-8">
-            <a href="/register" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-orange-600 bg-white hover:bg-orange-50 transition-colors">
-                Jetzt Domain registrieren
+<div class="py-20 bg-gradient-to-r from-orange-600 to-red-600">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold text-white mb-6">
+            Bereit für Ihre Domain?
+        </h2>
+        <p class="text-xl text-orange-100 mb-8">
+            Sichern Sie sich noch heute Ihre perfekte Domain bei SpectraHost.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/register" class="bg-white text-orange-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors">
+                <i class="fas fa-user-plus mr-2"></i>Jetzt registrieren
+            </a>
+            <a href="/contact" class="border-2 border-white text-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-orange-600 transition-colors">
+                <i class="fas fa-phone mr-2"></i>Beratung anfordern
             </a>
         </div>
     </div>
