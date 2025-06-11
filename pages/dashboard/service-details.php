@@ -353,7 +353,7 @@ renderHeader($pageTitle, $pageDescription);
                             <div class="text-gray-400 text-sm mb-1">Passwort</div>
                             <div class="flex items-center justify-between">
                                 <span class="text-white font-mono" id="password-display">
-                                    <?php echo $service['server_password'] ? str_repeat('•', 12) : 'Nicht gesetzt'; ?>
+                                    <?php echo isset($service['server_password']) && $service['server_password'] ? str_repeat('•', 12) : 'Nicht gesetzt'; ?>
                                 </span>
                                 <button onclick="togglePassword()" class="text-purple-400 hover:text-purple-300">
                                     <i class="fas fa-eye" id="password-toggle"></i>
