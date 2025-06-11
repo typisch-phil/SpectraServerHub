@@ -65,32 +65,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         // Create order in database
         $db = Database::getInstance();
         $stmt = $db->prepare("
-            INSERT INTO orders (user_id, service_type_id, status, hostname, specifications, created_at) 
-            VALUES (?, ?, 'pending', ?, ?, NOW())
+            INSERT INTO orders (user_id, service_id, total_amount, billing_period, status, notes, created_at) 
+            VALUES (?, ?, ?, 'yearly', 'paid', ?, NOW())
         ");
-        $orderSpecs = json_encode([
+        $orderNotes = json_encode([
+            'service_type' => 'domain',
             'domain' => $fullDomain,
             'tld' => $domainTld,
             'registration_years' => $registrationYears,
             'whois_privacy' => $whoisPrivacy,
             'annual_price' => $domainPrice,
             'whois_privacy_price' => $whoisPrivacyPrice,
-            'total_price' => $totalAnnualPrice,
-            'service_type' => 'domain'
+            'total_price' => $totalAnnualPrice
         ]);
-        $stmt->execute([$_SESSION['user_id'], 1, $fullDomain, $orderSpecs]); // Using service_type_id = 1 as fallback
+        $stmt->execute([$_SESSION['user_id'], 1, $totalAnnualPrice, $orderNotes]);
         $orderId = $db->lastInsertId();
         
-        // Update order status to active (domain registration handled separately)
-        $stmt = $db->prepare("UPDATE orders SET status = 'active' WHERE id = ?");
-        $stmt->execute([$orderId]);
-        
-        // Create service entry
+        // Create user service entry
+        $expiresAt = date('Y-m-d', strtotime("+{$registrationYears} years"));
         $stmt = $db->prepare("
-            INSERT INTO services (user_id, service_type_id, order_id, status, hostname, created_at) 
+            INSERT INTO user_services (user_id, service_id, server_name, status, expires_at, created_at) 
             VALUES (?, ?, ?, 'active', ?, NOW())
         ");
-        $stmt->execute([$_SESSION['user_id'], 1, $orderId, $fullDomain]);
+        $stmt->execute([$_SESSION['user_id'], 1, $fullDomain, $expiresAt]);
         
         $orderSuccess = true;
         $_SESSION['order_domain'] = $fullDomain;
@@ -103,8 +100,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         
         // Update order status to failed if order was created
         if (isset($orderId)) {
-            $stmt = $db->prepare("UPDATE orders SET status = 'failed', error_message = ? WHERE id = ?");
-            $stmt->execute([$e->getMessage(), $orderId]);
+            $stmt = $db->prepare("UPDATE orders SET status = 'failed', notes = ? WHERE id = ?");
+            $errorNotes = json_encode(['error' => $e->getMessage(), 'timestamp' => date('Y-m-d H:i:s')]);
+            $stmt->execute([$errorNotes, $orderId]);
         }
     }
 }
