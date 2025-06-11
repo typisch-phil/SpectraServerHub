@@ -119,10 +119,10 @@ renderHeader($pageTitle, $pageDescription);
                                 </span>
                             </td>
                             <td class="py-4 px-4">
-                                <div class="text-white font-medium">€<?php echo number_format($service['price'], 2); ?></div>
+                                <div class="text-white font-medium">€<?php echo number_format($service['monthly_price'] ?? 0, 2); ?></div>
                             </td>
                             <td class="py-4 px-4">
-                                <?php if ($service['active']): ?>
+                                <?php if ($service['is_active']): ?>
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-200">
                                         <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
                                         Aktiv

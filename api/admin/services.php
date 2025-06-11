@@ -53,7 +53,7 @@ try {
                 }
                 
                 if ($active !== '') {
-                    $query .= " AND active = ?";
+                    $query .= " AND is_active = ?";
                     $params[] = $active === 'true' ? 1 : 0;
                 }
                 
@@ -94,15 +94,15 @@ try {
             }
             
             $db->execute("
-                INSERT INTO service_types (name, category, description, price, specifications, active, created_at, updated_at) 
-                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                INSERT INTO service_types (name, category, description, monthly_price, specifications, is_active, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
             ", [
                 $input['name'],
                 $input['category'],
                 $input['description'] ?? '',
-                $input['price'] ?? 0.00,
+                $input['monthly_price'] ?? 0.00,
                 $specifications,
-                $input['active'] ?? 1
+                $input['is_active'] ?? 1
             ]);
             
             $serviceId = $db->lastInsertId();
@@ -149,9 +149,9 @@ try {
                 $params[] = $input['description'];
             }
             
-            if (isset($input['price'])) {
-                $updateFields[] = "price = ?";
-                $params[] = $input['price'];
+            if (isset($input['monthly_price'])) {
+                $updateFields[] = "monthly_price = ?";
+                $params[] = $input['monthly_price'];
             }
             
             if (isset($input['specifications'])) {
@@ -159,9 +159,9 @@ try {
                 $params[] = json_encode($input['specifications']);
             }
             
-            if (isset($input['active'])) {
-                $updateFields[] = "active = ?";
-                $params[] = $input['active'] ? 1 : 0;
+            if (isset($input['is_active'])) {
+                $updateFields[] = "is_active = ?";
+                $params[] = $input['is_active'] ? 1 : 0;
             }
             
             if (empty($updateFields)) {
