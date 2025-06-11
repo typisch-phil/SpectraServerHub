@@ -24,14 +24,13 @@ $db = Database::getInstance();
 
 // Service-Details laden
 $stmt = $db->prepare("
-    SELECT us.*, st.name as service_name, st.category, st.server_name, st.price 
+    SELECT us.*, st.name as service_name, st.category, st.price 
     FROM user_services us 
     JOIN service_types st ON us.service_id = st.id 
     WHERE us.id = ? AND us.user_id = ?
 ");
-$stmt->bind_param("ii", $serviceId, $userId);
-$stmt->execute();
-$service = $stmt->get_result()->fetch_assoc();
+$stmt->execute([$serviceId, $userId]);
+$service = $stmt->fetch();
 
 if (!$service) {
     header('Location: /dashboard/services');
@@ -61,8 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($result) {
                     // Passwort in Datenbank speichern
                     $stmt = $db->prepare("UPDATE user_services SET server_password = ? WHERE id = ?");
-                    $stmt->bind_param("si", $newPassword, $serviceId);
-                    $stmt->execute();
+                    $stmt->execute([$newPassword, $serviceId]);
                     
                     $actionMessage = "Passwort erfolgreich zurückgesetzt. Neues Passwort: $newPassword";
                     $actionType = 'success';
