@@ -43,6 +43,17 @@ $osTemplates = [
     'alpine-3.18' => 'Alpine Linux 3.18'
 ];
 
+// OS Template Mapping für Proxmox
+$osTemplateMapping = [
+    'ubuntu-22.04' => 'ubuntu-22.04-standard_amd64.tar.xz',
+    'ubuntu-20.04' => 'ubuntu-20.04-standard_amd64.tar.xz',
+    'debian-11' => 'debian-11-standard_amd64.tar.xz',
+    'debian-12' => 'debian-12-standard_12.7.1amd64.tar.zst',
+    'centos-9' => 'centos-9-default_amd64.tar.xz',
+    'rocky-9' => 'rocky-9-default_amd64.tar.xz',
+    'alpine-3.18' => 'alpine-3.18-default_amd64.tar.xz'
+];
+
 $orderMessage = '';
 $orderType = '';
 
@@ -126,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'memory' => $selectedRam * 1024, // MB
                 'cores' => $selectedCpu,
                 'rootfs' => "local:{$selectedStorage}",
-                'ostemplate' => "local:vztmpl/{$selectedOs}-standard_amd64.tar.xz",
+                'ostemplate' => "local:vztmpl/{$osTemplateMapping[$selectedOs]}",
                 'net0' => "name=eth0,bridge=vmbr0,ip={$availableIp['ip_address']}/24,gw={$availableIp['gateway']}",
                 'nameserver' => '8.8.8.8 8.8.4.4',
                 'password' => $serverPassword
