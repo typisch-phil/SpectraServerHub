@@ -15,13 +15,13 @@ $user_id = $_SESSION['user_id'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $subject = trim($_POST['subject'] ?? '');
-        $message = trim($_POST['message'] ?? '');
+        $description = trim($_POST['description'] ?? '');
         $category = $_POST['category'] ?? 'general';
         $priority = $_POST['priority'] ?? 'medium';
         $service_id = !empty($_POST['service_id']) ? (int)$_POST['service_id'] : null;
         
-        if (empty($subject) || empty($message)) {
-            throw new Exception('Betreff und Nachricht sind erforderlich');
+        if (empty($subject) || empty($description)) {
+            throw new Exception('Betreff und Beschreibung sind erforderlich');
         }
         
         $stmt = $db->prepare("
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             VALUES (?, ?, ?, ?, 'open', NOW(), NOW())
         ");
         
-        if ($stmt->execute([$user_id, $subject, $message, $priority])) {
+        if ($stmt->execute([$user_id, $subject, $description, $priority])) {
             $_SESSION['success'] = 'Ticket wurde erfolgreich erstellt';
             header('Location: /dashboard/support');
             exit;

@@ -47,21 +47,12 @@ try {
         exit;
     }
     
-    // Nachricht hinzufügen (ohne is_staff Spalte falls sie nicht existiert)
-    try {
-        $stmt = $db->prepare("
-            INSERT INTO ticket_messages (ticket_id, user_id, message, is_staff, created_at) 
-            VALUES (?, ?, ?, 0, NOW())
-        ");
-        $stmt->execute([$ticket_id, $_SESSION['user_id'], $message]);
-    } catch (Exception $e) {
-        // Fallback ohne is_staff Spalte
-        $stmt = $db->prepare("
-            INSERT INTO ticket_messages (ticket_id, user_id, message, created_at) 
-            VALUES (?, ?, ?, NOW())
-        ");
-        $stmt->execute([$ticket_id, $_SESSION['user_id'], $message]);
-    }
+    // Nachricht hinzufügen
+    $stmt = $db->prepare("
+        INSERT INTO ticket_messages (ticket_id, user_id, message, is_admin_reply, created_at) 
+        VALUES (?, ?, ?, 0, NOW())
+    ");
+    $stmt->execute([$ticket_id, $_SESSION['user_id'], $message]);
     
     // Ticket-Status auf "waiting_customer" setzen wenn es vom Support bearbeitet wurde
     if ($ticket['status'] === 'in_progress') {

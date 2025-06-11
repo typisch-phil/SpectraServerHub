@@ -45,7 +45,7 @@ if (!$ticket) {
 // Nachrichten abrufen
 $messages = $db->fetchAll("
     SELECT m.*, u.first_name, u.last_name, u.email
-    FROM support_messages m
+    FROM ticket_messages m
     JOIN users u ON m.user_id = u.id
     WHERE m.ticket_id = ?
     ORDER BY m.created_at ASC
@@ -286,7 +286,7 @@ $page_title = "Support Ticket #" . $ticket['id'];
 
                 <!-- Antworten/Nachrichten -->
                 <?php foreach ($messages as $index => $message): ?>
-                    <?php $isStaff = isset($message['is_staff']) && $message['is_staff']; ?>
+                    <?php $isStaff = isset($message['is_admin_reply']) && $message['is_admin_reply']; ?>
                     <div class="flex space-x-4 <?php echo $isStaff ? '' : 'flex-row-reverse'; ?>">
                         <div class="flex-shrink-0">
                             <div class="w-12 h-12 <?php echo $isStaff ? 'bg-green-600' : 'bg-blue-600'; ?> rounded-full flex items-center justify-center shadow-lg">
