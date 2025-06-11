@@ -53,9 +53,23 @@ if (!$ticket) {
 
 // Nachrichten abrufen
 $messages = $db->fetchAll("
-    SELECT m.*, u.first_name, u.last_name, u.email
+    SELECT m.*, 
+           CASE 
+               WHEN m.is_admin_reply = 1 THEN CONCAT(au.first_name, ' ', au.last_name)
+               ELSE CONCAT(u.first_name, ' ', u.last_name)
+           END as author_name,
+           CASE 
+               WHEN m.is_admin_reply = 1 THEN au.email
+               ELSE u.email
+           END as author_email,
+           CASE 
+               WHEN m.is_admin_reply = 1 THEN 'Support Team'
+               ELSE 'Kunde'
+           END as author_role,
+           m.is_admin_reply
     FROM ticket_messages m
-    JOIN users u ON m.user_id = u.id
+    LEFT JOIN users u ON m.user_id = u.id
+    LEFT JOIN users au ON m.admin_id = au.id
     WHERE m.ticket_id = ?
     ORDER BY m.created_at ASC
 ", [$ticket_id]);
@@ -300,41 +314,38 @@ $page_title = "Support Ticket #" . $ticket['id'];
                 <!-- Antworten/Nachrichten -->
                 <?php foreach ($messages as $index => $message): ?>
                     <?php $isStaff = isset($message['is_admin_reply']) && $message['is_admin_reply']; ?>
-                    <div class="flex space-x-4 <?php echo $isStaff ? '' : 'flex-row-reverse'; ?>">
-                        <div class="flex-shrink-0">
-                            <div class="w-12 h-12 <?php echo $isStaff ? 'bg-green-600' : 'bg-blue-600'; ?> rounded-full flex items-center justify-center shadow-lg">
-                                <span class="text-white text-sm font-bold">
-                                    <?php echo strtoupper(substr($message['first_name'], 0, 1)); ?>
+                    <div class="relative <?php echo $isStaff ? 'bg-gradient-to-r from-blue-900/30 to-blue-800/30 border border-blue-600' : 'bg-gray-700 border border-gray-600'; ?> rounded-lg p-4 shadow-sm">
+                        <?php if ($isStaff): ?>
+                        <div class="absolute -top-2 -left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center">
+                            <i class="fas fa-headset mr-1"></i>Support Team
+                        </div>
+                        <?php endif; ?>
+                        
+                        <div class="flex justify-between items-start mb-2 <?php echo $isStaff ? 'mt-2' : ''; ?>">
+                            <div class="flex items-center">
+                                <span class="font-medium text-white flex items-center">
+                                    <?php if ($isStaff): ?>
+                                        <i class="fas fa-user-shield text-blue-400 mr-2"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-user text-gray-400 mr-2"></i>
+                                    <?php endif; ?>
+                                    <?php echo htmlspecialchars($message['author_name']); ?>
+                                </span>
+                                <span class="ml-2 px-2 py-1 text-xs rounded-full <?php echo $isStaff ? 'bg-blue-600 text-white' : 'bg-gray-600 text-gray-300'; ?>">
+                                    <?php echo $isStaff ? 'Support Team' : 'Kunde'; ?>
                                 </span>
                             </div>
+                            <span class="text-gray-400 text-sm">
+                                <?php echo formatGermanDateTime($message['created_at']); ?>
+                                <?php if ($index === count($messages) - 1): ?>
+                                    <span class="ml-2 px-2 py-1 bg-white bg-opacity-20 rounded-full text-xs">
+                                        <i class="fas fa-clock mr-1"></i>Neueste
+                                    </span>
+                                <?php endif; ?>
+                            </span>
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="<?php echo $isStaff ? 'bg-green-600 rounded-tl-none' : 'bg-blue-600 rounded-tr-none'; ?> rounded-lg p-4 shadow-sm">
-                                <div class="flex items-center justify-between mb-2">
-                                    <h4 class="text-sm font-semibold text-white">
-                                        <?php echo htmlspecialchars($message['first_name'] . ' ' . $message['last_name']); ?>
-                                        <?php if ($isStaff): ?>
-                                            <span class="ml-2 px-2 py-1 bg-green-800 text-green-100 text-xs rounded-full">
-                                                <i class="fas fa-headset mr-1"></i>Support Team
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="ml-2 px-2 py-1 bg-blue-800 text-blue-100 text-xs rounded-full">
-                                                <i class="fas fa-user mr-1"></i>Kunde
-                                            </span>
-                                        <?php endif; ?>
-                                    </h4>
-                                </div>
-                                <p class="<?php echo $isStaff ? 'text-green-50' : 'text-blue-50'; ?> leading-relaxed whitespace-pre-wrap"><?php echo htmlspecialchars($message['message']); ?></p>
-                                <div class="mt-3 flex items-center text-xs <?php echo $isStaff ? 'text-green-200' : 'text-blue-200'; ?>">
-                                    <i class="fas fa-clock mr-1"></i>
-                                    <?php echo formatGermanDateTime($message['created_at']); ?>
-                                    <?php if ($index === count($messages) - 1): ?>
-                                        <span class="ml-2 px-2 py-1 bg-white bg-opacity-20 rounded-full text-xs">
-                                            <i class="fas fa-clock mr-1"></i>Neueste Nachricht
-                                        </span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
+                        <div class="pl-6">
+                            <p class="text-gray-300 leading-relaxed whitespace-pre-wrap"><?php echo htmlspecialchars($message['message']); ?></p>
                         </div>
                     </div>
                 <?php endforeach; ?>
