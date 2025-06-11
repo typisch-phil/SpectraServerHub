@@ -24,13 +24,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Betreff und Nachricht sind erforderlich');
         }
         
-        $ticket_id = $db->execute("
+        // Debug: Log the ticket creation attempt
+        error_log("Creating ticket for user $user_id: $subject");
+        
+        $stmt = $db->prepare("
             INSERT INTO support_tickets (user_id, subject, message, priority, status, created_at, updated_at) 
             VALUES (?, ?, ?, ?, 'open', NOW(), NOW())
-        ", [$user_id, $subject, $message, $priority]);
+        ");
         
-        header('Location: /dashboard/support?created=1');
-        exit;
+        $result = $stmt->execute([$user_id, $subject, $message, $priority]);
+        error_log("Ticket creation result: " . ($result ? 'SUCCESS' : 'FAILED'));
+        
+        if ($result) {
+            $_SESSION['success'] = 'Ticket wurde erfolgreich erstellt';
+            header('Location: /dashboard/support');
+            exit;
+        } else {
+            $errorInfo = $stmt->errorInfo();
+            error_log("Database error: " . print_r($errorInfo, true));
+            throw new Exception('Fehler beim Erstellen des Tickets: ' . $errorInfo[2]);
+        }
         
     } catch (Exception $e) {
         $error = $e->getMessage();
