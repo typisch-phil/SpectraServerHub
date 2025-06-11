@@ -136,9 +136,11 @@ if (!empty($services)) {
             if ($service['category'] === 'vserver' && $service['proxmox_vmid']) {
                 try {
                     $status = $proxmox->getVMStatus($service['proxmox_vmid'], 'lxc');
-                    $vpsStatuses[$service['proxmox_vmid']] = $status['data']['status'] ?? 'unknown';
+                    $vpsStatuses[$service['proxmox_vmid']] = $status; // getVMStatus gibt bereits den Status-String zurück
+                    error_log("VPS {$service['proxmox_vmid']} status retrieved: {$status}");
                 } catch (Exception $e) {
                     $vpsStatuses[$service['proxmox_vmid']] = 'error';
+                    error_log("Error getting VPS {$service['proxmox_vmid']} status: " . $e->getMessage());
                 }
             }
         }
@@ -243,22 +245,30 @@ renderHeader($pageTitle, $pageDescription);
                         
                         <!-- Status Badge -->
                         <?php
-                        $statusColor = 'gray';
-                        $statusText = $service['status'];
+                        $statusColor = 'yellow';
+                        $statusText = 'Unknown';
                         
+                        // VPS-Status aus Proxmox-API verwenden
                         if ($service['category'] === 'vserver' && $service['proxmox_vmid'] && isset($vpsStatuses[$service['proxmox_vmid']])) {
                             $proxmoxStatus = $vpsStatuses[$service['proxmox_vmid']];
+                            error_log("Frontend Status Display - VMID: {$service['proxmox_vmid']}, Status: {$proxmoxStatus}");
+                            
                             if ($proxmoxStatus === 'running') {
                                 $statusColor = 'green';
                                 $statusText = 'Online';
                             } elseif ($proxmoxStatus === 'stopped') {
                                 $statusColor = 'red';
                                 $statusText = 'Offline';
+                            } elseif ($proxmoxStatus === 'error') {
+                                $statusColor = 'red';
+                                $statusText = 'Fehler';
                             } else {
                                 $statusColor = 'yellow';
                                 $statusText = ucfirst($proxmoxStatus);
                             }
-                        } elseif ($service['status'] === 'active') {
+                        } 
+                        // Fallback für andere Services
+                        elseif ($service['status'] === 'active') {
                             $statusColor = 'green';
                             $statusText = 'Aktiv';
                         } elseif ($service['status'] === 'suspended') {
@@ -267,6 +277,10 @@ renderHeader($pageTitle, $pageDescription);
                         } elseif ($service['status'] === 'terminated') {
                             $statusColor = 'gray';
                             $statusText = 'Beendet';
+                        } else {
+                            // Fallback für unbekannte Stati
+                            $statusColor = 'gray';
+                            $statusText = ucfirst($service['status']);
                         }
                         ?>
                         <div class="flex items-center">
