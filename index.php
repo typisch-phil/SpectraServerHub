@@ -67,11 +67,12 @@ $routes = [
 if (strpos($route, 'admin') === 0) {
     $adminParts = explode('/', $route);
     if (count($adminParts) == 1) {
-        // /admin -> /admin/index.php
-        $page = 'admin/index';
+        // /admin -> /admin/dashboard.php
+        $page = 'admin/dashboard';
     } else {
         // Spezielle Admin-Routen
         $adminRoutes = [
+            'dashboard' => 'admin/dashboard',
             'users' => 'admin/users',
             'services' => 'admin/services',
             'orders' => 'admin/orders',
