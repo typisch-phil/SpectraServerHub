@@ -1,400 +1,381 @@
-<?php 
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/database.php';
-require_once __DIR__ . '/../includes/functions.php';
-require_once __DIR__ . '/../includes/layout.php';
-require_once __DIR__ . '/../includes/proxmox-api.php';
-
-// Start session only if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+<?php
+session_start();
+require_once '../includes/database.php';
+require_once '../includes/layout.php';
+require_once '../includes/proxmox-api.php';
 
 // Redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /login?redirect=' . urlencode($_SERVER['REQUEST_URI']));
+    header('Location: /login');
     exit;
 }
 
-$pageTitle = 'VPS Server bestellen - SpectraHost';
-$pageDescription = 'Bestellen Sie Ihren VPS Server und lassen Sie ihn automatisch auf unserem Proxmox-Cluster erstellen.';
+$pageTitle = 'VPS Konfigurator - SpectraHost';
+$pageDescription = 'Konfigurieren Sie Ihren individuellen VPS Server nach Ihren Anforderungen';
 
-// Get VPS packages from database
-$vpsPackages = [];
-try {
-    $db = Database::getInstance();
-    $stmt = $db->prepare("SELECT * FROM service_types WHERE category = 'vserver' ORDER BY id ASC");
-    $stmt->execute();
-    $vpsPackages = $stmt->fetchAll();
-} catch (Exception $e) {
-    error_log("Database error in order-vps.php: " . $e->getMessage());
-    $vpsPackages = [];
-}
+$db = Database::getInstance()->getConnection();
 
-// Handle form submission
-$orderSuccess = false;
-$orderError = '';
+// VPS-Konfigurationsoptionen
+$ramOptions = [
+    1 => ['gb' => 1, 'price' => 5.99],
+    2 => ['gb' => 2, 'price' => 9.99],
+    4 => ['gb' => 4, 'price' => 15.99],
+    8 => ['gb' => 8, 'price' => 25.99],
+    16 => ['gb' => 16, 'price' => 45.99],
+    32 => ['gb' => 32, 'price' => 85.99]
+];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
+$cpuOptions = [
+    1 => ['cores' => 1, 'price' => 3.99],
+    2 => ['cores' => 2, 'price' => 7.99],
+    4 => ['cores' => 4, 'price' => 14.99],
+    6 => ['cores' => 6, 'price' => 21.99],
+    8 => ['cores' => 8, 'price' => 28.99]
+];
+
+$storageOptions = [
+    20 => ['gb' => 20, 'price' => 2.99],
+    50 => ['gb' => 50, 'price' => 5.99],
+    100 => ['gb' => 100, 'price' => 9.99],
+    200 => ['gb' => 200, 'price' => 17.99],
+    500 => ['gb' => 500, 'price' => 39.99],
+    1000 => ['gb' => 1000, 'price' => 69.99]
+];
+
+$osTemplates = [
+    'ubuntu-22.04' => 'Ubuntu 22.04 LTS',
+    'ubuntu-20.04' => 'Ubuntu 20.04 LTS',
+    'debian-11' => 'Debian 11',
+    'debian-12' => 'Debian 12',
+    'centos-9' => 'CentOS Stream 9',
+    'rocky-9' => 'Rocky Linux 9',
+    'alpine-3.18' => 'Alpine Linux 3.18'
+];
+
+$orderMessage = '';
+$orderType = '';
+
+// Bestellverarbeitung
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $packageId = intval($_POST['package_id']);
-        $hostname = trim($_POST['hostname']);
-        $osTemplate = $_POST['os_template'];
-        $rootPassword = $_POST['root_password'];
+        $selectedRam = intval($_POST['ram'] ?? 1);
+        $selectedCpu = intval($_POST['cpu'] ?? 1);
+        $selectedStorage = intval($_POST['storage'] ?? 20);
+        $selectedOs = $_POST['os_template'] ?? 'ubuntu-22.04';
+        $serverName = trim($_POST['server_name'] ?? '');
         
-        // Validate input
-        if (empty($hostname) || !preg_match('/^[a-z0-9-]+$/', $hostname)) {
-            throw new Exception('Hostname ist ungültig. Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt.');
+        // Validierung
+        if (!isset($ramOptions[$selectedRam]) || !isset($cpuOptions[$selectedCpu]) || !isset($storageOptions[$selectedStorage])) {
+            throw new Exception('Ungültige Konfiguration ausgewählt');
         }
         
-        if (strlen($rootPassword) < 8) {
-            throw new Exception('Root-Passwort muss mindestens 8 Zeichen lang sein.');
+        if (!isset($osTemplates[$selectedOs])) {
+            throw new Exception('Ungültiges Betriebssystem ausgewählt');
         }
         
-        // Get package details
-        $stmt = $db->prepare("SELECT * FROM service_types WHERE id = ? AND category = 'vserver'");
-        $stmt->execute([$packageId]);
-        $package = $stmt->fetch();
-        
-        if (!$package) {
-            throw new Exception('Gewähltes Paket nicht gefunden.');
+        if (empty($serverName) || !preg_match('/^[a-zA-Z0-9\-]+$/', $serverName)) {
+            throw new Exception('Ungültiger Servername. Nur Buchstaben, Zahlen und Bindestriche erlaubt.');
         }
         
-        // Parse package specs
-        $specs = json_decode($package['specifications'] ?? '{}', true);
-        $memory = $specs['memory'] ?? 2048;
-        $cores = $specs['cores'] ?? 2;
-        $disk = $specs['disk'] ?? 25;
-        $monthlyPrice = $package['monthly_price'] ?? 9.99;
+        // Gesamtpreis berechnen
+        $totalPrice = $ramOptions[$selectedRam]['price'] + 
+                     $cpuOptions[$selectedCpu]['price'] + 
+                     $storageOptions[$selectedStorage]['price'];
         
-        // Initialize Proxmox API
-        $proxmox = new ProxmoxAPI();
+        // Prüfe verfügbare IP-Adresse
+        $stmt = $db->prepare("SELECT ip_address, gateway, subnet_mask FROM ip_addresses WHERE is_available = 1 LIMIT 1");
+        $stmt->execute();
+        $availableIp = $stmt->fetch();
         
-        // Get next available VMID
-        $vmid = $proxmox->getNextVMID();
-        if (!$vmid) {
-            throw new Exception('Fehler beim Generieren der VM-ID.');
+        if (!$availableIp) {
+            throw new Exception('Derzeit sind keine IP-Adressen verfügbar. Bitte kontaktieren Sie den Support.');
         }
         
-        // Create order in database first
+        // Bestellung in Datenbank speichern
         $stmt = $db->prepare("
-            INSERT INTO orders (user_id, service_id, total_amount, billing_period, status, notes, created_at) 
-            VALUES (?, ?, ?, 'monthly', 'pending', ?, NOW())
+            INSERT INTO user_orders (
+                user_id, service_type, server_name, 
+                ram_gb, cpu_cores, storage_gb, 
+                os_template, monthly_price, 
+                ip_address, status, created_at
+            ) VALUES (?, 'vserver', ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
         ");
-        $orderNotes = json_encode([
-            'service_type' => 'vps',
-            'vmid' => $vmid,
-            'hostname' => $hostname,
-            'memory' => $memory,
-            'cores' => $cores,
-            'disk' => $disk,
-            'os_template' => $osTemplate
+        
+        $stmt->execute([
+            $_SESSION['user_id'], 
+            $serverName,
+            $selectedRam,
+            $selectedCpu, 
+            $selectedStorage,
+            $selectedOs,
+            $totalPrice,
+            $availableIp['ip_address']
         ]);
-        $stmt->execute([$_SESSION['user_id'], $packageId, $monthlyPrice, $orderNotes]);
+        
         $orderId = $db->lastInsertId();
         
-        // Create container in Proxmox
-        $containerConfig = [
-            'hostname' => $hostname,
-            'memory' => $memory,
-            'cores' => $cores,
-            'disk' => $disk,
-            'template' => $osTemplate,
-            'password' => $rootPassword
-        ];
+        // IP als reserviert markieren
+        $stmt = $db->prepare("UPDATE ip_addresses SET is_available = 0, assigned_service_id = ? WHERE ip_address = ?");
+        $stmt->execute([$orderId, $availableIp['ip_address']]);
         
-        $result = $proxmox->createContainer($vmid, $containerConfig);
-        
-        if ($result) {
-            // Update order status to paid (VPS is active)
-            $stmt = $db->prepare("UPDATE orders SET status = 'paid' WHERE id = ?");
-            $stmt->execute([$orderId]);
+        // Proxmox VPS erstellen (asynchron)
+        try {
+            $proxmox = new ProxmoxAPI();
+            $vmid = $proxmox->getNextVMID();
             
-            // Create user service entry
-            $expiresAt = date('Y-m-d', strtotime('+1 month')); // VPS läuft einen Monat
-            $stmt = $db->prepare("
-                INSERT INTO user_services (user_id, service_id, server_name, proxmox_vmid, status, expires_at, created_at) 
-                VALUES (?, ?, ?, ?, 'active', ?, NOW())
-            ");
-            $stmt->execute([
-                $_SESSION['user_id'], 
-                $packageId, 
-                $hostname,
-                $vmid,
-                $expiresAt
-            ]);
+            $vmConfig = [
+                'vmid' => $vmid,
+                'hostname' => $serverName,
+                'memory' => $selectedRam * 1024, // MB
+                'cores' => $selectedCpu,
+                'rootfs' => "local-lvm:{$selectedStorage}",
+                'ostemplate' => "local:vztmpl/{$selectedOs}-standard_amd64.tar.xz",
+                'net0' => "name=eth0,bridge=vmbr0,ip={$availableIp['ip_address']}/24,gw={$availableIp['gateway']}",
+                'nameserver' => '8.8.8.8 8.8.4.4',
+                'password' => bin2hex(random_bytes(8))
+            ];
             
-            $orderSuccess = true;
-            $_SESSION['order_vmid'] = $vmid;
-            $_SESSION['order_hostname'] = $hostname;
-        } else {
-            throw new Exception('Fehler beim Erstellen des VPS auf dem Proxmox-Cluster.');
+            $result = $proxmox->createLXC($vmConfig);
+            
+            if ($result) {
+                // Service in user_services erstellen
+                $stmt = $db->prepare("
+                    INSERT INTO user_services (
+                        user_id, service_id, server_name, 
+                        proxmox_vmid, server_password, 
+                        ip_address, status, expires_at, created_at
+                    ) VALUES (?, 1, ?, ?, ?, ?, 'active', DATE_ADD(NOW(), INTERVAL 1 MONTH), NOW())
+                ");
+                
+                $stmt->execute([
+                    $_SESSION['user_id'],
+                    $serverName,
+                    $vmid,
+                    $vmConfig['password'],
+                    $availableIp['ip_address']
+                ]);
+                
+                // Bestellung als completed markieren
+                $stmt = $db->prepare("UPDATE user_orders SET status = 'completed', proxmox_vmid = ? WHERE id = ?");
+                $stmt->execute([$vmid, $orderId]);
+                
+                $orderMessage = "VPS erfolgreich erstellt! VMID: {$vmid}, IP: {$availableIp['ip_address']}";
+                $orderType = 'success';
+            } else {
+                throw new Exception('VPS konnte nicht erstellt werden');
+            }
+            
+        } catch (Exception $e) {
+            // Bei Proxmox-Fehler: Bestellung als failed markieren, aber IP freigeben
+            $stmt = $db->prepare("UPDATE user_orders SET status = 'failed', error_message = ? WHERE id = ?");
+            $stmt->execute([$e->getMessage(), $orderId]);
+            
+            $stmt = $db->prepare("UPDATE ip_addresses SET is_available = 1, assigned_service_id = NULL WHERE ip_address = ?");
+            $stmt->execute([$availableIp['ip_address']]);
+            
+            throw new Exception('VPS-Erstellung fehlgeschlagen: ' . $e->getMessage());
         }
         
     } catch (Exception $e) {
-        $orderError = $e->getMessage();
-        error_log("VPS Order Error: " . $e->getMessage());
-        
-        // Update order status to failed if order was created
-        if (isset($orderId)) {
-            $stmt = $db->prepare("UPDATE orders SET status = 'failed', notes = ? WHERE id = ?");
-            $errorNotes = json_encode(['error' => $e->getMessage(), 'timestamp' => date('Y-m-d H:i:s')]);
-            $stmt->execute([$errorNotes, $orderId]);
-        }
+        $orderMessage = $e->getMessage();
+        $orderType = 'error';
     }
 }
 
 renderHeader($pageTitle, $pageDescription);
 ?>
 
-<div class="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center">
-            <h1 class="text-4xl font-bold sm:text-5xl">
-                VPS Server bestellen
-            </h1>
-            <p class="mt-6 text-xl text-gray-300 max-w-3xl mx-auto">
-                Wählen Sie Ihr VPS-Paket und lassen Sie Ihren Server automatisch auf unserem Proxmox-Cluster erstellen.
-            </p>
-        </div>
-    </div>
-</div>
-
-<?php if ($orderSuccess): ?>
-<!-- Success Message -->
-<div class="py-16 bg-gray-900">
+<div class="min-h-screen bg-gray-900 py-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="bg-green-800 border border-green-600 rounded-lg p-8 text-center">
-            <i class="fas fa-check-circle text-green-400 text-6xl mb-6"></i>
-            <h2 class="text-2xl font-bold text-white mb-4">VPS erfolgreich bestellt!</h2>
-            <p class="text-green-200 mb-6">
-                Ihr VPS wurde erfolgreich auf unserem Proxmox-Cluster erstellt und ist bereit für die Nutzung.
-            </p>
-            <div class="bg-gray-800 rounded-lg p-6 mb-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                    <div>
-                        <span class="text-gray-400">VM-ID:</span>
-                        <span class="text-white font-mono"><?php echo htmlspecialchars($_SESSION['order_vmid']); ?></span>
-                    </div>
-                    <div>
-                        <span class="text-gray-400">Hostname:</span>
-                        <span class="text-white font-mono"><?php echo htmlspecialchars($_SESSION['order_hostname']); ?></span>
-                    </div>
-                    <div>
-                        <span class="text-gray-400">Status:</span>
-                        <span class="text-green-400">Aktiv</span>
-                    </div>
-                    <div>
-                        <span class="text-gray-400">Erstellt:</span>
-                        <span class="text-white"><?php echo date('d.m.Y H:i'); ?></span>
-                    </div>
-                </div>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="/dashboard/services" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-                    <i class="fas fa-server mr-2"></i>Zu meinen Services
-                </a>
-                <a href="/dashboard" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors">
-                    <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
-                </a>
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="bg-gradient-to-r from-purple-900 to-blue-900 rounded-xl p-8 border border-purple-700 shadow-xl">
+                <h1 class="text-4xl font-bold text-white mb-3">VPS Konfigurator</h1>
+                <p class="text-gray-200 text-lg">Konfigurieren Sie Ihren individuellen VPS Server nach Ihren Anforderungen</p>
             </div>
         </div>
-    </div>
-</div>
 
-<?php else: ?>
-<!-- Order Form -->
-<div class="py-16 bg-gray-900">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        <?php if ($orderError): ?>
-        <div class="bg-red-800 border border-red-600 rounded-lg p-4 mb-8">
-            <div class="flex items-center">
-                <i class="fas fa-exclamation-triangle text-red-400 mr-3"></i>
-                <span class="text-red-200"><?php echo htmlspecialchars($orderError); ?></span>
-            </div>
+        <?php if ($orderMessage): ?>
+        <div class="mb-6 p-4 rounded-lg <?php echo $orderType === 'success' ? 'bg-green-900 border border-green-600 text-green-200' : 'bg-red-900 border border-red-600 text-red-200'; ?>">
+            <i class="fas <?php echo $orderType === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'; ?> mr-2"></i>
+            <?php echo htmlspecialchars($orderMessage); ?>
         </div>
         <?php endif; ?>
 
         <form method="POST" class="space-y-8">
-            <!-- Package Selection -->
-            <div class="bg-gray-800 rounded-xl p-8 border border-gray-700">
-                <h2 class="text-2xl font-bold text-white mb-6">1. VPS-Paket wählen</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <?php if (!empty($vpsPackages)): ?>
-                        <?php foreach ($vpsPackages as $package): ?>
-                        <label class="relative cursor-pointer">
-                            <input type="radio" name="package_id" value="<?php echo $package['id']; ?>" class="sr-only peer" required>
-                            <div class="border-2 border-gray-600 peer-checked:border-purple-500 rounded-lg p-6 hover:border-gray-500 transition-colors bg-gray-700">
-                                <h3 class="text-lg font-semibold text-white"><?php echo htmlspecialchars($package['name']); ?></h3>
-                                <p class="text-gray-300 text-sm mt-1"><?php echo htmlspecialchars($package['description'] ?? ''); ?></p>
-                                <div class="mt-4">
-                                    <span class="text-2xl font-bold text-white">€<?php echo number_format(floatval($package['monthly_price'] ?? 0), 2); ?></span>
-                                    <span class="text-gray-300">/Monat</span>
-                                </div>
-                                <?php if (!empty($package['features'])): ?>
-                                <ul class="mt-4 space-y-2 text-sm text-gray-300">
-                                    <?php 
-                                    $features = is_string($package['features']) ? json_decode($package['features'], true) : $package['features'];
-                                    if (is_array($features)):
-                                        foreach ($features as $feature): ?>
-                                    <li><i class="fas fa-check text-green-400 mr-2"></i><?php echo htmlspecialchars($feature); ?></li>
-                                    <?php endforeach; endif; ?>
-                                </ul>
-                                <?php endif; ?>
-                            </div>
-                        </label>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <!-- Fallback packages -->
-                        <label class="relative cursor-pointer">
-                            <input type="radio" name="package_id" value="1" class="sr-only peer" required>
-                            <div class="border-2 border-gray-600 peer-checked:border-purple-500 rounded-lg p-6 hover:border-gray-500 transition-colors bg-gray-700">
-                                <h3 class="text-lg font-semibold text-white">VPS Starter</h3>
-                                <p class="text-gray-300 text-sm mt-1">Ideal für Einsteiger</p>
-                                <div class="mt-4">
-                                    <span class="text-2xl font-bold text-white">€9,99</span>
-                                    <span class="text-gray-300">/Monat</span>
-                                </div>
-                                <ul class="mt-4 space-y-2 text-sm text-gray-300">
-                                    <li><i class="fas fa-check text-green-400 mr-2"></i>2 GB RAM</li>
-                                    <li><i class="fas fa-check text-green-400 mr-2"></i>2 vCPU Cores</li>
-                                    <li><i class="fas fa-check text-green-400 mr-2"></i>25 GB SSD</li>
-                                </ul>
-                            </div>
-                        </label>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Server Configuration -->
-            <div class="bg-gray-800 rounded-xl p-8 border border-gray-700">
-                <h2 class="text-2xl font-bold text-white mb-6">2. Server-Konfiguration</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="hostname" class="block text-sm font-medium text-gray-300 mb-2">
-                            Hostname <span class="text-red-400">*</span>
-                        </label>
-                        <input type="text" 
-                               id="hostname" 
-                               name="hostname" 
-                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                               placeholder="mein-vps"
-                               pattern="[a-z0-9-]+"
-                               title="Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt"
-                               required>
-                        <p class="mt-1 text-xs text-gray-400">Nur Kleinbuchstaben, Zahlen und Bindestriche</p>
+                <!-- Hauptkonfiguration -->
+                <div class="lg:col-span-2 space-y-6">
+                    
+                    <!-- Server Name -->
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <h3 class="text-xl font-semibold text-white mb-4">Servername</h3>
+                        <input type="text" name="server_name" required
+                               class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-purple-500 focus:outline-none"
+                               placeholder="mein-vps" pattern="[a-zA-Z0-9\-]+" 
+                               title="Nur Buchstaben, Zahlen und Bindestriche">
+                        <p class="text-gray-400 text-sm mt-2">Nur Buchstaben, Zahlen und Bindestriche erlaubt</p>
                     </div>
                     
-                    <div>
-                        <label for="os_template" class="block text-sm font-medium text-gray-300 mb-2">
-                            Betriebssystem <span class="text-red-400">*</span>
-                        </label>
-                        <select id="os_template" 
-                                name="os_template" 
-                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                required>
-                            <option value="">Bitte wählen...</option>
-                            <option value="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst">Ubuntu 22.04 LTS</option>
-                            <option value="local:vztmpl/ubuntu-20.04-standard_20.04-1_amd64.tar.zst">Ubuntu 20.04 LTS</option>
-                            <option value="local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst">Debian 12</option>
-                            <option value="local:vztmpl/debian-11-standard_11.7-1_amd64.tar.zst">Debian 11</option>
-                            <option value="local:vztmpl/centos-8-default_20201210_amd64.tar.xz">CentOS 8</option>
-                            <option value="local:vztmpl/alpine-3.18-default_20230607_amd64.tar.xz">Alpine Linux 3.18</option>
+                    <!-- RAM Auswahl -->
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <h3 class="text-xl font-semibold text-white mb-4">Arbeitsspeicher (RAM)</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <?php foreach ($ramOptions as $gb => $option): ?>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="ram" value="<?php echo $gb; ?>" 
+                                       class="hidden ram-option" <?php echo $gb === 2 ? 'checked' : ''; ?>
+                                       data-price="<?php echo $option['price']; ?>">
+                                <div class="bg-gray-700 hover:bg-purple-700 border border-gray-600 rounded-lg p-4 text-center transition-colors radio-card">
+                                    <div class="text-white font-semibold"><?php echo $gb; ?> GB</div>
+                                    <div class="text-gray-300 text-sm">€<?php echo number_format($option['price'], 2); ?>/Monat</div>
+                                </div>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    
+                    <!-- CPU Auswahl -->
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <h3 class="text-xl font-semibold text-white mb-4">CPU Kerne</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <?php foreach ($cpuOptions as $cores => $option): ?>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="cpu" value="<?php echo $cores; ?>" 
+                                       class="hidden cpu-option" <?php echo $cores === 2 ? 'checked' : ''; ?>
+                                       data-price="<?php echo $option['price']; ?>">
+                                <div class="bg-gray-700 hover:bg-purple-700 border border-gray-600 rounded-lg p-4 text-center transition-colors radio-card">
+                                    <div class="text-white font-semibold"><?php echo $cores; ?> Core<?php echo $cores > 1 ? 's' : ''; ?></div>
+                                    <div class="text-gray-300 text-sm">€<?php echo number_format($option['price'], 2); ?>/Monat</div>
+                                </div>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    
+                    <!-- Storage Auswahl -->
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <h3 class="text-xl font-semibold text-white mb-4">SSD Speicher</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <?php foreach ($storageOptions as $gb => $option): ?>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="storage" value="<?php echo $gb; ?>" 
+                                       class="hidden storage-option" <?php echo $gb === 50 ? 'checked' : ''; ?>
+                                       data-price="<?php echo $option['price']; ?>">
+                                <div class="bg-gray-700 hover:bg-purple-700 border border-gray-600 rounded-lg p-4 text-center transition-colors radio-card">
+                                    <div class="text-white font-semibold"><?php echo $gb; ?> GB</div>
+                                    <div class="text-gray-300 text-sm">€<?php echo number_format($option['price'], 2); ?>/Monat</div>
+                                </div>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    
+                    <!-- Betriebssystem -->
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <h3 class="text-xl font-semibold text-white mb-4">Betriebssystem</h3>
+                        <select name="os_template" required
+                                class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-purple-500 focus:outline-none">
+                            <?php foreach ($osTemplates as $template => $name): ?>
+                            <option value="<?php echo $template; ?>" <?php echo $template === 'ubuntu-22.04' ? 'selected' : ''; ?>>
+                                <?php echo $name; ?>
+                            </option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
                 
-                <div class="mt-6">
-                    <label for="root_password" class="block text-sm font-medium text-gray-300 mb-2">
-                        Root-Passwort <span class="text-red-400">*</span>
-                    </label>
-                    <input type="password" 
-                           id="root_password" 
-                           name="root_password" 
-                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                           placeholder="Sicheres Passwort eingeben"
-                           minlength="8"
-                           required>
-                    <p class="mt-1 text-xs text-gray-400">Mindestens 8 Zeichen, empfohlen: Groß-/Kleinbuchstaben, Zahlen und Sonderzeichen</p>
-                </div>
-            </div>
-
-            <!-- Order Summary -->
-            <div class="bg-gray-800 rounded-xl p-8 border border-gray-700">
-                <h2 class="text-2xl font-bold text-white mb-6">3. Bestellung abschließen</h2>
-                
-                <div class="bg-gray-700 rounded-lg p-6 mb-6">
-                    <h3 class="text-lg font-semibold text-white mb-4">Bestellübersicht</h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-300">Gewähltes Paket:</span>
-                            <span class="text-white" id="selected-package">Bitte wählen Sie ein Paket</span>
+                <!-- Preisübersicht -->
+                <div class="lg:col-span-1">
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 sticky top-4">
+                        <h3 class="text-xl font-semibold text-white mb-4">Preisübersicht</h3>
+                        
+                        <div class="space-y-3 mb-6">
+                            <div class="flex justify-between text-gray-300">
+                                <span>RAM:</span>
+                                <span id="ram-price">€<?php echo number_format($ramOptions[2]['price'], 2); ?></span>
+                            </div>
+                            <div class="flex justify-between text-gray-300">
+                                <span>CPU:</span>
+                                <span id="cpu-price">€<?php echo number_format($cpuOptions[2]['price'], 2); ?></span>
+                            </div>
+                            <div class="flex justify-between text-gray-300">
+                                <span>Storage:</span>
+                                <span id="storage-price">€<?php echo number_format($storageOptions[50]['price'], 2); ?></span>
+                            </div>
+                            <hr class="border-gray-600">
+                            <div class="flex justify-between text-white font-semibold text-lg">
+                                <span>Gesamt/Monat:</span>
+                                <span id="total-price">€<?php echo number_format($ramOptions[2]['price'] + $cpuOptions[2]['price'] + $storageOptions[50]['price'], 2); ?></span>
+                            </div>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-300">Einrichtung:</span>
-                            <span class="text-green-400">Kostenlos</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-300">Bereitstellung:</span>
-                            <span class="text-blue-400">Sofort</span>
-                        </div>
-                        <hr class="border-gray-600">
-                        <div class="flex justify-between text-lg font-semibold">
-                            <span class="text-white">Gesamt monatlich:</span>
-                            <span class="text-white" id="total-price">€0,00</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-blue-900 border border-blue-700 rounded-lg p-4 mb-6">
-                    <div class="flex items-start">
-                        <i class="fas fa-info-circle text-blue-400 mt-1 mr-3"></i>
-                        <div class="text-blue-200 text-sm">
-                            <p class="font-semibold mb-1">Automatische Bereitstellung</p>
-                            <p>Ihr VPS wird automatisch auf unserem Proxmox-Cluster erstellt und ist innerhalb weniger Minuten einsatzbereit. Sie erhalten sofort Zugang zu Ihrem Server.</p>
+                        
+                        <div class="space-y-4">
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <h4 class="text-white font-semibold mb-2">Inklusivleistungen</h4>
+                                <ul class="text-gray-300 text-sm space-y-1">
+                                    <li><i class="fas fa-check text-green-400 mr-2"></i>Statische IP-Adresse</li>
+                                    <li><i class="fas fa-check text-green-400 mr-2"></i>Root-Zugang</li>
+                                    <li><i class="fas fa-check text-green-400 mr-2"></i>99.9% Uptime SLA</li>
+                                    <li><i class="fas fa-check text-green-400 mr-2"></i>24/7 Support</li>
+                                    <li><i class="fas fa-check text-green-400 mr-2"></i>DDoS-Schutz</li>
+                                </ul>
+                            </div>
+                            
+                            <button type="submit" 
+                                    class="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+                                <i class="fas fa-shopping-cart mr-2"></i>
+                                VPS jetzt bestellen
+                            </button>
                         </div>
                     </div>
                 </div>
-                
-                <button type="submit" 
-                        name="place_order"
-                        class="w-full bg-purple-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-colors">
-                    <i class="fas fa-rocket mr-2"></i>VPS jetzt bestellen
-                </button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-// Package selection handling
-document.addEventListener('DOMContentLoaded', function() {
-    const packageRadios = document.querySelectorAll('input[name="package_id"]');
-    const selectedPackageSpan = document.getElementById('selected-package');
-    const totalPriceSpan = document.getElementById('total-price');
+function updatePricing() {
+    const ramPrice = parseFloat(document.querySelector('input[name="ram"]:checked').dataset.price);
+    const cpuPrice = parseFloat(document.querySelector('input[name="cpu"]:checked').dataset.price);
+    const storagePrice = parseFloat(document.querySelector('input[name="storage"]:checked').dataset.price);
     
-    packageRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            const label = this.closest('label');
-            const packageName = label.querySelector('h3').textContent;
-            const priceElement = label.querySelector('.text-2xl');
-            const price = priceElement ? priceElement.textContent : '€0,00';
-            
-            selectedPackageSpan.textContent = packageName;
-            totalPriceSpan.textContent = price;
+    document.getElementById('ram-price').textContent = '€' + ramPrice.toFixed(2);
+    document.getElementById('cpu-price').textContent = '€' + cpuPrice.toFixed(2);
+    document.getElementById('storage-price').textContent = '€' + storagePrice.toFixed(2);
+    document.getElementById('total-price').textContent = '€' + (ramPrice + cpuPrice + storagePrice).toFixed(2);
+}
+
+// Radio button styling
+document.querySelectorAll('input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Remove selected class from all cards of this type
+        const name = this.name;
+        document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+            r.parentElement.querySelector('.radio-card').classList.remove('bg-purple-600', 'border-purple-400');
+            r.parentElement.querySelector('.radio-card').classList.add('bg-gray-700', 'border-gray-600');
         });
-    });
-    
-    // Hostname validation
-    const hostnameInput = document.getElementById('hostname');
-    hostnameInput.addEventListener('input', function() {
-        this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+        
+        // Add selected class to this card
+        this.parentElement.querySelector('.radio-card').classList.remove('bg-gray-700', 'border-gray-600');
+        this.parentElement.querySelector('.radio-card').classList.add('bg-purple-600', 'border-purple-400');
+        
+        updatePricing();
     });
 });
-</script>
-<?php endif; ?>
 
-<?php renderFooter(); ?>
+// Initialize styling and pricing
+document.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+    radio.parentElement.querySelector('.radio-card').classList.remove('bg-gray-700', 'border-gray-600');
+    radio.parentElement.querySelector('.radio-card').classList.add('bg-purple-600', 'border-purple-400');
+});
+
+updatePricing();
+</script>
+
+<?php
+renderFooter();
+?>
