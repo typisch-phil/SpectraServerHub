@@ -24,12 +24,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Betreff und Beschreibung sind erforderlich');
         }
         
+        // Ticket erstellen
         $stmt = $db->prepare("
-            INSERT INTO support_tickets (user_id, subject, description, priority, status, created_at, updated_at) 
-            VALUES (?, ?, ?, ?, 'open', NOW(), NOW())
+            INSERT INTO support_tickets (user_id, subject, description, category, priority, service_id, status, created_at, updated_at) 
+            VALUES (?, ?, ?, ?, ?, ?, 'open', NOW(), NOW())
         ");
         
-        if ($stmt->execute([$user_id, $subject, $description, $priority])) {
+        if ($stmt->execute([$user_id, $subject, $description, $category, $priority, $service_id])) {
+            $ticket_id = $db->lastInsertId();
+            
+            // Datei-Upload verarbeiten
+            if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+                $file = $_FILES['attachment'];
+                $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain'];
+                $max_size = 5 * 1024 * 1024; // 5MB
+                
+                if (!in_array($file['type'], $allowed_types)) {
+                    throw new Exception('Dateityp nicht erlaubt. Nur JPG, PNG, GIF, PDF und TXT sind erlaubt.');
+                }
+                
+                if ($file['size'] > $max_size) {
+                    throw new Exception('Datei zu groß. Maximum 5MB erlaubt.');
+                }
+                
+                $upload_dir = __DIR__ . '/../../uploads/tickets/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+                
+                $file_extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $filename = 'ticket_' . $ticket_id . '_' . time() . '_' . uniqid() . '.' . $file_extension;
+                $file_path = $upload_dir . $filename;
+                
+                if (move_uploaded_file($file['tmp_name'], $file_path)) {
+                    // Attachment in Datenbank speichern
+                    $stmt = $db->prepare("
+                        INSERT INTO ticket_attachments (ticket_id, filename, original_filename, file_path, file_size, mime_type, uploaded_by, created_at) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+                    ");
+                    $stmt->execute([
+                        $ticket_id,
+                        $filename,
+                        $file['name'],
+                        'uploads/tickets/' . $filename,
+                        $file['size'],
+                        $file['type'],
+                        $user_id
+                    ]);
+                }
+            }
+            
             $_SESSION['success'] = 'Ticket wurde erfolgreich erstellt';
             header('Location: /dashboard/support');
             exit;
@@ -66,7 +110,7 @@ $services = $db->fetchAll("SELECT id, name FROM services WHERE user_id = ? AND s
                         <h1 class="text-xl font-bold text-white">Neues Support-Ticket erstellen</h1>
                     </div>
                     
-                    <form method="POST" class="p-6 space-y-6">
+                    <form method="POST" enctype="multipart/form-data" class="p-6 space-y-6">
                         <?php if (isset($error)): ?>
                         <div class="bg-red-900 border border-red-700 text-red-400 px-4 py-3 rounded">
                             <?php echo htmlspecialchars($error); ?>
@@ -121,6 +165,32 @@ $services = $db->fetchAll("SELECT id, name FROM services WHERE user_id = ? AND s
                                       placeholder="Beschreiben Sie Ihr Anliegen detailliert..."><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
                         </div>
                         
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Anhang (optional)</label>
+                            <div class="relative">
+                                <input type="file" name="attachment" id="attachment" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt" 
+                                       class="hidden" onchange="updateFileName(this)">
+                                <label for="attachment" class="flex items-center justify-center w-full px-4 py-6 bg-gray-700 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:bg-gray-600 hover:border-gray-500 transition-colors">
+                                    <div class="text-center">
+                                        <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
+                                        <p class="text-gray-300 mb-1">Datei auswählen oder hierher ziehen</p>
+                                        <p class="text-gray-400 text-sm">JPG, PNG, GIF, PDF, TXT - Max. 5MB</p>
+                                    </div>
+                                </label>
+                                <div id="file-info" class="mt-2 hidden">
+                                    <div class="flex items-center justify-between bg-gray-800 px-3 py-2 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-file text-blue-400 mr-2"></i>
+                                            <span id="file-name" class="text-white text-sm"></span>
+                                        </div>
+                                        <button type="button" onclick="removeFile()" class="text-red-400 hover:text-red-300">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="flex justify-between">
                             <a href="/dashboard/support" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
                                 Abbrechen
@@ -134,5 +204,59 @@ $services = $db->fetchAll("SELECT id, name FROM services WHERE user_id = ? AND s
             </div>
         </div>
     </div>
+
+    <script>
+        function updateFileName(input) {
+            const fileInfo = document.getElementById('file-info');
+            const fileName = document.getElementById('file-name');
+            
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                fileName.textContent = file.name + ' (' + formatFileSize(file.size) + ')';
+                fileInfo.classList.remove('hidden');
+            }
+        }
+        
+        function removeFile() {
+            const fileInput = document.getElementById('attachment');
+            const fileInfo = document.getElementById('file-info');
+            
+            fileInput.value = '';
+            fileInfo.classList.add('hidden');
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Drag and Drop Funktionalität
+        const dropZone = document.querySelector('label[for="attachment"]');
+        
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('border-blue-500', 'bg-gray-600');
+        });
+        
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('border-blue-500', 'bg-gray-600');
+        });
+        
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('border-blue-500', 'bg-gray-600');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const fileInput = document.getElementById('attachment');
+                fileInput.files = files;
+                updateFileName(fileInput);
+            }
+        });
+    </script>
 </body>
 </html>

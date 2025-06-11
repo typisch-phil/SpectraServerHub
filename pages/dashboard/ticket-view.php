@@ -74,6 +74,16 @@ $messages = $db->fetchAll("
     ORDER BY m.created_at ASC
 ", [$ticket_id]);
 
+// Ticket-Anhänge abrufen
+$attachments = $db->fetchAll("
+    SELECT a.*, 
+           CONCAT(u.first_name, ' ', u.last_name) as uploaded_by_name
+    FROM ticket_attachments a
+    LEFT JOIN users u ON a.uploaded_by = u.id
+    WHERE a.ticket_id = ?
+    ORDER BY a.created_at ASC
+", [$ticket_id]);
+
 $page_title = "Support Ticket #" . $ticket['id'];
 ?>
 
@@ -303,6 +313,39 @@ $page_title = "Support Ticket #" . $ticket['id'];
                                 </h4>
                             </div>
                             <p class="text-blue-50 leading-relaxed"><?php echo nl2br(htmlspecialchars($ticket['description'])); ?></p>
+                            
+                            <!-- Anhänge anzeigen -->
+                            <?php if (!empty($attachments)): ?>
+                            <div class="mt-4 pt-3 border-t border-blue-700">
+                                <h5 class="text-sm font-medium text-blue-200 mb-2">Anhänge:</h5>
+                                <div class="space-y-2">
+                                    <?php foreach ($attachments as $attachment): ?>
+                                    <div class="flex items-center space-x-3 bg-blue-800/50 rounded-lg p-2">
+                                        <div class="flex-shrink-0">
+                                            <?php if (strpos($attachment['mime_type'], 'image/') === 0): ?>
+                                                <i class="fas fa-image text-blue-300"></i>
+                                            <?php elseif ($attachment['mime_type'] === 'application/pdf'): ?>
+                                                <i class="fas fa-file-pdf text-red-300"></i>
+                                            <?php else: ?>
+                                                <i class="fas fa-file text-gray-300"></i>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-blue-100 text-sm font-medium truncate"><?php echo htmlspecialchars($attachment['original_filename']); ?></p>
+                                            <p class="text-blue-200 text-xs"><?php echo formatFileSize($attachment['file_size']); ?></p>
+                                        </div>
+                                        <div class="flex-shrink-0">
+                                            <a href="/download-attachment.php?id=<?php echo $attachment['id']; ?>&token=<?php echo md5($attachment['id'] . $ticket['id'] . $_SESSION['user_id']); ?>" 
+                                               class="text-blue-300 hover:text-blue-200" target="_blank">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                            
                             <div class="mt-3 flex items-center text-xs text-blue-200">
                                 <i class="fas fa-clock mr-1"></i>
                                 <?php echo formatGermanDateTime($ticket['created_at']); ?>
