@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error_log("Creating ticket for user $user_id: $subject");
         
         $stmt = $db->prepare("
-            INSERT INTO support_tickets (user_id, subject, message, priority, status, created_at, updated_at) 
+            INSERT INTO support_tickets (user_id, subject, description, priority, status, created_at, updated_at) 
             VALUES (?, ?, ?, ?, 'open', NOW(), NOW())
         ");
         
