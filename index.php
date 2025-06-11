@@ -51,6 +51,14 @@ $routes = [
     'products/gameserver' => 'products/gameserver',
     'order' => 'order',
     'bestellen' => 'order',
+    'order-vps' => 'order-vps',
+    'order-webhosting' => 'order-webhosting',
+    'order-gameserver' => 'order-gameserver',
+    'order-domain' => 'order-domain',
+    'vps-bestellen' => 'order-vps',
+    'webhosting-bestellen' => 'order-webhosting',
+    'gameserver-bestellen' => 'order-gameserver',
+    'domain-bestellen' => 'order-domain',
     'contact' => 'contact',
     'impressum' => 'impressum'
 ];
