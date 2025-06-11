@@ -24,7 +24,7 @@ $db = Database::getInstance();
 
 // Service-Details laden
 $stmt = $db->prepare("
-    SELECT us.*, st.name as service_name, st.category, st.price 
+    SELECT us.*, st.name as service_name, st.category 
     FROM user_services us 
     JOIN service_types st ON us.service_id = st.id 
     WHERE us.id = ? AND us.user_id = ?
