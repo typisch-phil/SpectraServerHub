@@ -1,16 +1,10 @@
 <?php
-require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
 header('Content-Type: application/json');
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Check if user is logged in and is admin
+// Check authentication
 if (!isLoggedIn()) {
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
@@ -24,18 +18,14 @@ if (!$user || $user['role'] !== 'admin') {
     exit;
 }
 
-$database = Database::getInstance();
-$pdo = $database->getConnection();
+$db = Database::getInstance();
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
     switch ($method) {
         case 'GET':
-            // Get all services or specific service
             if (isset($_GET['id'])) {
-                $stmt = $pdo->prepare("SELECT * FROM services WHERE id = ?");
-                $stmt->execute([$_GET['id']]);
-                $service = $stmt->fetch(PDO::FETCH_ASSOC);
+                $service = $db->fetchOne("SELECT * FROM service_types WHERE id = ?", [$_GET['id']]);
                 
                 if (!$service) {
                     http_response_code(404);
@@ -43,40 +33,37 @@ try {
                     exit;
                 }
                 
-                // Parse JSON features
-                if ($service['features']) {
-                    $service['features'] = json_decode($service['features'], true);
+                // Parse JSON specifications
+                if ($service['specifications']) {
+                    $service['specifications'] = json_decode($service['specifications'], true);
                 }
                 
                 echo json_encode(['success' => true, 'service' => $service]);
             } else {
-                // Get all services with optional filtering
-                $type = $_GET['type'] ?? '';
+                // Get all services with filtering
+                $category = $_GET['category'] ?? '';
                 $active = $_GET['active'] ?? '';
                 
-                $query = "SELECT * FROM services WHERE 1=1";
+                $query = "SELECT * FROM service_types WHERE 1=1";
                 $params = [];
                 
-                if (!empty($type) && in_array($type, ['webspace', 'vserver', 'gameserver', 'domain'])) {
-                    $query .= " AND type = ?";
-                    $params[] = $type;
+                if (!empty($category)) {
+                    $query .= " AND category = ?";
+                    $params[] = $category;
                 }
                 
                 if ($active !== '') {
                     $query .= " AND active = ?";
-                    $params[] = $active === 'true' ? true : false;
+                    $params[] = $active === 'true' ? 1 : 0;
                 }
                 
-                $query .= " ORDER BY type, name";
+                $query .= " ORDER BY category, name";
+                $services = $db->fetchAll($query, $params);
                 
-                $stmt = $pdo->prepare($query);
-                $stmt->execute($params);
-                $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Parse JSON features for all services
+                // Parse JSON specifications for each service
                 foreach ($services as &$service) {
-                    if ($service['features']) {
-                        $service['features'] = json_decode($service['features'], true);
+                    if ($service['specifications']) {
+                        $service['specifications'] = json_decode($service['specifications'], true);
                     }
                 }
                 
@@ -85,69 +72,50 @@ try {
             break;
             
         case 'POST':
-            // Create new service
             $input = json_decode(file_get_contents('php://input'), true);
             
-            if (!$input || !isset($input['name']) || !isset($input['type']) || !isset($input['price'])) {
+            if (!$input || !isset($input['name']) || !isset($input['category'])) {
                 http_response_code(400);
-                echo json_encode(['error' => 'Name, type and price are required']);
+                echo json_encode(['error' => 'Name and category are required']);
                 exit;
             }
             
-            // Validate service type
-            if (!in_array($input['type'], ['webspace', 'vserver', 'gameserver', 'domain'])) {
+            // Validate category
+            $validCategories = ['webspace', 'vserver', 'gameserver', 'domain'];
+            if (!in_array($input['category'], $validCategories)) {
                 http_response_code(400);
-                echo json_encode(['error' => 'Invalid service type']);
+                echo json_encode(['error' => 'Invalid category']);
                 exit;
             }
             
-            // Validate price
-            if (!is_numeric($input['price']) || floatval($input['price']) < 0) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Invalid price']);
-                exit;
+            $specifications = null;
+            if (isset($input['specifications'])) {
+                $specifications = json_encode($input['specifications']);
             }
             
-            // Handle features array
-            $features = isset($input['features']) && is_array($input['features']) 
-                ? json_encode($input['features']) 
-                : json_encode([]);
-            
-            // Create service
-            $stmt = $pdo->prepare("
-                INSERT INTO services (name, type, description, price, features, cpu_cores, memory_gb, storage_gb, bandwidth_gb, active, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-            ");
-            
-            $stmt->execute([
+            $db->execute("
+                INSERT INTO service_types (name, category, description, price, specifications, active, created_at, updated_at) 
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ", [
                 $input['name'],
-                $input['type'],
+                $input['category'],
                 $input['description'] ?? '',
-                floatval($input['price']),
-                $features,
-                intval($input['cpu_cores'] ?? 1),
-                intval($input['memory_gb'] ?? 1),
-                intval($input['storage_gb'] ?? 10),
-                intval($input['bandwidth_gb'] ?? 1000),
-                isset($input['active']) ? (bool)$input['active'] : true
+                $input['price'] ?? 0.00,
+                $specifications,
+                $input['active'] ?? 1
             ]);
             
-            $serviceId = $pdo->lastInsertId();
+            $serviceId = $db->lastInsertId();
+            $newService = $db->fetchOne("SELECT * FROM service_types WHERE id = ?", [$serviceId]);
             
-            // Get created service
-            $stmt = $pdo->prepare("SELECT * FROM services WHERE id = ?");
-            $stmt->execute([$serviceId]);
-            $newService = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($newService['features']) {
-                $newService['features'] = json_decode($newService['features'], true);
+            if ($newService['specifications']) {
+                $newService['specifications'] = json_decode($newService['specifications'], true);
             }
             
             echo json_encode(['success' => true, 'service' => $newService, 'message' => 'Service created successfully']);
             break;
             
         case 'PUT':
-            // Update service
             $input = json_decode(file_get_contents('php://input'), true);
             
             if (!$input || !isset($input['id'])) {
@@ -156,7 +124,7 @@ try {
                 exit;
             }
             
-            // Build update query dynamically
+            // Build update query
             $updateFields = [];
             $params = [];
             
@@ -165,9 +133,15 @@ try {
                 $params[] = $input['name'];
             }
             
-            if (isset($input['type']) && in_array($input['type'], ['webspace', 'vserver', 'gameserver', 'domain'])) {
-                $updateFields[] = "type = ?";
-                $params[] = $input['type'];
+            if (isset($input['category'])) {
+                $validCategories = ['webspace', 'vserver', 'gameserver', 'domain'];
+                if (!in_array($input['category'], $validCategories)) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'Invalid category']);
+                    exit;
+                }
+                $updateFields[] = "category = ?";
+                $params[] = $input['category'];
             }
             
             if (isset($input['description'])) {
@@ -175,39 +149,19 @@ try {
                 $params[] = $input['description'];
             }
             
-            if (isset($input['price']) && is_numeric($input['price']) && floatval($input['price']) >= 0) {
+            if (isset($input['price'])) {
                 $updateFields[] = "price = ?";
-                $params[] = floatval($input['price']);
+                $params[] = $input['price'];
             }
             
-            if (isset($input['features']) && is_array($input['features'])) {
-                $updateFields[] = "features = ?";
-                $params[] = json_encode($input['features']);
-            }
-            
-            if (isset($input['cpu_cores']) && is_numeric($input['cpu_cores'])) {
-                $updateFields[] = "cpu_cores = ?";
-                $params[] = intval($input['cpu_cores']);
-            }
-            
-            if (isset($input['memory_gb']) && is_numeric($input['memory_gb'])) {
-                $updateFields[] = "memory_gb = ?";
-                $params[] = intval($input['memory_gb']);
-            }
-            
-            if (isset($input['storage_gb']) && is_numeric($input['storage_gb'])) {
-                $updateFields[] = "storage_gb = ?";
-                $params[] = intval($input['storage_gb']);
-            }
-            
-            if (isset($input['bandwidth_gb']) && is_numeric($input['bandwidth_gb'])) {
-                $updateFields[] = "bandwidth_gb = ?";
-                $params[] = intval($input['bandwidth_gb']);
+            if (isset($input['specifications'])) {
+                $updateFields[] = "specifications = ?";
+                $params[] = json_encode($input['specifications']);
             }
             
             if (isset($input['active'])) {
                 $updateFields[] = "active = ?";
-                $params[] = (bool)$input['active'];
+                $params[] = $input['active'] ? 1 : 0;
             }
             
             if (empty($updateFields)) {
@@ -216,32 +170,27 @@ try {
                 exit;
             }
             
+            $updateFields[] = "updated_at = NOW()";
             $params[] = $input['id'];
             
-            $query = "UPDATE services SET " . implode(', ', $updateFields) . " WHERE id = ?";
-            $stmt = $pdo->prepare($query);
-            $stmt->execute($params);
+            $query = "UPDATE service_types SET " . implode(', ', $updateFields) . " WHERE id = ?";
+            $rowsAffected = $db->execute($query, $params);
             
-            if ($stmt->rowCount() === 0) {
+            if ($rowsAffected === 0) {
                 http_response_code(404);
                 echo json_encode(['error' => 'Service not found']);
                 exit;
             }
             
-            // Get updated service
-            $stmt = $pdo->prepare("SELECT * FROM services WHERE id = ?");
-            $stmt->execute([$input['id']]);
-            $updatedService = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($updatedService['features']) {
-                $updatedService['features'] = json_decode($updatedService['features'], true);
+            $updatedService = $db->fetchOne("SELECT * FROM service_types WHERE id = ?", [$input['id']]);
+            if ($updatedService['specifications']) {
+                $updatedService['specifications'] = json_decode($updatedService['specifications'], true);
             }
             
             echo json_encode(['success' => true, 'service' => $updatedService, 'message' => 'Service updated successfully']);
             break;
             
         case 'DELETE':
-            // Delete service
             $input = json_decode(file_get_contents('php://input'), true);
             
             if (!$input || !isset($input['id'])) {
@@ -250,28 +199,24 @@ try {
                 exit;
             }
             
-            // Check if service has active user subscriptions
-            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM user_services WHERE service_id = ? AND status = 'active'");
-            $stmt->execute([$input['id']]);
-            $activeSubscriptions = $stmt->fetch();
+            // Check if service has active user services
+            $activeUserServices = $db->fetchOne("SELECT COUNT(*) as count FROM user_services WHERE service_id = ? AND status = 'active'", [$input['id']]);
             
-            if ($activeSubscriptions['count'] > 0) {
+            if ($activeUserServices['count'] > 0) {
                 http_response_code(409);
-                echo json_encode(['error' => 'Cannot delete service with active subscriptions']);
+                echo json_encode(['error' => 'Cannot delete service with active user services']);
                 exit;
             }
             
-            // Soft delete - mark as inactive instead of actual deletion
-            $stmt = $pdo->prepare("UPDATE services SET active = false WHERE id = ?");
-            $stmt->execute([$input['id']]);
+            $rowsAffected = $db->execute("DELETE FROM service_types WHERE id = ?", [$input['id']]);
             
-            if ($stmt->rowCount() === 0) {
+            if ($rowsAffected === 0) {
                 http_response_code(404);
                 echo json_encode(['error' => 'Service not found']);
                 exit;
             }
             
-            echo json_encode(['success' => true, 'message' => 'Service deactivated successfully']);
+            echo json_encode(['success' => true, 'message' => 'Service deleted successfully']);
             break;
             
         default:
@@ -279,9 +224,8 @@ try {
             echo json_encode(['error' => 'Method not allowed']);
             break;
     }
-    
 } catch (Exception $e) {
-    error_log("Error in admin services API: " . $e->getMessage());
+    error_log('Admin Services API Error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'Internal server error']);
 }

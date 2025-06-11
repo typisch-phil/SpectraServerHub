@@ -70,26 +70,8 @@ if (!file_exists(dirname(LOG_FILE))) {
     mkdir(dirname(LOG_FILE), 0755, true);
 }
 
-// Database Connection
-try {
-    $dsn = DB_TYPE . ':host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
-    $db = new PDO($dsn, DB_USER, DB_PASS, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false
-    ]);
-    
-    // Set charset explicitly for MySQL
-    $db->exec("SET NAMES utf8mb4");
-} catch (PDOException $e) {
-    // For development, show error. In production, log it.
-    if (APP_ENV === 'development') {
-        die('Database connection failed: ' . $e->getMessage());
-    } else {
-        error_log('Database connection failed: ' . $e->getMessage());
-        die('Database connection failed. Please contact support.');
-    }
-}
+// Datenbank-Verbindung wird über Database-Klasse verwaltet
+// Keine direkte PDO-Instanz mehr in config.php
 
 // Session Management
 if (session_status() == PHP_SESSION_NONE) {

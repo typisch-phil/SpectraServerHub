@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
@@ -24,8 +23,7 @@ if (!$user || $user['role'] !== 'admin') {
     exit;
 }
 
-$database = Database::getInstance();
-$pdo = $database->getConnection();
+$db = Database::getInstance();
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
@@ -33,9 +31,9 @@ try {
         case 'GET':
             // Get all users or specific user
             if (isset($_GET['id'])) {
-                $stmt = $pdo->prepare("SELECT id, email, first_name, last_name, role, balance, created_at, updated_at FROM users WHERE id = ?");
+                $stmt = $db->prepare("SELECT id, email, first_name, last_name, role, balance, created_at, updated_at FROM users WHERE id = ?");
                 $stmt->execute([$_GET['id']]);
-                $userRecord = $stmt->fetch(PDO::FETCH_ASSOC);
+                $userRecord = $stmt->fetch();
                 
                 if (!$userRecord) {
                     http_response_code(404);
@@ -67,9 +65,7 @@ try {
                 
                 $query .= " ORDER BY created_at DESC";
                 
-                $stmt = $pdo->prepare($query);
-                $stmt->execute($params);
-                $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $users = $db->fetchAll($query, $params);
                 
                 echo json_encode(['success' => true, 'users' => $users]);
             }
@@ -93,9 +89,8 @@ try {
             }
             
             // Check if email already exists
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-            $stmt->execute([$input['email']]);
-            if ($stmt->fetch()) {
+            $existingUser = $db->fetchOne("SELECT id FROM users WHERE email = ?", [$input['email']]);
+            if ($existingUser) {
                 http_response_code(409);
                 echo json_encode(['error' => 'Email already exists']);
                 exit;
@@ -103,12 +98,10 @@ try {
             
             // Create user
             $hashedPassword = password_hash($input['password'], PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("
+            $db->execute("
                 INSERT INTO users (email, password, first_name, last_name, role, balance, created_at, updated_at) 
                 VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
-            ");
-            
-            $stmt->execute([
+            ", [
                 $input['email'],
                 $hashedPassword,
                 $input['first_name'] ?? '',
@@ -117,12 +110,10 @@ try {
                 $input['balance'] ?? 0.00
             ]);
             
-            $userId = $pdo->lastInsertId();
+            $userId = $db->lastInsertId();
             
             // Get created user
-            $stmt = $pdo->prepare("SELECT id, email, first_name, last_name, role, balance, created_at FROM users WHERE id = ?");
-            $stmt->execute([$userId]);
-            $newUser = $stmt->fetch(PDO::FETCH_ASSOC);
+            $newUser = $db->fetchOne("SELECT id, email, first_name, last_name, role, balance, created_at FROM users WHERE id = ?", [$userId]);
             
             echo json_encode(['success' => true, 'user' => $newUser, 'message' => 'User created successfully']);
             break;
@@ -148,10 +139,9 @@ try {
                     exit;
                 }
                 
-                // Check if email is already taken by another user
-                $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
-                $stmt->execute([$input['email'], $input['id']]);
-                if ($stmt->fetch()) {
+                // Check if email already exists for another user
+                $existingUser = $db->fetchOne("SELECT id FROM users WHERE email = ? AND id != ?", [$input['email'], $input['id']]);
+                if ($existingUser) {
                     http_response_code(409);
                     echo json_encode(['error' => 'Email already exists']);
                     exit;
@@ -176,9 +166,9 @@ try {
                 $params[] = $input['role'];
             }
             
-            if (isset($input['balance']) && is_numeric($input['balance'])) {
+            if (isset($input['balance'])) {
                 $updateFields[] = "balance = ?";
-                $params[] = floatval($input['balance']);
+                $params[] = $input['balance'];
             }
             
             if (isset($input['password']) && !empty($input['password'])) {
@@ -196,19 +186,16 @@ try {
             $params[] = $input['id'];
             
             $query = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE id = ?";
-            $stmt = $pdo->prepare($query);
-            $stmt->execute($params);
+            $rowsAffected = $db->execute($query, $params);
             
-            if ($stmt->rowCount() === 0) {
+            if ($rowsAffected === 0) {
                 http_response_code(404);
                 echo json_encode(['error' => 'User not found']);
                 exit;
             }
             
             // Get updated user
-            $stmt = $pdo->prepare("SELECT id, email, first_name, last_name, role, balance, created_at, updated_at FROM users WHERE id = ?");
-            $stmt->execute([$input['id']]);
-            $updatedUser = $stmt->fetch(PDO::FETCH_ASSOC);
+            $updatedUser = $db->fetchOne("SELECT id, email, first_name, last_name, role, balance, updated_at FROM users WHERE id = ?", [$input['id']]);
             
             echo json_encode(['success' => true, 'user' => $updatedUser, 'message' => 'User updated successfully']);
             break;
@@ -224,9 +211,7 @@ try {
             }
             
             // Prevent deleting admin users
-            $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
-            $stmt->execute([$input['id']]);
-            $userToDelete = $stmt->fetch();
+            $userToDelete = $db->fetchOne("SELECT role FROM users WHERE id = ?", [$input['id']]);
             
             if (!$userToDelete) {
                 http_response_code(404);
@@ -241,9 +226,7 @@ try {
             }
             
             // Check if user has active services
-            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM user_services WHERE user_id = ? AND status = 'active'");
-            $stmt->execute([$input['id']]);
-            $activeServices = $stmt->fetch();
+            $activeServices = $db->fetchOne("SELECT COUNT(*) as count FROM user_services WHERE user_id = ? AND status = 'active'", [$input['id']]);
             
             if ($activeServices['count'] > 0) {
                 http_response_code(409);
@@ -252,8 +235,13 @@ try {
             }
             
             // Soft delete - mark as deleted instead of actual deletion
-            $stmt = $pdo->prepare("UPDATE users SET email = CONCAT('deleted_', id, '_', email), role = 'deleted', updated_at = NOW() WHERE id = ?");
-            $stmt->execute([$input['id']]);
+            $rowsAffected = $db->execute("UPDATE users SET deleted_at = NOW(), updated_at = NOW() WHERE id = ?", [$input['id']]);
+            
+            if ($rowsAffected === 0) {
+                http_response_code(404);
+                echo json_encode(['error' => 'User not found']);
+                exit;
+            }
             
             echo json_encode(['success' => true, 'message' => 'User deleted successfully']);
             break;
@@ -263,9 +251,8 @@ try {
             echo json_encode(['error' => 'Method not allowed']);
             break;
     }
-    
 } catch (Exception $e) {
-    error_log("Error in admin users API: " . $e->getMessage());
+    error_log('Admin Users API Error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'Internal server error']);
 }
