@@ -23,6 +23,68 @@ require_once __DIR__ . '/../../includes/timezone-helper.php';
 $db = Database::getInstance();
 $user_id = $_SESSION['user_id'];
 
+// Anhang-Upload verarbeiten
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['attachment'])) {
+    $uploadError = '';
+    $uploadSuccess = false;
+    
+    if ($_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['attachment'];
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain'];
+        $max_size = 5 * 1024 * 1024; // 5MB
+        
+        if (!in_array($file['type'], $allowed_types)) {
+            $uploadError = 'Dateityp nicht erlaubt. Erlaubt sind: JPG, PNG, GIF, PDF, TXT';
+        } elseif ($file['size'] > $max_size) {
+            $uploadError = 'Datei ist zu groß. Maximum: 5MB';
+        } else {
+            // Upload-Verzeichnis erstellen falls nicht vorhanden
+            $upload_dir = __DIR__ . '/../../uploads/tickets/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
+            
+            // Eindeutigen Dateinamen generieren
+            $file_extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $unique_filename = uniqid() . '_' . time() . '.' . $file_extension;
+            $file_path = $upload_dir . $unique_filename;
+            
+            if (move_uploaded_file($file['tmp_name'], $file_path)) {
+                // In Datenbank speichern
+                try {
+                    $stmt = $db->prepare("
+                        INSERT INTO ticket_attachments (ticket_id, original_filename, stored_filename, file_path, file_size, mime_type, uploaded_by, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+                    ");
+                    $stmt->execute([
+                        $ticket_id,
+                        $file['name'],
+                        $unique_filename,
+                        'uploads/tickets/' . $unique_filename,
+                        $file['size'],
+                        $file['type'],
+                        $user_id
+                    ]);
+                    $uploadSuccess = true;
+                    
+                    // Ticket als "waiting_support" markieren wenn Kunde Anhang hinzufügt
+                    $db->execute("UPDATE support_tickets SET status = 'waiting_support', updated_at = NOW() WHERE id = ?", [$ticket_id]);
+                    
+                } catch (Exception $e) {
+                    $uploadError = 'Fehler beim Speichern der Datei';
+                    if (file_exists($file_path)) {
+                        unlink($file_path);
+                    }
+                }
+            } else {
+                $uploadError = 'Fehler beim Hochladen der Datei';
+            }
+        }
+    } else {
+        $uploadError = 'Fehler beim Datei-Upload';
+    }
+}
+
 // Benutzerdaten abrufen
 $user = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$user_id]);
 if (!$user) {
@@ -454,6 +516,61 @@ function formatFileSize($bytes) {
         </form>
     </div>
     <?php endif; ?>
+    
+    <!-- Upload-Formular für bestehende Tickets -->
+    <?php if (in_array($ticket['status'], ['open', 'in_progress', 'waiting_customer'])): ?>
+    <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 mt-6">
+        <div class="px-6 py-4 border-b border-gray-700">
+            <h2 class="text-lg font-medium text-white">Datei hinzufügen</h2>
+        </div>
+        
+        <?php if (isset($uploadError) && !empty($uploadError)): ?>
+        <div class="mx-6 mt-4 bg-red-900 border border-red-700 text-red-400 px-4 py-3 rounded">
+            <?php echo htmlspecialchars($uploadError); ?>
+        </div>
+        <?php endif; ?>
+        
+        <?php if (isset($uploadSuccess) && $uploadSuccess): ?>
+        <div class="mx-6 mt-4 bg-green-900 border border-green-700 text-green-400 px-4 py-3 rounded">
+            Datei erfolgreich hochgeladen!
+        </div>
+        <?php endif; ?>
+        
+        <form method="POST" enctype="multipart/form-data" class="p-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Anhang hinzufügen</label>
+                <div class="relative">
+                    <input type="file" name="attachment" id="ticket-attachment" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt" 
+                           class="hidden" onchange="updateTicketFileName(this)">
+                    <label for="ticket-attachment" class="flex items-center justify-center w-full px-4 py-6 bg-gray-700 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:bg-gray-600 hover:border-gray-500 transition-colors">
+                        <div class="text-center">
+                            <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
+                            <p class="text-gray-300 mb-1">Datei auswählen oder hierher ziehen</p>
+                            <p class="text-gray-400 text-sm">JPG, PNG, GIF, PDF, TXT - Max. 5MB</p>
+                        </div>
+                    </label>
+                    <div id="ticket-file-info" class="mt-2 hidden">
+                        <div class="flex items-center justify-between bg-gray-800 px-3 py-2 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-file text-blue-400 mr-2"></i>
+                                <span id="ticket-file-name" class="text-white text-sm"></span>
+                            </div>
+                            <button type="button" onclick="removeTicketFile()" class="text-red-400 hover:text-red-300">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end mt-4">
+                <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    Datei hochladen
+                </button>
+            </div>
+        </form>
+    </div>
+    <?php endif; ?>
         </div>
     </div>
 </div>
@@ -487,6 +604,61 @@ document.addEventListener('DOMContentLoaded', function() {
         conversation.scrollTop = conversation.scrollHeight;
     }
 });
+
+// Upload-Funktionen für bestehende Tickets
+function updateTicketFileName(input) {
+    const fileInfo = document.getElementById('ticket-file-info');
+    const fileName = document.getElementById('ticket-file-name');
+    
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        fileName.textContent = file.name + ' (' + formatFileSize(file.size) + ')';
+        fileInfo.classList.remove('hidden');
+    }
+}
+
+function removeTicketFile() {
+    const fileInput = document.getElementById('ticket-attachment');
+    const fileInfo = document.getElementById('ticket-file-info');
+    
+    fileInput.value = '';
+    fileInfo.classList.add('hidden');
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Drag and Drop für Ticket-Upload
+const ticketDropZone = document.querySelector('label[for="ticket-attachment"]');
+
+if (ticketDropZone) {
+    ticketDropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('border-blue-500', 'bg-gray-600');
+    });
+    
+    ticketDropZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('border-blue-500', 'bg-gray-600');
+    });
+    
+    ticketDropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('border-blue-500', 'bg-gray-600');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            const fileInput = document.getElementById('ticket-attachment');
+            fileInput.files = files;
+            updateTicketFileName(fileInput);
+        }
+    });
+}
 </script>
 
 </body>
