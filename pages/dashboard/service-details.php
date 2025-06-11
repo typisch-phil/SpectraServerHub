@@ -33,6 +33,11 @@ $stmt = $db->prepare("
 $stmt->execute([$serviceId, $userId]);
 $service = $stmt->fetch();
 
+// Sicherstellen, dass order_specifications existiert
+if (!isset($service['order_specifications'])) {
+    $service['order_specifications'] = null;
+}
+
 if (!$service) {
     header('Location: /dashboard/services');
     exit;
@@ -126,7 +131,7 @@ try {
     $vmStats = $proxmox->getVMStats($service['proxmox_vmid']);
     
     // Server-Konfiguration aus den bestellten Spezifikationen laden
-    if ($service['order_specifications']) {
+    if (isset($service['order_specifications']) && $service['order_specifications']) {
         $serverConfig = json_decode($service['order_specifications'], true);
     }
 } catch (Exception $e) {
@@ -138,6 +143,16 @@ $serverIP = 'Nicht zugewiesen';
 if ($vpsDetails && isset($vpsDetails['net0'])) {
     if (preg_match('/ip=([^,\s]+)/', $vpsDetails['net0'], $matches)) {
         $serverIP = $matches[1];
+    }
+}
+
+// Formatierungsfunktion für Bytes (lokale Definition)
+if (!function_exists('formatBytes')) {
+    function formatBytes($size, $precision = 2) {
+        if ($size <= 0) return '0 B';
+        $base = log($size, 1024);
+        $suffixes = array('B', 'KB', 'MB', 'GB', 'TB');
+        return round(pow(1024, $base - floor($base)), $precision) . ' ' . $suffixes[floor($base)];
     }
 }
 
