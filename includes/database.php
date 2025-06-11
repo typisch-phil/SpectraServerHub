@@ -81,6 +81,10 @@ class Database {
     public function execute($sql, $params = []) {
         return $this->query($sql, $params)->rowCount();
     }
+    
+    public function lastInsertId() {
+        return $this->connection->lastInsertId();
+    }
 }
 
 // Globale Instanz für Rückwärtskompatibilität
