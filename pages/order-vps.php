@@ -88,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 user_id, service_type, server_name, 
                 ram_gb, cpu_cores, storage_gb, 
                 os_template, monthly_price, 
-                ip_address, status, created_at
-            ) VALUES (?, 'vserver', ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+                ip_address, service_id, price, billing_cycle, status
+            ) VALUES (?, 'vserver', ?, ?, ?, ?, ?, ?, ?, 1, ?, 'monthly', 'pending')
         ");
         
         $stmt->execute([
@@ -100,7 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $selectedStorage,
             $selectedOs,
             $totalPrice,
-            $availableIp['ip_address']
+            $availableIp['ip_address'],
+            $totalPrice
         ]);
         
         $orderId = $db->lastInsertId();
