@@ -54,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $selectedStorage = intval($_POST['storage'] ?? 10);
         $selectedOs = $_POST['os_template'] ?? 'ubuntu-22.04';
         $serverName = trim($_POST['server_name'] ?? '');
+        $serverPassword = trim($_POST['server_password'] ?? '');
         
         // Validierung
         if (!isset($ramOptions[$selectedRam]) || !isset($cpuOptions[$selectedCpu]) || !isset($storageOptions[$selectedStorage])) {
@@ -66,6 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (empty($serverName) || !preg_match('/^[a-zA-Z0-9\-]+$/', $serverName)) {
             throw new Exception('Ungültiger Servername. Nur Buchstaben, Zahlen und Bindestriche erlaubt.');
+        }
+        
+        if (empty($serverPassword) || strlen($serverPassword) < 8) {
+            throw new Exception('Das Passwort muss mindestens 8 Zeichen lang sein.');
         }
         
         // Gesamtpreis berechnen
@@ -124,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'ostemplate' => "local:vztmpl/{$selectedOs}-standard_amd64.tar.xz",
                 'net0' => "name=eth0,bridge=vmbr0,ip={$availableIp['ip_address']}/24,gw={$availableIp['gateway']}",
                 'nameserver' => '8.8.8.8 8.8.4.4',
-                'password' => bin2hex(random_bytes(8))
+                'password' => $serverPassword
             ];
             
             $result = $proxmox->createLXC($vmConfig);
@@ -143,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_id'],
                     $serverName,
                     $vmid,
-                    $vmConfig['password'],
+                    $serverPassword,
                     $availableIp['ip_address']
                 ]);
                 
@@ -209,6 +214,20 @@ renderHeader($pageTitle, $pageDescription);
                                placeholder="mein-vps" pattern="[a-zA-Z0-9\-]+" 
                                title="Nur Buchstaben, Zahlen und Bindestriche">
                         <p class="text-gray-400 text-sm mt-2">Nur Buchstaben, Zahlen und Bindestriche erlaubt</p>
+                    </div>
+                    
+                    <!-- Server-Passwort -->
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <h3 class="text-xl font-semibold text-white mb-4">Root-Passwort</h3>
+                        <input type="password" name="server_password" id="server_password" required minlength="8"
+                               class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-purple-500 focus:outline-none"
+                               placeholder="Starkes Passwort eingeben"
+                               title="Mindestens 8 Zeichen">
+                        <p class="text-gray-400 text-sm mt-2">Mindestens 8 Zeichen, wird für Root-Login verwendet</p>
+                        <button type="button" onclick="generatePassword()" 
+                                class="mt-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                            Sicheres Passwort generieren
+                        </button>
                     </div>
                     
                     <!-- RAM Auswahl -->
@@ -472,6 +491,29 @@ document.addEventListener('DOMContentLoaded', function() {
     
     updatePricing();
 });
+
+// Passwort-Generator Funktion
+function generatePassword() {
+    const length = 12;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let password = "";
+    
+    // Mindestens ein Zeichen aus jeder Kategorie
+    password += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)]; // lowercase
+    password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)]; // uppercase
+    password += "0123456789"[Math.floor(Math.random() * 10)]; // number
+    password += "!@#$%^&*"[Math.floor(Math.random() * 8)]; // special
+    
+    // Restliche Zeichen zufällig
+    for (let i = 4; i < length; i++) {
+        password += charset[Math.floor(Math.random() * charset.length)];
+    }
+    
+    // Passwort mischen
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    
+    document.getElementById('server_password').value = password;
+}
 </script>
 
 <?php
