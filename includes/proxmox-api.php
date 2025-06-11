@@ -13,12 +13,13 @@ class ProxmoxAPI {
     private $csrf_token;
     
     public function __construct() {
-        $this->host = $_ENV['PROXMOX_HOST'] ?? '';
-        $this->node = $_ENV['PROXMOX_NODE'] ?? '';
-        $this->username = $_ENV['PROXMOX_USERNAME'] ?? '';
-        $this->password = $_ENV['PROXMOX_PASSWORD'] ?? '';
+        $this->host = getenv('PROXMOX_HOST') ?: '';
+        $this->node = getenv('PROXMOX_NODE') ?: 'pve';
+        $this->username = getenv('PROXMOX_USERNAME') ?: '';
+        $this->password = getenv('PROXMOX_PASSWORD') ?: '';
         
         if (empty($this->host) || empty($this->username) || empty($this->password)) {
+            error_log("Proxmox credentials missing: HOST={$this->host}, USER={$this->username}, NODE={$this->node}");
             throw new Exception('Proxmox credentials not configured');
         }
     }

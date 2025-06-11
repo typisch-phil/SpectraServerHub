@@ -141,9 +141,26 @@ renderHeader($pageTitle, $pageDescription);
         
         <!-- Dashboard Header -->
         <div class="mb-8">
-            <div class="bg-gradient-to-r from-gray-800 to-gray-700 rounded-xl p-6 border border-gray-600">
-                <h1 class="text-3xl font-bold text-white mb-2">Meine Services</h1>
-                <p class="text-gray-300">Verwalten Sie Ihre VPS Server, Webhosting, Gameserver und Domains</p>
+            <div class="bg-gradient-to-r from-purple-900 to-blue-900 rounded-xl p-8 border border-purple-700 shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-4xl font-bold text-white mb-3">Service Management</h1>
+                        <p class="text-gray-200 text-lg">Verwalten Sie Ihre VPS Server, Webhosting, Gameserver und Domains</p>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="bg-black/20 rounded-lg p-4">
+                            <i class="fas fa-server text-white text-4xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 flex gap-4">
+                    <a href="/order" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center">
+                        <i class="fas fa-plus mr-2"></i>Neue Services bestellen
+                    </a>
+                    <button onclick="location.reload()" class="bg-gray-700 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors flex items-center">
+                        <i class="fas fa-sync-alt mr-2"></i>Aktualisieren
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -179,33 +196,34 @@ renderHeader($pageTitle, $pageDescription);
         <?php else: ?>
         
         <!-- Services Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-8">
             <?php foreach ($services as $service): ?>
-            <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden hover:border-gray-600 transition-colors">
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border-2 border-gray-700 overflow-hidden hover:border-purple-500 transition-all duration-300 shadow-lg hover:shadow-xl">
                 <!-- Service Header -->
-                <div class="p-6 border-b border-gray-700">
-                    <div class="flex items-center justify-between mb-4">
+                <div class="p-8 border-b border-gray-700">
+                    <div class="flex items-start justify-between mb-6">
                         <div class="flex items-center">
                             <?php if ($service['category'] === 'vserver'): ?>
-                                <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mr-4">
-                                    <i class="fas fa-server text-white text-xl"></i>
+                                <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl flex items-center justify-center mr-6 shadow-lg">
+                                    <i class="fas fa-server text-white text-2xl"></i>
                                 </div>
                             <?php elseif ($service['category'] === 'webhosting'): ?>
-                                <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mr-4">
-                                    <i class="fas fa-globe text-white text-xl"></i>
+                                <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center mr-6 shadow-lg">
+                                    <i class="fas fa-globe text-white text-2xl"></i>
                                 </div>
                             <?php elseif ($service['category'] === 'gameserver'): ?>
-                                <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center mr-4">
-                                    <i class="fas fa-gamepad text-white text-xl"></i>
+                                <div class="w-16 h-16 bg-gradient-to-br from-green-600 to-green-700 rounded-xl flex items-center justify-center mr-6 shadow-lg">
+                                    <i class="fas fa-gamepad text-white text-2xl"></i>
                                 </div>
                             <?php else: ?>
-                                <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center mr-4">
-                                    <i class="fas fa-link text-white text-xl"></i>
+                                <div class="w-16 h-16 bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl flex items-center justify-center mr-6 shadow-lg">
+                                    <i class="fas fa-link text-white text-2xl"></i>
                                 </div>
                             <?php endif; ?>
                             <div>
-                                <h3 class="text-lg font-semibold text-white"><?php echo htmlspecialchars($service['service_name']); ?></h3>
-                                <p class="text-gray-400 text-sm"><?php echo htmlspecialchars($service['server_name']); ?></p>
+                                <h3 class="text-xl font-bold text-white mb-1"><?php echo htmlspecialchars($service['service_name']); ?></h3>
+                                <p class="text-gray-300 text-lg font-medium"><?php echo htmlspecialchars($service['server_name']); ?></p>
+                                <p class="text-gray-500 text-sm uppercase tracking-wide"><?php echo ucfirst($service['category']); ?></p>
                             </div>
                         </div>
                         
@@ -237,78 +255,108 @@ renderHeader($pageTitle, $pageDescription);
                             $statusText = 'Beendet';
                         }
                         ?>
-                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-<?php echo $statusColor; ?>-800 text-<?php echo $statusColor; ?>-200 border border-<?php echo $statusColor; ?>-600">
-                            <?php echo $statusText; ?>
-                        </span>
+                        <div class="flex items-center">
+                            <?php if ($statusColor === 'green'): ?>
+                                <div class="w-3 h-3 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                            <?php elseif ($statusColor === 'red'): ?>
+                                <div class="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
+                            <?php else: ?>
+                                <div class="w-3 h-3 bg-yellow-400 rounded-full mr-2"></div>
+                            <?php endif; ?>
+                            <span class="px-4 py-2 rounded-full text-sm font-semibold bg-<?php echo $statusColor; ?>-900/50 text-<?php echo $statusColor; ?>-200 border border-<?php echo $statusColor; ?>-600">
+                                <?php echo $statusText; ?>
+                            </span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Service Details -->
-                <div class="p-6">
-                    <div class="space-y-3 mb-6">
+                <div class="p-8">
+                    <div class="grid grid-cols-2 gap-4 mb-8">
                         <?php if ($service['category'] === 'vserver' && $service['proxmox_vmid']): ?>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">VM-ID:</span>
-                            <span class="text-white font-mono"><?php echo $service['proxmox_vmid']; ?></span>
+                        <div class="bg-gray-700/50 rounded-lg p-4">
+                            <div class="text-gray-400 text-sm font-medium">VM-ID</div>
+                            <div class="text-white font-mono text-lg"><?php echo $service['proxmox_vmid']; ?></div>
                         </div>
                         <?php endif; ?>
                         
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Läuft bis:</span>
-                            <span class="text-white"><?php echo date('d.m.Y', strtotime($service['expires_at'])); ?></span>
+                        <div class="bg-gray-700/50 rounded-lg p-4">
+                            <div class="text-gray-400 text-sm font-medium">Läuft bis</div>
+                            <div class="text-white font-semibold"><?php echo date('d.m.Y', strtotime($service['expires_at'])); ?></div>
                         </div>
                         
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Erstellt:</span>
-                            <span class="text-white"><?php echo date('d.m.Y', strtotime($service['created_at'])); ?></span>
+                        <div class="bg-gray-700/50 rounded-lg p-4">
+                            <div class="text-gray-400 text-sm font-medium">Erstellt</div>
+                            <div class="text-white font-semibold"><?php echo date('d.m.Y', strtotime($service['created_at'])); ?></div>
+                        </div>
+                        
+                        <div class="bg-gray-700/50 rounded-lg p-4">
+                            <div class="text-gray-400 text-sm font-medium">Service-ID</div>
+                            <div class="text-white font-mono">#<?php echo str_pad($service['id'], 6, '0', STR_PAD_LEFT); ?></div>
                         </div>
                     </div>
 
                     <!-- Service Actions -->
                     <?php if ($service['status'] !== 'terminated'): ?>
-                    <div class="space-y-2">
+                    <div class="space-y-6">
                         <?php if ($service['category'] === 'vserver' && $service['proxmox_vmid']): ?>
-                        <!-- VPS Controls -->
-                        <div class="flex flex-wrap gap-2">
-                            <?php if (isset($vpsStatuses[$service['proxmox_vmid']]) && $vpsStatuses[$service['proxmox_vmid']] === 'stopped'): ?>
-                            <form method="POST" class="inline">
-                                <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                                <input type="hidden" name="action" value="start">
-                                <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
-                                    <i class="fas fa-play mr-1"></i>Start
+                        
+                        <!-- VPS Power Controls -->
+                        <div class="bg-gray-700/30 rounded-xl p-6 border border-gray-600">
+                            <h4 class="text-white font-semibold mb-4 flex items-center">
+                                <i class="fas fa-power-off mr-2"></i>Server-Steuerung
+                            </h4>
+                            <div class="grid grid-cols-3 gap-3">
+                                <?php if (isset($vpsStatuses[$service['proxmox_vmid']]) && $vpsStatuses[$service['proxmox_vmid']] === 'stopped'): ?>
+                                <form method="POST" class="w-full">
+                                    <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                                    <input type="hidden" name="action" value="start">
+                                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center">
+                                        <i class="fas fa-play mr-2"></i>Start
+                                    </button>
+                                </form>
+                                <button disabled class="w-full bg-gray-600 text-gray-400 px-4 py-3 rounded-lg font-medium cursor-not-allowed flex items-center justify-center">
+                                    <i class="fas fa-stop mr-2"></i>Stop
                                 </button>
-                            </form>
-                            <?php else: ?>
-                            <form method="POST" class="inline">
-                                <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                                <input type="hidden" name="action" value="stop">
-                                <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
-                                    <i class="fas fa-stop mr-1"></i>Stop
+                                <button disabled class="w-full bg-gray-600 text-gray-400 px-4 py-3 rounded-lg font-medium cursor-not-allowed flex items-center justify-center">
+                                    <i class="fas fa-redo mr-2"></i>Restart
                                 </button>
-                            </form>
-                            <?php endif; ?>
-                            
-                            <form method="POST" class="inline">
-                                <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                                <input type="hidden" name="action" value="restart">
-                                <button type="submit" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700">
-                                    <i class="fas fa-redo mr-1"></i>Restart
+                                <?php else: ?>
+                                <button disabled class="w-full bg-gray-600 text-gray-400 px-4 py-3 rounded-lg font-medium cursor-not-allowed flex items-center justify-center">
+                                    <i class="fas fa-play mr-2"></i>Start
                                 </button>
-                            </form>
+                                <form method="POST" class="w-full">
+                                    <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                                    <input type="hidden" name="action" value="stop">
+                                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
+                                            onclick="return confirm('VPS wirklich stoppen?')">
+                                        <i class="fas fa-stop mr-2"></i>Stop
+                                    </button>
+                                </form>
+                                <form method="POST" class="w-full">
+                                    <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                                    <input type="hidden" name="action" value="restart">
+                                    <button type="submit" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
+                                            onclick="return confirm('VPS wirklich neustarten?')">
+                                        <i class="fas fa-redo mr-2"></i>Restart
+                                    </button>
+                                </form>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         
                         <!-- Dangerous Actions -->
-                        <details class="mt-4">
-                            <summary class="text-red-400 cursor-pointer text-sm hover:text-red-300">
-                                <i class="fas fa-exclamation-triangle mr-1"></i>Erweiterte Aktionen
+                        <details class="bg-red-900/20 rounded-xl border border-red-800">
+                            <summary class="text-red-400 cursor-pointer p-4 hover:text-red-300 font-medium">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>Erweiterte Aktionen
                             </summary>
-                            <div class="mt-2 p-3 bg-red-900/20 border border-red-800 rounded">
-                                <form method="POST" class="inline" onsubmit="return confirm('WARNUNG: Diese Aktion löscht den VPS unwiderruflich! Sind Sie sicher?');">
+                            <div class="p-4 border-t border-red-800">
+                                <form method="POST" class="w-full" onsubmit="return confirm('WARNUNG: Diese Aktion löscht den VPS unwiderruflich! Sind Sie sicher?');">
                                     <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="confirm_delete" value="yes">
-                                    <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
-                                        <i class="fas fa-trash mr-1"></i>VPS löschen
+                                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center">
+                                        <i class="fas fa-trash mr-2"></i>VPS permanent löschen
                                     </button>
                                 </form>
                             </div>
@@ -316,24 +364,43 @@ renderHeader($pageTitle, $pageDescription);
                         <?php endif; ?>
                         
                         <!-- General Service Actions -->
-                        <div class="flex gap-2 mt-4">
-                            <?php if ($service['status'] === 'active'): ?>
-                            <form method="POST" class="inline">
-                                <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                                <input type="hidden" name="action" value="suspend">
-                                <button type="submit" class="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700">
-                                    <i class="fas fa-pause mr-1"></i>Suspendieren
+                        <div class="bg-gray-700/30 rounded-xl p-6 border border-gray-600">
+                            <h4 class="text-white font-semibold mb-4 flex items-center">
+                                <i class="fas fa-cog mr-2"></i>Service-Verwaltung
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <?php if ($service['status'] === 'active'): ?>
+                                <form method="POST" class="w-full">
+                                    <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                                    <input type="hidden" name="action" value="suspend">
+                                    <button type="submit" class="w-full bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
+                                            onclick="return confirm('Service wirklich suspendieren?')">
+                                        <i class="fas fa-pause mr-2"></i>Suspendieren
+                                    </button>
+                                </form>
+                                <button disabled class="w-full bg-gray-600 text-gray-400 px-4 py-3 rounded-lg font-medium cursor-not-allowed flex items-center justify-center">
+                                    <i class="fas fa-play mr-2"></i>Reaktivieren
                                 </button>
-                            </form>
-                            <?php elseif ($service['status'] === 'suspended'): ?>
-                            <form method="POST" class="inline">
-                                <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                                <input type="hidden" name="action" value="unsuspend">
-                                <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
-                                    <i class="fas fa-play mr-1"></i>Reaktivieren
+                                <?php elseif ($service['status'] === 'suspended'): ?>
+                                <button disabled class="w-full bg-gray-600 text-gray-400 px-4 py-3 rounded-lg font-medium cursor-not-allowed flex items-center justify-center">
+                                    <i class="fas fa-pause mr-2"></i>Suspendieren
                                 </button>
-                            </form>
-                            <?php endif; ?>
+                                <form method="POST" class="w-full">
+                                    <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                                    <input type="hidden" name="action" value="unsuspend">
+                                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center">
+                                        <i class="fas fa-play mr-2"></i>Reaktivieren
+                                    </button>
+                                </form>
+                                <?php else: ?>
+                                <button disabled class="w-full bg-gray-600 text-gray-400 px-4 py-3 rounded-lg font-medium cursor-not-allowed flex items-center justify-center">
+                                    <i class="fas fa-pause mr-2"></i>Suspendieren
+                                </button>
+                                <button disabled class="w-full bg-gray-600 text-gray-400 px-4 py-3 rounded-lg font-medium cursor-not-allowed flex items-center justify-center">
+                                    <i class="fas fa-play mr-2"></i>Reaktivieren
+                                </button>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                     <?php endif; ?>
