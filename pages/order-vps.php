@@ -18,31 +18,20 @@ $pageDescription = 'Konfigurieren Sie Ihren individuellen VPS Server nach Ihren 
 $db = Database::getInstance()->getConnection();
 
 // VPS-Konfigurationsoptionen
-$ramOptions = [
-    1 => ['gb' => 1, 'price' => 5.99],
-    2 => ['gb' => 2, 'price' => 9.99],
-    4 => ['gb' => 4, 'price' => 15.99],
-    8 => ['gb' => 8, 'price' => 25.99],
-    16 => ['gb' => 16, 'price' => 45.99],
-    32 => ['gb' => 32, 'price' => 85.99]
-];
+$ramOptions = [];
+for ($i = 1; $i <= 32; $i++) {
+    $ramOptions[$i] = ['gb' => $i, 'price' => $i * 0.70];
+}
 
-$cpuOptions = [
-    1 => ['cores' => 1, 'price' => 3.99],
-    2 => ['cores' => 2, 'price' => 7.99],
-    4 => ['cores' => 4, 'price' => 14.99],
-    6 => ['cores' => 6, 'price' => 21.99],
-    8 => ['cores' => 8, 'price' => 28.99]
-];
+$cpuOptions = [];
+for ($i = 1; $i <= 12; $i++) {
+    $cpuOptions[$i] = ['cores' => $i, 'price' => $i * 1.20];
+}
 
-$storageOptions = [
-    20 => ['gb' => 20, 'price' => 2.99],
-    50 => ['gb' => 50, 'price' => 5.99],
-    100 => ['gb' => 100, 'price' => 9.99],
-    200 => ['gb' => 200, 'price' => 17.99],
-    500 => ['gb' => 500, 'price' => 39.99],
-    1000 => ['gb' => 1000, 'price' => 69.99]
-];
+$storageOptions = [];
+for ($i = 10; $i <= 100; $i += 10) {
+    $storageOptions[$i] = ['gb' => $i, 'price' => ($i / 10) * 0.70];
+}
 
 $osTemplates = [
     'ubuntu-22.04' => 'Ubuntu 22.04 LTS',
@@ -61,8 +50,8 @@ $orderType = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $selectedRam = intval($_POST['ram'] ?? 1);
-        $selectedCpu = intval($_POST['cpu'] ?? 1);
-        $selectedStorage = intval($_POST['storage'] ?? 20);
+        $selectedCpu = intval($_POST['cpu'] ?? 2);
+        $selectedStorage = intval($_POST['storage'] ?? 10);
         $selectedOs = $_POST['os_template'] ?? 'ubuntu-22.04';
         $serverName = trim($_POST['server_name'] ?? '');
         
@@ -227,17 +216,17 @@ renderHeader($pageTitle, $pageDescription);
                         <div class="space-y-4">
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-gray-300">1 GB</span>
-                                <span id="ram-display" class="text-white font-semibold text-lg">2 GB</span>
+                                <span id="ram-display" class="text-white font-semibold text-lg">1 GB</span>
                                 <span class="text-gray-300">32 GB</span>
                             </div>
                             <div class="relative">
                                 <input type="range" name="ram-slider" id="ram-slider" 
-                                       min="0" max="5" value="1" step="1"
+                                       min="1" max="32" value="1" step="1"
                                        class="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                                <input type="hidden" name="ram" id="ram-value" value="2">
+                                <input type="hidden" name="ram" id="ram-value" value="1">
                             </div>
                             <div class="text-center">
-                                <span class="text-purple-400 font-semibold" id="ram-price-display">€9.99/Monat</span>
+                                <span class="text-purple-400 font-semibold" id="ram-price-display">€0.70/Monat</span>
                             </div>
                         </div>
                     </div>
@@ -249,16 +238,16 @@ renderHeader($pageTitle, $pageDescription);
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-gray-300">1 Core</span>
                                 <span id="cpu-display" class="text-white font-semibold text-lg">2 Cores</span>
-                                <span class="text-gray-300">8 Cores</span>
+                                <span class="text-gray-300">12 Cores</span>
                             </div>
                             <div class="relative">
                                 <input type="range" name="cpu-slider" id="cpu-slider" 
-                                       min="0" max="4" value="1" step="1"
+                                       min="1" max="12" value="2" step="1"
                                        class="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
                                 <input type="hidden" name="cpu" id="cpu-value" value="2">
                             </div>
                             <div class="text-center">
-                                <span class="text-purple-400 font-semibold" id="cpu-price-display">€7.99/Monat</span>
+                                <span class="text-purple-400 font-semibold" id="cpu-price-display">€2.40/Monat</span>
                             </div>
                         </div>
                     </div>
@@ -268,18 +257,18 @@ renderHeader($pageTitle, $pageDescription);
                         <h3 class="text-xl font-semibold text-white mb-4">SSD Speicher</h3>
                         <div class="space-y-4">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-gray-300">20 GB</span>
-                                <span id="storage-display" class="text-white font-semibold text-lg">50 GB</span>
-                                <span class="text-gray-300">1000 GB</span>
+                                <span class="text-gray-300">10 GB</span>
+                                <span id="storage-display" class="text-white font-semibold text-lg">10 GB</span>
+                                <span class="text-gray-300">100 GB</span>
                             </div>
                             <div class="relative">
                                 <input type="range" name="storage-slider" id="storage-slider" 
-                                       min="0" max="5" value="1" step="1"
+                                       min="10" max="100" value="10" step="10"
                                        class="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                                <input type="hidden" name="storage" id="storage-value" value="50">
+                                <input type="hidden" name="storage" id="storage-value" value="10">
                             </div>
                             <div class="text-center">
-                                <span class="text-purple-400 font-semibold" id="storage-price-display">€5.99/Monat</span>
+                                <span class="text-purple-400 font-semibold" id="storage-price-display">€0.70/Monat</span>
                             </div>
                         </div>
                     </div>
@@ -404,85 +393,80 @@ function updateSliderProgress(slider, progress) {
 }
 
 function updatePricing() {
-    const ramPrice = parseFloat(document.getElementById('ram-value').value);
-    const cpuPrice = parseFloat(document.getElementById('cpu-value').value);
-    const storagePrice = parseFloat(document.getElementById('storage-value').value);
+    const ramValue = parseInt(document.getElementById('ram-value').value);
+    const cpuValue = parseInt(document.getElementById('cpu-value').value);
+    const storageValue = parseInt(document.getElementById('storage-value').value);
     
-    // Finde die aktuellen Preise basierend auf den Werten
-    const currentRamOption = ramOptions.find(option => option.gb == document.getElementById('ram-value').value);
-    const currentCpuOption = cpuOptions.find(option => option.cores == document.getElementById('cpu-value').value);
-    const currentStorageOption = storageOptions.find(option => option.gb == document.getElementById('storage-value').value);
+    const ramPrice = ramValue * 0.70;
+    const cpuPrice = cpuValue * 1.20;
+    const storagePrice = (storageValue / 10) * 0.70;
     
-    const finalRamPrice = currentRamOption ? currentRamOption.price : 0;
-    const finalCpuPrice = currentCpuOption ? currentCpuOption.price : 0;
-    const finalStoragePrice = currentStorageOption ? currentStorageOption.price : 0;
-    
-    document.getElementById('ram-price').textContent = '€' + finalRamPrice.toFixed(2);
-    document.getElementById('cpu-price').textContent = '€' + finalCpuPrice.toFixed(2);
-    document.getElementById('storage-price').textContent = '€' + finalStoragePrice.toFixed(2);
-    document.getElementById('total-price').textContent = '€' + (finalRamPrice + finalCpuPrice + finalStoragePrice).toFixed(2);
+    document.getElementById('ram-price').textContent = '€' + ramPrice.toFixed(2);
+    document.getElementById('cpu-price').textContent = '€' + cpuPrice.toFixed(2);
+    document.getElementById('storage-price').textContent = '€' + storagePrice.toFixed(2);
+    document.getElementById('total-price').textContent = '€' + (ramPrice + cpuPrice + storagePrice).toFixed(2);
 }
 
 // RAM Slider
 document.getElementById('ram-slider').addEventListener('input', function() {
-    const index = parseInt(this.value);
-    const option = ramOptions[index];
+    const value = parseInt(this.value);
+    const price = value * 0.70;
     
-    document.getElementById('ram-display').textContent = option.gb + ' GB';
-    document.getElementById('ram-price-display').textContent = '€' + option.price.toFixed(2) + '/Monat';
-    document.getElementById('ram-value').value = option.gb;
+    document.getElementById('ram-display').textContent = value + ' GB';
+    document.getElementById('ram-price-display').textContent = '€' + price.toFixed(2) + '/Monat';
+    document.getElementById('ram-value').value = value;
     
-    const progress = (index / (ramOptions.length - 1)) * 100;
+    const progress = ((value - 1) / (32 - 1)) * 100;
     updateSliderProgress(this, progress);
     updatePricing();
 });
 
 // CPU Slider
 document.getElementById('cpu-slider').addEventListener('input', function() {
-    const index = parseInt(this.value);
-    const option = cpuOptions[index];
+    const value = parseInt(this.value);
+    const price = value * 1.20;
     
-    document.getElementById('cpu-display').textContent = option.cores + (option.cores > 1 ? ' Cores' : ' Core');
-    document.getElementById('cpu-price-display').textContent = '€' + option.price.toFixed(2) + '/Monat';
-    document.getElementById('cpu-value').value = option.cores;
+    document.getElementById('cpu-display').textContent = value + (value > 1 ? ' Cores' : ' Core');
+    document.getElementById('cpu-price-display').textContent = '€' + price.toFixed(2) + '/Monat';
+    document.getElementById('cpu-value').value = value;
     
-    const progress = (index / (cpuOptions.length - 1)) * 100;
+    const progress = ((value - 1) / (12 - 1)) * 100;
     updateSliderProgress(this, progress);
     updatePricing();
 });
 
 // Storage Slider
 document.getElementById('storage-slider').addEventListener('input', function() {
-    const index = parseInt(this.value);
-    const option = storageOptions[index];
+    const value = parseInt(this.value);
+    const price = (value / 10) * 0.70;
     
-    document.getElementById('storage-display').textContent = option.gb + ' GB';
-    document.getElementById('storage-price-display').textContent = '€' + option.price.toFixed(2) + '/Monat';
-    document.getElementById('storage-value').value = option.gb;
+    document.getElementById('storage-display').textContent = value + ' GB';
+    document.getElementById('storage-price-display').textContent = '€' + price.toFixed(2) + '/Monat';
+    document.getElementById('storage-value').value = value;
     
-    const progress = (index / (storageOptions.length - 1)) * 100;
+    const progress = ((value - 10) / (100 - 10)) * 100;
     updateSliderProgress(this, progress);
     updatePricing();
 });
 
 // Initialize sliders
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize RAM slider
+    // Initialize RAM slider (Standardwert: 1 GB)
     const ramSlider = document.getElementById('ram-slider');
-    const ramIndex = ramSlider.value;
-    const ramProgress = (ramIndex / (ramOptions.length - 1)) * 100;
+    const ramValue = parseInt(ramSlider.value);
+    const ramProgress = ((ramValue - 1) / (32 - 1)) * 100;
     updateSliderProgress(ramSlider, ramProgress);
     
-    // Initialize CPU slider
+    // Initialize CPU slider (Standardwert: 2 Cores)
     const cpuSlider = document.getElementById('cpu-slider');
-    const cpuIndex = cpuSlider.value;
-    const cpuProgress = (cpuIndex / (cpuOptions.length - 1)) * 100;
+    const cpuValue = parseInt(cpuSlider.value);
+    const cpuProgress = ((cpuValue - 1) / (12 - 1)) * 100;
     updateSliderProgress(cpuSlider, cpuProgress);
     
-    // Initialize Storage slider
+    // Initialize Storage slider (Standardwert: 10 GB)
     const storageSlider = document.getElementById('storage-slider');
-    const storageIndex = storageSlider.value;
-    const storageProgress = (storageIndex / (storageOptions.length - 1)) * 100;
+    const storageValue = parseInt(storageSlider.value);
+    const storageProgress = ((storageValue - 10) / (100 - 10)) * 100;
     updateSliderProgress(storageSlider, storageProgress);
     
     updatePricing();
