@@ -59,30 +59,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             throw new Exception('Gewähltes Paket nicht gefunden.');
         }
         
+        $monthlyPrice = $package['monthly_price'] ?? 7.99;
+        
         // Create order in database
         $stmt = $db->prepare("
-            INSERT INTO orders (user_id, service_type_id, status, hostname, specifications, created_at) 
-            VALUES (?, ?, 'pending', ?, ?, NOW())
+            INSERT INTO orders (user_id, service_id, total_amount, billing_period, status, notes, created_at) 
+            VALUES (?, ?, ?, 'monthly', 'paid', ?, NOW())
         ");
-        $orderSpecs = json_encode([
+        $orderNotes = json_encode([
+            'service_type' => 'gameserver',
             'server_name' => $serverName,
             'game_type' => $gameType,
-            'player_slots' => $playerSlots,
-            'service_type' => 'gameserver'
+            'player_slots' => $playerSlots
         ]);
-        $stmt->execute([$_SESSION['user_id'], $packageId, $serverName, $orderSpecs]);
+        $stmt->execute([$_SESSION['user_id'], $packageId, $monthlyPrice, $orderNotes]);
         $orderId = $db->lastInsertId();
         
-        // Update order status to active (gameserver setup takes a few minutes)
-        $stmt = $db->prepare("UPDATE orders SET status = 'active' WHERE id = ?");
-        $stmt->execute([$orderId]);
-        
-        // Create service entry
+        // Create user service entry
+        $expiresAt = date('Y-m-d', strtotime('+1 month'));
         $stmt = $db->prepare("
-            INSERT INTO services (user_id, service_type_id, order_id, status, hostname, created_at) 
+            INSERT INTO user_services (user_id, service_id, server_name, status, expires_at, created_at) 
             VALUES (?, ?, ?, 'active', ?, NOW())
         ");
-        $stmt->execute([$_SESSION['user_id'], $packageId, $orderId, $serverName]);
+        $stmt->execute([$_SESSION['user_id'], $packageId, $serverName, $expiresAt]);
         
         $orderSuccess = true;
         $_SESSION['order_server_name'] = $serverName;
@@ -95,8 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         
         // Update order status to failed if order was created
         if (isset($orderId)) {
-            $stmt = $db->prepare("UPDATE orders SET status = 'failed', error_message = ? WHERE id = ?");
-            $stmt->execute([$e->getMessage(), $orderId]);
+            $stmt = $db->prepare("UPDATE orders SET status = 'failed', notes = ? WHERE id = ?");
+            $errorNotes = json_encode(['error' => $e->getMessage(), 'timestamp' => date('Y-m-d H:i:s')]);
+            $stmt->execute([$errorNotes, $orderId]);
         }
     }
 }

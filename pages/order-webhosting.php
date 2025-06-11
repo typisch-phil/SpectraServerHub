@@ -65,16 +65,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         $stmt->execute([$_SESSION['user_id'], $packageId, $domain, $orderSpecs]);
         $orderId = $db->lastInsertId();
         
-        // Update order status to active (webhosting is provisioned instantly)
-        $stmt = $db->prepare("UPDATE orders SET status = 'active' WHERE id = ?");
+        // Update order status to paid (webhosting is provisioned instantly)
+        $stmt = $db->prepare("UPDATE orders SET status = 'paid' WHERE id = ?");
         $stmt->execute([$orderId]);
         
-        // Create service entry
+        // Create user service entry
+        $expiresAt = date('Y-m-d', strtotime('+1 month'));
         $stmt = $db->prepare("
-            INSERT INTO services (user_id, service_type_id, order_id, status, hostname, created_at) 
+            INSERT INTO user_services (user_id, service_id, server_name, status, expires_at, created_at) 
             VALUES (?, ?, ?, 'active', ?, NOW())
         ");
-        $stmt->execute([$_SESSION['user_id'], $packageId, $orderId, $domain]);
+        $stmt->execute([$_SESSION['user_id'], $packageId, $domain, $expiresAt]);
         
         $orderSuccess = true;
         $_SESSION['order_domain'] = $domain;
@@ -86,8 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         
         // Update order status to failed if order was created
         if (isset($orderId)) {
-            $stmt = $db->prepare("UPDATE orders SET status = 'failed', error_message = ? WHERE id = ?");
-            $stmt->execute([$e->getMessage(), $orderId]);
+            $stmt = $db->prepare("UPDATE orders SET status = 'failed', notes = ? WHERE id = ?");
+            $errorNotes = json_encode(['error' => $e->getMessage(), 'timestamp' => date('Y-m-d H:i:s')]);
+            $stmt->execute([$errorNotes, $orderId]);
         }
     }
 }

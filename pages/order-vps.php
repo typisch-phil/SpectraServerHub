@@ -110,21 +110,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             $stmt = $db->prepare("UPDATE orders SET status = 'paid' WHERE id = ?");
             $stmt->execute([$orderId]);
             
-            // Create service entry
+            // Create user service entry
+            $expiresAt = date('Y-m-d', strtotime('+1 month')); // VPS läuft einen Monat
             $stmt = $db->prepare("
-                INSERT INTO services (user_id, name, service_type_id, monthly_price, server_ip, type, description, price, cpu_cores, memory_gb, storage_gb, status, created_at) 
-                VALUES (?, ?, ?, ?, NULL, 'vps', ?, ?, ?, ?, ?, 'active', NOW())
+                INSERT INTO user_services (user_id, service_id, server_name, proxmox_vmid, status, expires_at, created_at) 
+                VALUES (?, ?, ?, ?, 'active', ?, NOW())
             ");
             $stmt->execute([
                 $_SESSION['user_id'], 
-                $hostname, 
                 $packageId, 
-                $monthlyPrice, 
-                "VPS Server: {$hostname}",
-                $monthlyPrice,
-                $cores,
-                ($memory / 1024), // Convert MB to GB
-                $disk
+                $hostname,
+                $vmid,
+                $expiresAt
             ]);
             
             $orderSuccess = true;
@@ -302,7 +299,7 @@ renderHeader($pageTitle, $pageDescription);
                             <option value="">Bitte wählen...</option>
                             <option value="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst">Ubuntu 22.04 LTS</option>
                             <option value="local:vztmpl/ubuntu-20.04-standard_20.04-1_amd64.tar.zst">Ubuntu 20.04 LTS</option>
-                            <option value="local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst">Debian 12</option>
+                            <option value="local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst">Debian 12</option>
                             <option value="local:vztmpl/debian-11-standard_11.7-1_amd64.tar.zst">Debian 11</option>
                             <option value="local:vztmpl/centos-8-default_20201210_amd64.tar.xz">CentOS 8</option>
                             <option value="local:vztmpl/alpine-3.18-default_20230607_amd64.tar.xz">Alpine Linux 3.18</option>
