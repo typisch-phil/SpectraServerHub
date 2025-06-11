@@ -38,6 +38,7 @@ $routes = [
     'login' => 'login',
     'register' => 'register',
     'products' => 'products',
+    'services' => 'products',
     'webspace' => 'products/webspace',
     'vserver' => 'products/vserver',
     'gameserver' => 'products/gameserver',
