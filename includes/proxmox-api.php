@@ -65,10 +65,11 @@ class ProxmoxAPI {
             'cores' => $config['cores'],
             'rootfs' => "local:{$config['disk']}",
             'swap' => 512,
-            'net0' => 'name=eth0,bridge=vmbr0,firewall=1,hwaddr=auto,ip=dhcp,type=veth',
+            'net0' => 'bridge=vmbr0,firewall=1,ip=dhcp,type=veth',
             'ostype' => 'ubuntu',
             'unprivileged' => 1,
-            'start' => 1
+            'start' => 1,
+            'onboot' => 1
         ];
         
         return $this->makeRequest($url, 'POST', $vmConfig);
