@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/config.php';
 
+// Zeitzone auf Berlin setzen
+date_default_timezone_set('Europe/Berlin');
+
 class Database {
     private static $instance = null;
     private $connection;
@@ -28,6 +31,9 @@ class Database {
                 PDO::ATTR_TIMEOUT => 10,
                 PDO::ATTR_PERSISTENT => false
             ]);
+            
+            // MySQL Zeitzone auf Berlin setzen
+            $this->connection->exec("SET time_zone = '+01:00'");
             
             // Set charset explicitly for MySQL
             $this->connection->exec("SET NAMES utf8mb4");
