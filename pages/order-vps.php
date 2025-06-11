@@ -1,8 +1,10 @@
 <?php
-session_start();
-require_once '../includes/database.php';
-require_once '../includes/layout.php';
-require_once '../includes/proxmox-api.php';
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/../includes/database.php';
+require_once __DIR__ . '/../includes/layout.php';
+require_once __DIR__ . '/../includes/proxmox-api.php';
 
 // Redirect if not logged in
 if (!isset($_SESSION['user_id'])) {

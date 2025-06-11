@@ -257,66 +257,9 @@ class ProxmoxAPI {
         }
     }
     
-    /**
-     * Setzt das Root-Passwort für einen Container
-     */
-    public function resetPassword($vmid, $user = 'root', $password) {
-        if (!$this->authenticate()) {
-            throw new Exception('Proxmox authentication failed');
-        }
-        
-        $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/lxc/{$vmid}/config";
-        
-        // Passwort-Hash generieren (für LXC)
-        $data = [
-            'password' => $password
-        ];
-        
-        try {
-            $response = $this->makeRequest($url, 'PUT', $data);
-            return isset($response['data']);
-        } catch (Exception $e) {
-            error_log("Password reset failed for VMID {$vmid}: " . $e->getMessage());
-            return false;
-        }
-    }
+
     
-    /**
-     * Neuinstallation des Betriebssystems
-     */
-    public function reinstallOS($vmid, $osTemplate) {
-        if (!$this->authenticate()) {
-            throw new Exception('Proxmox authentication failed');
-        }
-        
-        // Stoppe den Container zuerst
-        $this->stopVM($vmid, 'lxc');
-        sleep(5);
-        
-        // Lösche den Container
-        $deleteUrl = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/lxc/{$vmid}";
-        
-        try {
-            $this->makeRequest($deleteUrl, 'DELETE');
-            
-            // Warte kurz bevor der neue Container erstellt wird
-            sleep(10);
-            
-            // Erstelle neuen Container mit gleichem VMID aber neuem OS
-            $config = [
-                'vmid' => $vmid,
-                'ostemplate' => "local:vztmpl/{$osTemplate}-standard_amd64.tar.xz",
-                'memory' => 1024,
-                'cores' => 1,
-                'rootfs' => 'local-lvm:8'
-            ];
-            
-            return $this->createLXC($config);
-        } catch (Exception $e) {
-            error_log("OS reinstall failed for VMID {$vmid}: " . $e->getMessage());
-            return false;
-        }
-    }
+
     
     /**
      * Macht HTTP-Requests an die Proxmox API
@@ -464,7 +407,7 @@ class ProxmoxAPI {
     /**
      * Passwort zurücksetzen
      */
-    public function resetPassword($vmid, $user = 'root', $password = null) {
+    public function resetPassword($vmid, $password, $user = 'root') {
         if (!$this->authenticate()) {
             return false;
         }
@@ -476,11 +419,10 @@ class ProxmoxAPI {
         $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/lxc/{$vmid}/config";
         
         $data = [
-            'password' => $password,
-            'user' => $user
+            'password' => $password
         ];
         
-        $response = $this->makeRequest('PUT', $url, $data);
+        $response = $this->makeRequest($url, 'PUT', $data);
         return $response !== false ? $password : false;
     }
     
@@ -519,6 +461,81 @@ class ProxmoxAPI {
     }
     
     /**
+     * Erstellt einen neuen LXC Container
+     */
+    public function createLXC($config) {
+        if (!$this->authenticate()) {
+            throw new Exception('Proxmox authentication failed');
+        }
+        
+        $vmid = $config['vmid'];
+        $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/lxc";
+        
+        // LXC-spezifische Konfiguration
+        $lxcConfig = [
+            'vmid' => $vmid,
+            'hostname' => $config['hostname'] ?? "ct{$vmid}",
+            'memory' => $config['memory'] ?? 1024,
+            'cores' => $config['cores'] ?? 1,
+            'rootfs' => $config['rootfs'] ?? 'local-lvm:8',
+            'ostemplate' => $config['ostemplate'] ?? 'local:vztmpl/ubuntu-22.04-standard_amd64.tar.xz',
+            'net0' => $config['net0'] ?? 'name=eth0,bridge=vmbr0,ip=dhcp',
+            'nameserver' => $config['nameserver'] ?? '8.8.8.8',
+            'password' => $config['password'] ?? bin2hex(random_bytes(8)),
+            'unprivileged' => 1,
+            'start' => 1
+        ];
+        
+        try {
+            $response = $this->makeRequest($url, 'POST', $lxcConfig);
+            
+            if (isset($response['data'])) {
+                error_log("LXC Container {$vmid} creation initiated. UPID: " . ($response['data'] ?? 'N/A'));
+                return true;
+            }
+            
+            return false;
+        } catch (Exception $e) {
+            error_log("LXC creation failed for VMID {$vmid}: " . $e->getMessage());
+            throw $e;
+        }
+    }
+    
+    /**
+     * Betriebssystem neu installieren
+     */
+    public function reinstallOS($vmid, $ostemplate) {
+        if (!$this->authenticate()) {
+            return false;
+        }
+        
+        // Zuerst VM stoppen
+        $this->stopVM($vmid);
+        
+        // Warten bis VM gestoppt ist
+        sleep(5);
+        
+        // VM mit neuem Template neu erstellen
+        $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/lxc/{$vmid}/config";
+        
+        $data = [
+            'ostemplate' => $ostemplate,
+            'force' => 1
+        ];
+        
+        $response = $this->makeRequest($url, 'PUT', $data);
+        
+        if ($response) {
+            // VM nach Neuinstallation starten
+            sleep(3);
+            $this->startVM($vmid);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
      * Verfügbare OS-Templates abrufen
      */
     public function getOSTemplates() {
@@ -528,7 +545,7 @@ class ProxmoxAPI {
         
         $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/storage/local/content";
         
-        $response = $this->makeRequest('GET', $url);
+        $response = $this->makeRequest($url, 'GET');
         if ($response && isset($response['data'])) {
             $templates = [];
             foreach ($response['data'] as $item) {
