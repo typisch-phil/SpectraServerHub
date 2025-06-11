@@ -128,8 +128,13 @@ class ProxmoxAPI {
         $endpoint = $type === 'lxc' ? 'lxc' : 'qemu';
         $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/{$endpoint}/{$vmid}/status/start";
         
-        $response = $this->makeRequest($url, 'POST');
-        return $response !== false;
+        try {
+            $response = $this->makeRequest($url, 'POST');
+            return isset($response['data']) && $response['data'] !== null;
+        } catch (Exception $e) {
+            error_log("Start VM {$vmid} failed: " . $e->getMessage());
+            return false;
+        }
     }
     
     /**
@@ -143,8 +148,13 @@ class ProxmoxAPI {
         $endpoint = $type === 'lxc' ? 'lxc' : 'qemu';
         $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/{$endpoint}/{$vmid}/status/stop";
         
-        $response = $this->makeRequest($url, 'POST');
-        return $response !== false;
+        try {
+            $response = $this->makeRequest($url, 'POST');
+            return isset($response['data']) && $response['data'] !== null;
+        } catch (Exception $e) {
+            error_log("Stop VM {$vmid} failed: " . $e->getMessage());
+            return false;
+        }
     }
     
     /**
@@ -227,8 +237,13 @@ class ProxmoxAPI {
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_TIMEOUT => 30
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT => 'SpectraHost-Proxmox-Client/1.0'
         ]);
+        
+        // Debug logging
+        error_log("Proxmox API Request: {$method} {$url}" . ($data ? " with data: " . json_encode($data) : ""));
         
         switch ($method) {
             case 'POST':
@@ -240,12 +255,22 @@ class ProxmoxAPI {
                 
             case 'DELETE':
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                if ($data) {
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+                }
                 break;
                 
             case 'PUT':
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
                 if ($data) {
                     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+                }
+                break;
+                
+            case 'GET':
+                if ($data) {
+                    $url .= '?' . http_build_query($data);
+                    curl_setopt($ch, CURLOPT_URL, $url);
                 }
                 break;
         }
@@ -256,6 +281,7 @@ class ProxmoxAPI {
         if (curl_errno($ch)) {
             $error = curl_error($ch);
             curl_close($ch);
+            error_log("Proxmox cURL error: {$error}");
             throw new Exception("cURL error: {$error}");
         }
         
@@ -263,9 +289,14 @@ class ProxmoxAPI {
         
         $decoded = json_decode($response, true);
         
+        // Debug response
+        error_log("Proxmox API Response ({$httpCode}): " . substr($response, 0, 500));
+        
         if ($httpCode >= 400) {
-            $errorMsg = isset($decoded['message']) ? $decoded['message'] : "HTTP error {$httpCode}";
-            throw new Exception("HTTP error {$httpCode}: " . json_encode($decoded));
+            $errorMsg = isset($decoded['errors']) ? json_encode($decoded['errors']) : 
+                       (isset($decoded['message']) ? $decoded['message'] : "HTTP error {$httpCode}");
+            error_log("Proxmox API Error: {$errorMsg}");
+            throw new Exception("HTTP error {$httpCode}: {$errorMsg}");
         }
         
         return $decoded;
