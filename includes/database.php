@@ -32,8 +32,10 @@ class Database {
                 PDO::ATTR_PERSISTENT => false
             ]);
             
-            // MySQL Zeitzone auf Berlin setzen
-            $this->connection->exec("SET time_zone = '+01:00'");
+            // MySQL Zeitzone auf Berlin setzen (automatisch MEZ/MESZ)
+            $berlinTime = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+            $offset = $berlinTime->format('P');
+            $this->connection->exec("SET time_zone = '$offset'");
             
             // Set charset explicitly for MySQL
             $this->connection->exec("SET NAMES utf8mb4");

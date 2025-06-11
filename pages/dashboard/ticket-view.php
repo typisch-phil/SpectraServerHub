@@ -19,7 +19,7 @@ if (!isset($_GET['id'])) {
 $ticket_id = (int)$_GET['id'];
 require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/unread-notifications.php';
-require_once __DIR__ . '/../../includes/datetime-utils.php';
+require_once __DIR__ . '/../../includes/timezone-helper.php';
 $db = Database::getInstance();
 $user_id = $_SESSION['user_id'];
 
@@ -264,7 +264,7 @@ $page_title = "Support Ticket #" . $ticket['id'];
                 <span><i class="fas fa-comments mr-1"></i><?php echo count($messages) + 1; ?> Nachrichten</span>
                 <?php if (count($messages) > 0): ?>
                     <?php $lastMessage = end($messages); ?>
-                    <span><i class="fas fa-clock mr-1"></i>Letzte Antwort: <?php echo date('d.m.Y H:i', strtotime($lastMessage['created_at'])); ?></span>
+                    <span><i class="fas fa-clock mr-1"></i>Letzte Antwort: <?php echo formatGermanDate($lastMessage['created_at']); ?></span>
                 <?php endif; ?>
             </div>
         </div>

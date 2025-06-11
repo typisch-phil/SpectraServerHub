@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/unread-notifications.php';
-require_once __DIR__ . '/../../includes/datetime-utils.php';
+require_once __DIR__ . '/../../includes/timezone-helper.php';
 $db = Database::getInstance();
 $user_id = $_SESSION['user_id'];
 
@@ -274,7 +274,7 @@ $faq_items = [
                                             <div class="bg-gray-700/50 rounded-lg p-3 mb-3 border-l-2 border-gray-600">
                                                 <div class="flex items-center justify-between mb-1">
                                                     <span class="text-xs font-medium text-gray-300">Letzte Antwort:</span>
-                                                    <span class="text-xs text-gray-500"><?php echo date('d.m.Y H:i', strtotime($lastReply)); ?></span>
+                                                    <span class="text-xs text-gray-500"><?php echo formatGermanDate($lastReply); ?></span>
                                                 </div>
                                                 <p class="text-xs text-gray-400 line-clamp-2"><?php echo htmlspecialchars(substr($lastMessage, 0, 100)); ?><?php echo strlen($lastMessage) > 100 ? '...' : ''; ?></p>
                                                 <?php if ($lastReplyBy): ?>
@@ -284,12 +284,12 @@ $faq_items = [
                                             <?php endif; ?>
                                             
                                             <div class="flex items-center space-x-4 text-xs text-gray-500">
-                                                <span><i class="fas fa-calendar mr-1"></i><?php echo date('d.m.Y H:i', strtotime($ticket['created_at'] ?? 'now')); ?></span>
+                                                <span><i class="fas fa-calendar mr-1"></i><?php echo formatGermanDate($ticket['created_at'] ?? 'now'); ?></span>
                                                 <span class="<?php echo $messageCount > 0 ? 'text-blue-400' : ''; ?>">
                                                     <i class="fas fa-comments mr-1"></i><?php echo $messageCount; ?> Nachrichten
                                                 </span>
                                                 <?php if ($ticket['updated_at'] && $ticket['updated_at'] !== $ticket['created_at']): ?>
-                                                <span><i class="fas fa-clock mr-1"></i>Aktualisiert: <?php echo date('d.m.Y H:i', strtotime($ticket['updated_at'])); ?></span>
+                                                <span><i class="fas fa-clock mr-1"></i>Aktualisiert: <?php echo formatGermanDate($ticket['updated_at']); ?></span>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
