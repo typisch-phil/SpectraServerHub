@@ -147,8 +147,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $availableIp['ip_address']
                 ]);
                 
-                // Bestellung als completed markieren
-                $stmt = $db->prepare("UPDATE user_orders SET status = 'completed', proxmox_vmid = ? WHERE id = ?");
+                // Bestellung als active markieren
+                $stmt = $db->prepare("UPDATE user_orders SET status = 'active', proxmox_vmid = ? WHERE id = ?");
                 $stmt->execute([$vmid, $orderId]);
                 
                 $orderMessage = "VPS erfolgreich erstellt! VMID: {$vmid}, IP: {$availableIp['ip_address']}";
