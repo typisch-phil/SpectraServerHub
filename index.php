@@ -43,6 +43,10 @@ $routes = [
     'vserver' => 'products/vserver',
     'gameserver' => 'products/gameserver',
     'domain' => 'products/domain',
+    'products/webhosting' => 'products/webspace',
+    'products/vps' => 'products/vserver',
+    'products/domain' => 'products/domain',
+    'products/gameserver' => 'products/gameserver',
     'contact' => 'contact',
     'impressum' => 'impressum'
 ];
