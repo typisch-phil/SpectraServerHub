@@ -12,6 +12,7 @@ if (!isset($_SESSION['user_id'])) {
 require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/dashboard-layout.php';
 require_once __DIR__ . '/../../includes/mollie.php';
+require_once __DIR__ . '/../../includes/unread-notifications.php';
 
 $db = Database::getInstance();
 $user_id = $_SESSION['user_id'];
@@ -68,7 +69,10 @@ renderDashboardHeader('Billing - SpectraHost Dashboard', 'SpectraHost Billing - 
                         <a href="/dashboard" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Dashboard</a>
                         <a href="/dashboard/services" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Services</a>
                         <a href="/dashboard/billing" class="text-blue-400 border-b-2 border-blue-400 px-1 pb-4 text-sm font-medium">Billing</a>
-                        <a href="/dashboard/support" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium">Support</a>
+                        <a href="/dashboard/support" class="text-gray-300 hover:text-white px-1 pb-4 text-sm font-medium flex items-center">
+                            Support
+                            <?php echo getTicketNotificationBadge($db, $user_id); ?>
+                        </a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
