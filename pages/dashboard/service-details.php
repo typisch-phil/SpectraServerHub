@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/database.php';
 require_once __DIR__ . '/../../includes/layout.php';
 require_once __DIR__ . '/../../includes/proxmox-api.php';
+require_once __DIR__ . '/../../includes/functions.php';
 
 // Benutzer-Authentifizierung überprüfen
 if (!isset($_SESSION['user_id'])) {
@@ -140,16 +141,7 @@ if ($vpsDetails && isset($vpsDetails['net0'])) {
     }
 }
 
-// Formatierungsfunktion für Bytes
-function formatBytes($bytes, $precision = 2) {
-    $units = array('B', 'KB', 'MB', 'GB', 'TB');
-    
-    for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
-        $bytes /= 1024;
-    }
-    
-    return round($bytes, $precision) . ' ' . $units[$i];
-}
+
 
 // Verfügbare OS-Templates
 $osTemplates = [
