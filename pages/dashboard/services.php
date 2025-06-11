@@ -36,51 +36,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             throw new Exception('Service nicht gefunden.');
         }
         
-        // Proxmox-Aktionen für VPS
+        // Proxmox-Aktionen für VPS über echte API (bl1-4)
         if ($service['category'] === 'vserver' && $service['proxmox_vmid']) {
-            $proxmox = new ProxmoxAPI();
-            $vmid = $service['proxmox_vmid'];
-            
-            switch ($action) {
-                case 'start':
-                    $result = $proxmox->startVM($vmid, 'lxc');
-                    if ($result) {
-                        $actionMessage = "VPS {$service['server_name']} wurde gestartet.";
-                    }
-                    break;
-                    
-                case 'stop':
-                    $result = $proxmox->stopVM($vmid, 'lxc');
-                    if ($result) {
-                        $actionMessage = "VPS {$service['server_name']} wurde gestoppt.";
-                    }
-                    break;
-                    
-                case 'restart':
-                    $proxmox->stopVM($vmid, 'lxc');
-                    sleep(3);
-                    $result = $proxmox->startVM($vmid, 'lxc');
-                    if ($result) {
-                        $actionMessage = "VPS {$service['server_name']} wurde neugestartet.";
-                    }
-                    break;
-                    
-                case 'delete':
-                    if (isset($_POST['confirm_delete']) && $_POST['confirm_delete'] === 'yes') {
-                        $result = $proxmox->deleteVM($vmid, 'lxc');
-                        if ($result) {
-                            // Service als terminated markieren
-                            $stmt = $db->prepare("UPDATE user_services SET status = 'terminated' WHERE id = ?");
-                            $stmt->execute([$serviceId]);
-                            $actionMessage = "VPS {$service['server_name']} wurde gelöscht.";
+            try {
+                $proxmox = new ProxmoxAPI();
+                $vmid = $service['proxmox_vmid'];
+                
+                // Aktuellen VPS-Status prüfen
+                $currentStatus = $proxmox->getVMStatus($vmid, 'lxc');
+                error_log("VPS {$vmid} action '{$action}' - current status: {$currentStatus}");
+                
+                switch ($action) {
+                    case 'start':
+                        if ($currentStatus === 'stopped') {
+                            $result = $proxmox->startVM($vmid, 'lxc');
+                            $actionMessage = $result ? "VPS wird gestartet..." : "Fehler beim Starten des VPS.";
+                        } else {
+                            $actionError = "VPS läuft bereits (Status: {$currentStatus}).";
                         }
-                    } else {
-                        $actionError = 'Löschen nicht bestätigt. Service wurde nicht gelöscht.';
-                    }
-                    break;
-                    
-                default:
-                    throw new Exception('Unbekannte Aktion.');
+                        break;
+                        
+                    case 'stop':
+                        if ($currentStatus === 'running') {
+                            $result = $proxmox->stopVM($vmid, 'lxc');
+                            $actionMessage = $result ? "VPS wird gestoppt..." : "Fehler beim Stoppen des VPS.";
+                        } else {
+                            $actionError = "VPS ist bereits gestoppt (Status: {$currentStatus}).";
+                        }
+                        break;
+                        
+                    case 'restart':
+                        if ($currentStatus === 'running') {
+                            $result = $proxmox->restartVM($vmid, 'lxc');
+                            $actionMessage = $result ? "VPS wird neugestartet..." : "Fehler beim Neustart des VPS.";
+                        } else {
+                            $actionError = "VPS muss laufen um neugestartet zu werden (Status: {$currentStatus}).";
+                        }
+                        break;
+                        
+                    case 'delete':
+                        if (isset($_POST['confirm_delete']) && $_POST['confirm_delete'] === 'yes') {
+                            $result = $proxmox->deleteVM($vmid, 'lxc');
+                            if ($result) {
+                                $stmt = $db->prepare("UPDATE user_services SET status = 'terminated' WHERE id = ?");
+                                $stmt->execute([$serviceId]);
+                                $actionMessage = "VPS wurde permanent gelöscht.";
+                            } else {
+                                $actionError = "Fehler beim Löschen des VPS.";
+                            }
+                        } else {
+                            $actionError = 'Löschen nicht bestätigt.';
+                        }
+                        break;
+                        
+                    default:
+                        throw new Exception('Unbekannte Aktion.');
+                }
+            } catch (Exception $e) {
+                $actionError = "Proxmox-Fehler: " . $e->getMessage();
+                error_log("Proxmox VPS Management Error for VMID {$vmid}: " . $e->getMessage());
             }
         } elseif ($action === 'suspend') {
             // Service suspendieren
