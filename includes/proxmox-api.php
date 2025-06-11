@@ -113,7 +113,7 @@ class ProxmoxAPI {
         $endpoint = $type === 'lxc' ? 'lxc' : 'qemu';
         $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/{$endpoint}/{$vmid}/status/start";
         
-        $response = $this->makeRequest('POST', $url);
+        $response = $this->makeRequest($url, 'POST');
         return $response !== false;
     }
     
@@ -128,7 +128,7 @@ class ProxmoxAPI {
         $endpoint = $type === 'lxc' ? 'lxc' : 'qemu';
         $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/{$endpoint}/{$vmid}/status/stop";
         
-        $response = $this->makeRequest('POST', $url);
+        $response = $this->makeRequest($url, 'POST');
         return $response !== false;
     }
     
@@ -143,7 +143,7 @@ class ProxmoxAPI {
         $endpoint = $type === 'lxc' ? 'lxc' : 'qemu';
         $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/{$endpoint}/{$vmid}";
         
-        $response = $this->makeRequest('DELETE', $url);
+        $response = $this->makeRequest($url, 'DELETE');
         return $response !== false;
     }
     
@@ -173,7 +173,7 @@ class ProxmoxAPI {
         $endpoint = $type === 'lxc' ? 'lxc' : 'qemu';
         $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/{$endpoint}/{$vmid}/status/reboot";
         
-        $response = $this->makeRequest('POST', $url);
+        $response = $this->makeRequest($url, 'POST');
         return $response !== false;
     }
     
