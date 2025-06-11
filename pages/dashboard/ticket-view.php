@@ -67,8 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['attachment'])) {
                     ]);
                     $uploadSuccess = true;
                     
-                    // Ticket als "waiting_support" markieren wenn Kunde Anhang hinzufügt
-                    $db->execute("UPDATE support_tickets SET status = 'waiting_support', updated_at = NOW() WHERE id = ?", [$ticket_id]);
+                    // Ticket als "open" markieren wenn Kunde Anhang hinzufügt
+                    $db->execute("UPDATE support_tickets SET status = 'open', updated_at = NOW() WHERE id = ?", [$ticket_id]);
                     
                 } catch (Exception $e) {
                     $uploadError = 'Fehler beim Speichern der Datei: ' . $e->getMessage();
