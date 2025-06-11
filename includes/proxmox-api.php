@@ -46,7 +46,7 @@ class ProxmoxAPI {
     }
     
     /**
-     * Erstellt einen neuen LXC Container
+     * Erstellt einen LXC Container
      */
     public function createContainer($vmid, $config) {
         if (!$this->authenticate()) {
@@ -55,24 +55,27 @@ class ProxmoxAPI {
         
         $url = "https://{$this->host}:8006/api2/json/nodes/{$this->node}/lxc";
         
-        $containerConfig = [
+        // LXC Container-Konfiguration
+        $vmConfig = [
             'vmid' => $vmid,
-            'ostemplate' => $config['template'] ?? 'local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst',
-            'hostname' => $config['hostname'] ?? "vps{$vmid}",
-            'memory' => $config['memory'] ?? 1024,
-            'cores' => $config['cores'] ?? 1,
-            'rootfs' => "local-lvm:{$config['disk']}",
-            'net0' => 'name=eth0,bridge=vmbr0,firewall=1,ip=dhcp',
+            'ostemplate' => $config['template'],
+            'hostname' => $config['hostname'],
             'password' => $config['password'],
+            'memory' => $config['memory'],
+            'cores' => $config['cores'],
+            'rootfs' => "local:{$config['disk']}",
+            'swap' => 512,
+            'net0' => 'name=eth0,bridge=vmbr0,firewall=1,hwaddr=auto,ip=dhcp,type=veth',
+            'ostype' => 'ubuntu',
             'unprivileged' => 1,
             'start' => 1
         ];
         
-        return $this->makeRequest($url, 'POST', $containerConfig);
+        return $this->makeRequest($url, 'POST', $vmConfig);
     }
     
     /**
-     * Erstellt eine neue KVM Virtual Machine
+     * Erstellt eine KVM Virtual Machine
      */
     public function createVM($vmid, $config) {
         if (!$this->authenticate()) {
@@ -86,7 +89,7 @@ class ProxmoxAPI {
             'name' => $config['hostname'] ?? "vps{$vmid}",
             'memory' => $config['memory'] ?? 2048,
             'cores' => $config['cores'] ?? 2,
-            'scsi0' => "local-lvm:{$config['disk']},format=qcow2",
+            'scsi0' => "local:{$config['disk']},format=qcow2",
             'net0' => 'virtio,bridge=vmbr0,firewall=1',
             'ostype' => $config['ostype'] ?? 'l26',
             'boot' => 'c',
@@ -213,18 +216,23 @@ class ProxmoxAPI {
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
+        
+        if (curl_errno($ch)) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new Exception("cURL error: {$error}");
+        }
+        
         curl_close($ch);
         
-        if ($error) {
-            throw new Exception("Curl error: {$error}");
-        }
+        $decoded = json_decode($response, true);
         
         if ($httpCode >= 400) {
-            throw new Exception("HTTP error {$httpCode}: {$response}");
+            $errorMsg = isset($decoded['message']) ? $decoded['message'] : "HTTP error {$httpCode}";
+            throw new Exception("HTTP error {$httpCode}: " . json_encode($decoded));
         }
         
-        return json_decode($response, true);
+        return $decoded;
     }
 }
 ?>

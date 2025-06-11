@@ -140,8 +140,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         
         // Update order status to failed if order was created
         if (isset($orderId)) {
-            $stmt = $db->prepare("UPDATE orders SET status = 'failed', error_message = ? WHERE id = ?");
-            $stmt->execute([$e->getMessage(), $orderId]);
+            $stmt = $db->prepare("UPDATE orders SET status = 'failed', notes = ? WHERE id = ?");
+            $errorNotes = json_encode(['error' => $e->getMessage(), 'timestamp' => date('Y-m-d H:i:s')]);
+            $stmt->execute([$errorNotes, $orderId]);
         }
     }
 }
