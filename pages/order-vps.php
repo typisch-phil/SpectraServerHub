@@ -120,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'hostname' => $serverName,
                 'memory' => $selectedRam * 1024, // MB
                 'cores' => $selectedCpu,
-                'rootfs' => "local-lvm:{$selectedStorage}",
+                'rootfs' => "local:{$selectedStorage}",
                 'ostemplate' => "local:vztmpl/{$selectedOs}-standard_amd64.tar.xz",
                 'net0' => "name=eth0,bridge=vmbr0,ip={$availableIp['ip_address']}/24,gw={$availableIp['gateway']}",
                 'nameserver' => '8.8.8.8 8.8.4.4',
