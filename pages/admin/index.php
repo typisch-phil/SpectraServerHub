@@ -53,7 +53,7 @@ while ($row = $stmt->fetch()) {
 
 // Neueste Bestellungen
 $stmt = $db->query("
-    SELECT uo.*, u.username, st.name as service_name
+    SELECT uo.*, CONCAT(u.first_name, ' ', u.last_name) as username, st.name as service_name
     FROM user_orders uo
     LEFT JOIN users u ON uo.user_id = u.id
     LEFT JOIN service_types st ON uo.service_type_id = st.id
@@ -64,7 +64,7 @@ $recentOrders = $stmt->fetchAll();
 
 // Aktuelle VPS Services
 $stmt = $db->query("
-    SELECT us.*, u.username, st.name as service_name
+    SELECT us.*, CONCAT(u.first_name, ' ', u.last_name) as username, st.name as service_name
     FROM user_services us
     LEFT JOIN users u ON us.user_id = u.id
     LEFT JOIN service_types st ON us.service_id = st.id
