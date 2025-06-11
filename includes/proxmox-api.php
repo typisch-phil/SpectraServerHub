@@ -65,7 +65,7 @@ class ProxmoxAPI {
             'cores' => $config['cores'],
             'rootfs' => "local:{$config['disk']}",
             'swap' => 512,
-            'net0' => 'bridge=vmbr0,firewall=1,ip=dhcp,type=veth',
+            'net0' => 'name=eth0,bridge=vmbr0,firewall=1,ip=dhcp,type=veth',
             'ostype' => 'ubuntu',
             'unprivileged' => 1,
             'start' => 1,
