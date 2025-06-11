@@ -23,14 +23,19 @@ if (!$user) {
 
 // Support-Tickets laden mit zentraler DB
 try {
-    // Benutzer-Tickets abrufen
+    // Benutzer-Tickets mit erweiterten Informationen abrufen
     $user_tickets = $db->fetchAll("
         SELECT t.*, 
-               (SELECT COUNT(*) FROM support_messages sm WHERE sm.ticket_id = t.id) as message_count,
-               (SELECT sm.created_at FROM support_messages sm WHERE sm.ticket_id = t.id ORDER BY sm.created_at DESC LIMIT 1) as last_activity
+               (SELECT COUNT(*) FROM ticket_messages tm WHERE tm.ticket_id = t.id) as message_count,
+               (SELECT tm.created_at FROM ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY tm.created_at DESC LIMIT 1) as last_reply,
+               (SELECT tm.message FROM ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY tm.created_at DESC LIMIT 1) as last_message,
+               (SELECT u2.first_name FROM ticket_messages tm 
+                LEFT JOIN users u2 ON tm.user_id = u2.id 
+                WHERE tm.ticket_id = t.id ORDER BY tm.created_at DESC LIMIT 1) as last_reply_by,
+               (SELECT COUNT(*) FROM ticket_messages tm WHERE tm.ticket_id = t.id AND tm.created_at > t.user_last_seen) as unread_replies
         FROM support_tickets t 
         WHERE t.user_id = ? 
-        ORDER BY t.created_at DESC
+        ORDER BY t.updated_at DESC
     ", [$user['id']]);
     
     // Ticket-Statistiken
@@ -224,26 +229,69 @@ $faq_items = [
                             </div>
                         <?php else: ?>
                             <?php foreach ($user_tickets as $ticket): ?>
-                                <div class="p-6 hover:bg-gray-750 cursor-pointer" onclick="viewTicket(<?php echo $ticket['id']; ?>)">
+                                <?php 
+                                    $hasUnread = isset($ticket['unread_replies']) && $ticket['unread_replies'] > 0;
+                                    $messageCount = $ticket['message_count'] ?? 0;
+                                    $lastReply = $ticket['last_reply'] ?? null;
+                                    $lastMessage = $ticket['last_message'] ?? null;
+                                    $lastReplyBy = $ticket['last_reply_by'] ?? null;
+                                ?>
+                                <div class="p-6 hover:bg-gray-750 cursor-pointer <?php echo $hasUnread ? 'border-l-4 border-blue-500 bg-gray-750/50' : ''; ?>" onclick="viewTicket(<?php echo $ticket['id']; ?>)">
                                     <div class="flex items-start justify-between">
                                         <div class="flex-1">
                                             <div class="flex items-center space-x-3 mb-2">
                                                 <h4 class="text-sm font-medium text-white"><?php echo htmlspecialchars($ticket['subject']); ?></h4>
-                                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-900 text-blue-400">
+                                                
+                                                <?php if ($hasUnread): ?>
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-900 text-red-400 animate-pulse">
+                                                    <?php echo $ticket['unread_replies']; ?> neue
+                                                </span>
+                                                <?php endif; ?>
+                                                
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                                    <?php echo $ticket['status'] === 'open' ? 'bg-blue-900 text-blue-400' : 
+                                                            ($ticket['status'] === 'in_progress' ? 'bg-yellow-900 text-yellow-400' : 
+                                                            ($ticket['status'] === 'closed' ? 'bg-gray-600 text-gray-300' : 'bg-green-900 text-green-400')); ?>">
                                                     <?php echo ucfirst($ticket['status'] ?? 'open'); ?>
                                                 </span>
-                                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-900 text-yellow-400">
+                                                
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                                    <?php echo $ticket['priority'] === 'urgent' ? 'bg-red-900 text-red-400' : 
+                                                            ($ticket['priority'] === 'high' ? 'bg-orange-900 text-orange-400' : 
+                                                            ($ticket['priority'] === 'low' ? 'bg-gray-600 text-gray-300' : 'bg-yellow-900 text-yellow-400')); ?>">
                                                     <?php echo ucfirst($ticket['priority'] ?? 'medium'); ?>
                                                 </span>
                                             </div>
-                                            <p class="text-sm text-gray-400 mb-2"><?php echo nl2br(htmlspecialchars(substr($ticket['description'] ?? '', 0, 200))); ?><?php echo strlen($ticket['description'] ?? '') > 200 ? '...' : ''; ?></p>
+                                            
+                                            <p class="text-sm text-gray-400 mb-3 line-clamp-2"><?php echo nl2br(htmlspecialchars(substr($ticket['description'] ?? '', 0, 150))); ?><?php echo strlen($ticket['description'] ?? '') > 150 ? '...' : ''; ?></p>
+                                            
+                                            <?php if ($lastMessage && $lastReply): ?>
+                                            <div class="bg-gray-700/50 rounded-lg p-3 mb-3 border-l-2 border-gray-600">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <span class="text-xs font-medium text-gray-300">Letzte Antwort:</span>
+                                                    <span class="text-xs text-gray-500"><?php echo date('d.m.Y H:i', strtotime($lastReply)); ?></span>
+                                                </div>
+                                                <p class="text-xs text-gray-400 line-clamp-2"><?php echo htmlspecialchars(substr($lastMessage, 0, 100)); ?><?php echo strlen($lastMessage) > 100 ? '...' : ''; ?></p>
+                                                <?php if ($lastReplyBy): ?>
+                                                <span class="text-xs text-gray-500">von <?php echo htmlspecialchars($lastReplyBy); ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <?php endif; ?>
+                                            
                                             <div class="flex items-center space-x-4 text-xs text-gray-500">
                                                 <span><i class="fas fa-calendar mr-1"></i><?php echo date('d.m.Y H:i', strtotime($ticket['created_at'] ?? 'now')); ?></span>
-                                                <span><i class="fas fa-comments mr-1"></i><?php echo isset($ticket['message_count']) ? $ticket['message_count'] : 0; ?> Nachrichten</span>
-                                                <span><i class="fas fa-tag mr-1"></i><?php echo ucfirst($ticket['category'] ?? 'Allgemein'); ?></span>
+                                                <span class="<?php echo $messageCount > 0 ? 'text-blue-400' : ''; ?>">
+                                                    <i class="fas fa-comments mr-1"></i><?php echo $messageCount; ?> Nachrichten
+                                                </span>
+                                                <?php if ($ticket['updated_at'] && $ticket['updated_at'] !== $ticket['created_at']): ?>
+                                                <span><i class="fas fa-clock mr-1"></i>Aktualisiert: <?php echo date('d.m.Y H:i', strtotime($ticket['updated_at'])); ?></span>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
-                                        <div class="ml-4">
+                                        <div class="ml-4 flex flex-col items-center space-y-2">
+                                            <?php if ($hasUnread): ?>
+                                            <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                            <?php endif; ?>
                                             <button class="text-blue-400 hover:text-blue-300">
                                                 <i class="fas fa-chevron-right"></i>
                                             </button>

@@ -37,6 +37,12 @@ $ticket = $db->fetchOne("
     WHERE t.id = ? AND t.user_id = ?
 ", [$ticket_id, $user_id]);
 
+// Ticket als gelesen markieren
+if ($ticket) {
+    $stmt = $db->prepare("UPDATE support_tickets SET user_last_seen = NOW() WHERE id = ?");
+    $stmt->execute([$ticket_id]);
+}
+
 if (!$ticket) {
     header("Location: /dashboard/support");
     exit;
@@ -251,8 +257,12 @@ $page_title = "Support Ticket #" . $ticket['id'];
             <h2 class="text-lg font-medium text-white">
                 <i class="fas fa-comments mr-2"></i>Konversations-Verlauf
             </h2>
-            <div class="text-sm text-gray-400">
-                <?php echo count($messages) + 1; ?> Nachrichten
+            <div class="flex items-center space-x-4 text-sm text-gray-400">
+                <span><i class="fas fa-comments mr-1"></i><?php echo count($messages) + 1; ?> Nachrichten</span>
+                <?php if (count($messages) > 0): ?>
+                    <?php $lastMessage = end($messages); ?>
+                    <span><i class="fas fa-clock mr-1"></i>Letzte Antwort: <?php echo date('d.m.Y H:i', strtotime($lastMessage['created_at'])); ?></span>
+                <?php endif; ?>
             </div>
         </div>
         
