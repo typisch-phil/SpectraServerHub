@@ -1,247 +1,198 @@
 <?php
-session_start();
-require_once '../../includes/database.php';
-require_once '../../includes/layout.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/database.php';
+require_once __DIR__ . '/../../includes/layout.php';
 
-// Admin-Check (vereinfacht - sollte in Produktion erweitert werden)
-if (!isset($_SESSION['user_id']) || $_SESSION['user_id'] != 1) {
+// Admin-Authentifizierung überprüfen
+if (!isset($_SESSION['user_id'])) {
     header('Location: /login');
     exit;
 }
 
-$pageTitle = 'IP-Adressen Verwaltung - SpectraHost Admin';
-$pageDescription = 'Verwaltung der verfügbaren IP-Adressen für VPS-Services';
+// Überprüfung ob Benutzer Admin-Rechte hat
+$db = Database::getInstance();
+$stmt = $db->prepare("SELECT role FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$user = $stmt->fetch();
 
-$db = Database::getInstance()->getConnection();
-
-$message = '';
-$messageType = '';
-
-// IP-Adresse hinzufügen
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    try {
-        switch ($_POST['action']) {
-            case 'add_ip':
-                $ip = trim($_POST['ip_address']);
-                $gateway = trim($_POST['gateway']);
-                $subnet = trim($_POST['subnet_mask'] ?? '255.255.255.0');
-                
-                if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    throw new Exception('Ungültige IP-Adresse');
-                }
-                
-                if (!filter_var($gateway, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    throw new Exception('Ungültige Gateway-Adresse');
-                }
-                
-                $stmt = $db->prepare("INSERT INTO ip_addresses (ip_address, gateway, subnet_mask) VALUES (?, ?, ?)");
-                $stmt->execute([$ip, $gateway, $subnet]);
-                
-                $message = "IP-Adresse {$ip} erfolgreich hinzugefügt";
-                $messageType = 'success';
-                break;
-                
-            case 'toggle_availability':
-                $ipId = intval($_POST['ip_id']);
-                $stmt = $db->prepare("UPDATE ip_addresses SET is_available = NOT is_available WHERE id = ?");
-                $stmt->execute([$ipId]);
-                
-                $message = "Verfügbarkeitsstatus geändert";
-                $messageType = 'success';
-                break;
-                
-            case 'delete_ip':
-                $ipId = intval($_POST['ip_id']);
-                
-                // Prüfe ob IP in Verwendung
-                $stmt = $db->prepare("SELECT assigned_service_id FROM ip_addresses WHERE id = ? AND assigned_service_id IS NOT NULL");
-                $stmt->execute([$ipId]);
-                if ($stmt->fetch()) {
-                    throw new Exception('IP-Adresse ist einem Service zugewiesen und kann nicht gelöscht werden');
-                }
-                
-                $stmt = $db->prepare("DELETE FROM ip_addresses WHERE id = ?");
-                $stmt->execute([$ipId]);
-                
-                $message = "IP-Adresse gelöscht";
-                $messageType = 'success';
-                break;
-        }
-    } catch (Exception $e) {
-        $message = $e->getMessage();
-        $messageType = 'error';
-    }
+if (!$user || $user['role'] !== 'admin') {
+    header('Location: /dashboard');
+    exit;
 }
 
-// Alle IP-Adressen abrufen
-$stmt = $db->prepare("
-    SELECT ip.*, us.server_name 
-    FROM ip_addresses ip 
-    LEFT JOIN user_services us ON ip.assigned_service_id = us.id 
-    ORDER BY INET_ATON(ip.ip_address)
-");
-$stmt->execute();
-$ipAddresses = $stmt->fetchAll();
+// IP-Adressen und Services laden
+$ipAddresses = [];
+$services = [];
 
-// Statistiken
-$stmt = $db->prepare("SELECT 
-    COUNT(*) as total,
-    SUM(is_available) as available,
-    COUNT(*) - SUM(is_available) as used
-    FROM ip_addresses
-");
-$stmt->execute();
-$stats = $stmt->fetch();
+try {
+    // Alle IP-Adressen aus user_services laden
+    $stmt = $db->query("
+        SELECT us.*, CONCAT(u.first_name, ' ', u.last_name) as username, st.name as service_name
+        FROM user_services us
+        LEFT JOIN users u ON us.user_id = u.id
+        LEFT JOIN service_types st ON us.service_id = st.id
+        WHERE us.ip_address IS NOT NULL AND us.ip_address != ''
+        ORDER BY INET_ATON(us.ip_address)
+    ");
+    $ipAddresses = $stmt->fetchAll();
+} catch (Exception $e) {
+    error_log("Error loading IP addresses: " . $e->getMessage());
+}
+
+$pageTitle = "IP-Management - SpectraHost Admin";
+$pageDescription = "Verwaltung von IP-Adressen und Zuweisungen";
 
 renderHeader($pageTitle, $pageDescription);
 ?>
 
-<div class="min-h-screen bg-gray-900 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-gray-900">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-purple-900 to-blue-900 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-white mb-2">IP-Management</h1>
+                    <p class="text-gray-200">Verwaltung von IP-Adressen und Zuweisungen</p>
+                </div>
+                <div class="hidden md:block">
+                    <div class="text-right">
+                        <div class="text-gray-300 text-sm">Gesamt IP-Adressen</div>
+                        <div class="text-white font-semibold text-2xl"><?php echo count($ipAddresses); ?></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        <!-- Header -->
+        <!-- Navigation -->
         <div class="mb-8">
-            <div class="bg-gradient-to-r from-red-900 to-orange-900 rounded-xl p-8 border border-red-700 shadow-xl">
-                <h1 class="text-4xl font-bold text-white mb-3">IP-Adressen Verwaltung</h1>
-                <p class="text-gray-200 text-lg">Verwaltung der verfügbaren IP-Adressen für VPS-Services</p>
+            <nav class="flex space-x-8">
+                <a href="/admin/dashboard" class="text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800">Dashboard</a>
+                <a href="/admin/users" class="text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800">Benutzer</a>
+                <a href="/admin/services" class="text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800">Services</a>
+                <a href="/admin/tickets" class="text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800">Tickets</a>
+                <a href="/admin/ip-management" class="text-white bg-purple-600 px-4 py-2 rounded-lg font-medium">IP-Management</a>
+            </nav>
+        </div>
+
+        <!-- IP-Adressen Übersicht -->
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border-2 border-gray-700 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white flex items-center">
+                    <i class="fas fa-network-wired mr-3"></i>IP-Adressen Übersicht
+                </h2>
+                <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Neue IP hinzufügen
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-600">
+                            <th class="text-left py-3 px-4 text-gray-300 font-medium">IP-Adresse</th>
+                            <th class="text-left py-3 px-4 text-gray-300 font-medium">Service</th>
+                            <th class="text-left py-3 px-4 text-gray-300 font-medium">Benutzer</th>
+                            <th class="text-left py-3 px-4 text-gray-300 font-medium">Status</th>
+                            <th class="text-left py-3 px-4 text-gray-300 font-medium">VMID</th>
+                            <th class="text-left py-3 px-4 text-gray-300 font-medium">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($ipAddresses)): ?>
+                        <tr>
+                            <td colspan="6" class="text-center py-8 text-gray-400">
+                                Keine IP-Adressen vorhanden
+                            </td>
+                        </tr>
+                        <?php else: ?>
+                        <?php foreach ($ipAddresses as $ip): ?>
+                        <tr class="border-b border-gray-700 hover:bg-gray-700/30">
+                            <td class="py-4 px-4">
+                                <div class="text-white font-medium"><?php echo htmlspecialchars($ip['ip_address']); ?></div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="text-gray-300"><?php echo htmlspecialchars($ip['service_name'] ?? 'N/A'); ?></div>
+                                <div class="text-gray-500 text-sm"><?php echo htmlspecialchars($ip['server_name']); ?></div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="text-gray-300"><?php echo htmlspecialchars($ip['username']); ?></div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <?php if ($ip['status'] === 'active'): ?>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-200">
+                                        <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                                        Aktiv
+                                    </span>
+                                <?php elseif ($ip['status'] === 'suspended'): ?>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-200">
+                                        <div class="w-2 h-2 bg-red-400 rounded-full mr-2"></div>
+                                        Gesperrt
+                                    </span>
+                                <?php else: ?>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-900 text-yellow-200">
+                                        <div class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></div>
+                                        <?php echo ucfirst($ip['status']); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="text-gray-300"><?php echo $ip['proxmox_vmid'] ?? 'N/A'; ?></div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="flex space-x-2">
+                                    <button class="text-blue-400 hover:text-blue-300 p-1" title="Bearbeiten">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-red-400 hover:text-red-300 p-1" title="Löschen">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <?php if ($message): ?>
-        <div class="mb-6 p-4 rounded-lg <?php echo $messageType === 'success' ? 'bg-green-900 border border-green-600 text-green-200' : 'bg-red-900 border border-red-600 text-red-200'; ?>">
-            <i class="fas <?php echo $messageType === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'; ?> mr-2"></i>
-            <?php echo htmlspecialchars($message); ?>
-        </div>
-        <?php endif; ?>
-
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            
-            <!-- Statistiken -->
-            <div class="lg:col-span-1">
-                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 mb-6">
-                    <h3 class="text-xl font-semibold text-white mb-4">Statistiken</h3>
-                    <div class="space-y-4">
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Gesamt:</span>
-                            <span class="text-white font-semibold"><?php echo $stats['total']; ?></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-green-400">Verfügbar:</span>
-                            <span class="text-green-400 font-semibold"><?php echo $stats['available']; ?></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-red-400">Verwendet:</span>
-                            <span class="text-red-400 font-semibold"><?php echo $stats['used']; ?></span>
-                        </div>
+        <!-- IP-Pool Statistiken -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-gradient-to-br from-blue-800 to-blue-900 rounded-2xl p-6 border border-blue-700">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mr-4">
+                        <i class="fas fa-server text-white text-xl"></i>
                     </div>
-                </div>
-                
-                <!-- IP hinzufügen -->
-                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                    <h3 class="text-xl font-semibold text-white mb-4">IP hinzufügen</h3>
-                    <form method="POST" class="space-y-4">
-                        <input type="hidden" name="action" value="add_ip">
-                        
-                        <div>
-                            <label class="block text-gray-400 text-sm mb-2">IP-Adresse</label>
-                            <input type="text" name="ip_address" required
-                                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
-                                   placeholder="185.237.96.20">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-gray-400 text-sm mb-2">Gateway</label>
-                            <input type="text" name="gateway" required
-                                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
-                                   placeholder="185.237.96.1">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-gray-400 text-sm mb-2">Subnetz</label>
-                            <input type="text" name="subnet_mask"
-                                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
-                                   placeholder="255.255.255.0" value="255.255.255.0">
-                        </div>
-                        
-                        <button type="submit" 
-                                class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm transition-colors">
-                            <i class="fas fa-plus mr-2"></i>Hinzufügen
-                        </button>
-                    </form>
+                    <div>
+                        <div class="text-2xl font-bold text-white"><?php echo count(array_filter($ipAddresses, fn($ip) => $ip['status'] === 'active')); ?></div>
+                        <div class="text-blue-200 text-sm">Aktive IPs</div>
+                    </div>
                 </div>
             </div>
-            
-            <!-- IP-Adressen Liste -->
-            <div class="lg:col-span-3">
-                <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-                    <div class="p-6 border-b border-gray-700">
-                        <h3 class="text-xl font-semibold text-white">IP-Adressen</h3>
+
+            <div class="bg-gradient-to-br from-green-800 to-green-900 rounded-2xl p-6 border border-green-700">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center mr-4">
+                        <i class="fas fa-check-circle text-white text-xl"></i>
                     </div>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead class="bg-gray-700">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">IP-Adresse</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Gateway</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Zugewiesen</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Aktionen</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-700">
-                                <?php foreach ($ipAddresses as $ip): ?>
-                                <tr class="hover:bg-gray-700/50">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-white font-mono"><?php echo $ip['ip_address']; ?></span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-gray-300 font-mono"><?php echo $ip['gateway']; ?></span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php if ($ip['is_available']): ?>
-                                            <span class="px-2 py-1 text-xs font-semibold bg-green-900 text-green-200 rounded-full">
-                                                Verfügbar
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="px-2 py-1 text-xs font-semibold bg-red-900 text-red-200 rounded-full">
-                                                Verwendet
-                                            </span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php if ($ip['server_name']): ?>
-                                            <span class="text-gray-300"><?php echo htmlspecialchars($ip['server_name']); ?></span>
-                                        <?php else: ?>
-                                            <span class="text-gray-500">-</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                        <form method="POST" class="inline-block">
-                                            <input type="hidden" name="action" value="toggle_availability">
-                                            <input type="hidden" name="ip_id" value="<?php echo $ip['id']; ?>">
-                                            <button type="submit" 
-                                                    class="text-blue-400 hover:text-blue-300" 
-                                                    title="<?php echo $ip['is_available'] ? 'Als verwendet markieren' : 'Als verfügbar markieren'; ?>">
-                                                <i class="fas <?php echo $ip['is_available'] ? 'fa-toggle-on' : 'fa-toggle-off'; ?>"></i>
-                                            </button>
-                                        </form>
-                                        
-                                        <?php if (!$ip['assigned_service_id']): ?>
-                                        <form method="POST" class="inline-block" 
-                                              onsubmit="return confirm('IP-Adresse wirklich löschen?')">
-                                            <input type="hidden" name="action" value="delete_ip">
-                                            <input type="hidden" name="ip_id" value="<?php echo $ip['id']; ?>">
-                                            <button type="submit" class="text-red-400 hover:text-red-300" title="Löschen">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    <div>
+                        <div class="text-2xl font-bold text-white"><?php echo count($ipAddresses); ?></div>
+                        <div class="text-green-200 text-sm">Gesamt zugewiesen</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-orange-800 to-orange-900 rounded-2xl p-6 border border-orange-700">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center mr-4">
+                        <i class="fas fa-exclamation-triangle text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-white"><?php echo count(array_filter($ipAddresses, fn($ip) => $ip['status'] !== 'active')); ?></div>
+                        <div class="text-orange-200 text-sm">Problematisch</div>
                     </div>
                 </div>
             </div>
