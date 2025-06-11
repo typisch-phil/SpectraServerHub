@@ -115,10 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Services abrufen - Kombination aus user_services und user_orders
+// Services abrufen
 $db = Database::getInstance();
-
-// Erst user_services
 $stmt = $db->prepare("
     SELECT us.*, st.name as service_name, st.category, st.specifications, st.monthly_price 
     FROM user_services us 
@@ -127,35 +125,7 @@ $stmt = $db->prepare("
     ORDER BY us.created_at DESC
 ");
 $stmt->execute([$_SESSION['user_id']]);
-$userServices = $stmt->fetchAll();
-
-// Dann VPS-Bestellungen aus user_orders
-$stmt = $db->prepare("
-    SELECT 
-        id,
-        user_id,
-        service_type as category,
-        server_name,
-        ram_gb,
-        cpu_cores,
-        storage_gb,
-        os_template,
-        monthly_price,
-        ip_address,
-        proxmox_vmid,
-        status,
-        created_at,
-        'VPS Server' as service_name,
-        CONCAT(ram_gb, 'GB RAM, ', cpu_cores, ' CPU, ', storage_gb, 'GB SSD') as specifications
-    FROM user_orders 
-    WHERE user_id = ? AND service_type = 'vserver' AND status IN ('active', 'pending', 'suspended')
-    ORDER BY created_at DESC
-");
-$stmt->execute([$_SESSION['user_id']]);
-$vpsOrders = $stmt->fetchAll();
-
-// Services kombinieren
-$services = array_merge($userServices, $vpsOrders);
+$services = $stmt->fetchAll();
 
 // VPS-Status für Proxmox-Services abrufen
 $vpsStatuses = [];
