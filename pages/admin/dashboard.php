@@ -56,7 +56,7 @@ $stmt = $db->query("
     SELECT uo.*, CONCAT(u.first_name, ' ', u.last_name) as username, st.name as service_name
     FROM user_orders uo
     LEFT JOIN users u ON uo.user_id = u.id
-    LEFT JOIN service_types st ON uo.service_type_id = st.id
+    LEFT JOIN service_types st ON uo.service_id = st.id
     ORDER BY uo.created_at DESC
     LIMIT 5
 ");
@@ -68,7 +68,6 @@ $stmt = $db->query("
     FROM user_services us
     LEFT JOIN users u ON us.user_id = u.id
     LEFT JOIN service_types st ON us.service_id = st.id
-    WHERE st.category = 'vserver'
     ORDER BY us.created_at DESC
     LIMIT 10
 ");
@@ -183,7 +182,7 @@ renderHeader($pageTitle, $pageDescription);
                                 <div class="text-gray-400 text-sm">Benutzer: <?php echo htmlspecialchars($order['username']); ?></div>
                             </div>
                             <div class="text-right">
-                                <div class="text-green-400 font-bold">€<?php echo number_format($order['total_amount'] ?? 0, 2); ?></div>
+                                <div class="text-green-400 font-bold">€<?php echo number_format($order['price'] ?? 0, 2); ?></div>
                                 <div class="text-gray-400 text-sm"><?php echo date('d.m.Y', strtotime($order['created_at'])); ?></div>
                             </div>
                         </div>
