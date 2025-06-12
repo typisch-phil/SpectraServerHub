@@ -131,7 +131,7 @@ renderHeader($pageTitle, $pageDescription);
                             Root-Zugriff
                         </li>
                     </ul>
-                    <button class="mt-8 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
+                    <button onclick="orderVPS('VPS Starter', 9.99)" class="mt-8 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
                         Jetzt bestellen
                     </button>
                 </div>
@@ -164,7 +164,7 @@ renderHeader($pageTitle, $pageDescription);
                             Priority Support
                         </li>
                     </ul>
-                    <button class="mt-8 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
+                    <button onclick="orderVPS('VPS Professional', 19.99)" class="mt-8 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
                         Jetzt bestellen
                     </button>
                 </div>
@@ -194,7 +194,7 @@ renderHeader($pageTitle, $pageDescription);
                             Managed Support
                         </li>
                     </ul>
-                    <button class="mt-8 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
+                    <button onclick="orderVPS('VPS Enterprise', 39.99)" class="mt-8 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
                         Jetzt bestellen
                     </button>
                 </div>
@@ -220,7 +220,7 @@ renderHeader($pageTitle, $pageDescription);
                         <?php endforeach; endif; ?>
                     </ul>
                     <?php endif; ?>
-                    <button class="mt-8 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
+                    <button onclick="orderVPSService(<?php echo $service['id']; ?>, '<?php echo htmlspecialchars($service['name']); ?>', <?php echo floatval($service['monthly_price'] ?? $service['price'] ?? 0); ?>)" class="mt-8 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
                         Jetzt bestellen
                     </button>
                 </div>
@@ -339,5 +339,19 @@ renderHeader($pageTitle, $pageDescription);
         </div>
     </div>
 </div>
+
+<script>
+// Bestellfunktion für Standard VPS-Pakete
+function orderVPS(packageName, price) {
+    // Direkt zur VPS-Bestellseite weiterleiten
+    window.location.href = `/order-vps-paket`;
+}
+
+// Bestellfunktion für datenbankbasierte VPS-Services
+function orderVPSService(serviceId, serviceName, price) {
+    // Zur spezifischen Bestellseite mit Service-ID weiterleiten
+    window.location.href = `/order?service_id=${serviceId}&type=vps`;
+}
+</script>
 
 <?php renderFooter(); ?>
