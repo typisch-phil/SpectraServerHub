@@ -1,184 +1,413 @@
-<?php 
-require_once __DIR__ . '/../includes/config.php';
+<?php
+require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/database.php';
-require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/layout.php';
-require_once __DIR__ . '/../includes/proxmox-api.php';
 
-// Start session only if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Redirect if not logged in
+// Benutzer muss eingeloggt sein
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /login?redirect=' . urlencode($_SERVER['REQUEST_URI']));
+    $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
+    header('Location: /login');
     exit;
 }
 
-$pageTitle = 'Services bestellen - SpectraHost';
-$pageDescription = 'Wählen Sie aus unseren professionellen Hosting-Services: VPS Server, Webhosting, Gameserver und Domains.';
+$db = Database::getInstance();
 
-// This is now a service overview page - no form processing needed
+// Service-ID aus URL-Parameter
+$serviceId = isset($_GET['service_id']) ? (int)$_GET['service_id'] : 0;
+$serviceType = isset($_GET['type']) ? $_GET['type'] : '';
+
+if (!$serviceId) {
+    header('Location: /dashboard');
+    exit;
+}
+
+// Service-Details laden
+$service = null;
+try {
+    $stmt = $db->prepare("SELECT * FROM service_types WHERE id = ? AND is_active = 1");
+    $stmt->execute([$serviceId]);
+    $service = $stmt->fetch();
+} catch (Exception $e) {
+    error_log("Error loading service: " . $e->getMessage());
+}
+
+if (!$service) {
+    header('Location: /dashboard');
+    exit;
+}
+
+// Benutzer-Details laden
+$user = null;
+try {
+    $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $user = $stmt->fetch();
+} catch (Exception $e) {
+    error_log("Error loading user: " . $e->getMessage());
+}
+
+$specs = json_decode($service['specifications'] ?? '{}', true);
+
+$pageTitle = "Bestellung: " . $service['name'] . " - SpectraHost";
+$pageDescription = "Bestellen Sie " . $service['name'] . " bei SpectraHost";
 
 renderHeader($pageTitle, $pageDescription);
 ?>
 
-<div class="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center">
-            <h1 class="text-4xl font-bold sm:text-5xl">
-                Services bestellen
-            </h1>
-            <p class="mt-6 text-xl text-gray-300 max-w-3xl mx-auto">
-                Wählen Sie aus unseren professionellen Hosting-Services: VPS Server, Webhosting, Gameserver und Domains.
-            </p>
+<div class="min-h-screen bg-gray-900">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-purple-900 to-blue-900 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-white mb-2">Bestellung aufgeben</h1>
+                    <p class="text-gray-200">Bestellen Sie <?php echo htmlspecialchars($service['name']); ?></p>
+                </div>
+                <div class="hidden md:block">
+                    <a href="/dashboard" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Zurück zum Dashboard
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Services Grid -->
-<div class="py-20 bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            <!-- VPS Server -->
-            <div class="bg-gray-800 rounded-xl p-8 hover:bg-gray-700 transition-all duration-300 transform hover:scale-105 border border-gray-700">
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-purple-600 rounded-xl flex items-center justify-center mx-auto mb-6">
-                        <i class="fas fa-server text-white text-2xl"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-4">VPS Server</h3>
-                    <p class="text-gray-300 mb-6">Leistungsstarke Virtual Private Server mit Root-Zugriff und garantierten Ressourcen.</p>
-                    <ul class="text-sm text-gray-400 space-y-2 mb-8">
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>Root-Zugriff</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>SSD-NVMe Speicher</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>Proxmox Integration</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>Sofort verfügbar</li>
-                    </ul>
-                    <div class="text-center mb-6">
-                        <span class="text-lg text-gray-300">ab</span>
-                        <span class="text-3xl font-bold text-white">€9,99</span>
-                        <span class="text-gray-300">/Monat</span>
-                    </div>
-                    <a href="/order-vps" class="block w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-colors">
-                        VPS bestellen
-                    </a>
+            <!-- Bestellformular -->
+            <div class="lg:col-span-2">
+                <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border-2 border-gray-700 p-8">
+                    <h2 class="text-2xl font-bold text-white mb-6">Bestelldetails</h2>
+                    
+                    <form id="orderForm">
+                        <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                        
+                        <!-- Service-Konfiguration -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-white mb-4">Service-Konfiguration</h3>
+                            
+                            <?php if ($service['category'] === 'vserver'): ?>
+                            <!-- VPS-spezifische Optionen -->
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-300 text-sm font-medium mb-2">Betriebssystem</label>
+                                    <select name="operating_system" class="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500" required>
+                                        <option value="">Betriebssystem wählen</option>
+                                        <option value="ubuntu-22.04">Ubuntu 22.04 LTS</option>
+                                        <option value="ubuntu-20.04">Ubuntu 20.04 LTS</option>
+                                        <option value="debian-11">Debian 11</option>
+                                        <option value="debian-12">Debian 12</option>
+                                        <option value="centos-8">CentOS 8</option>
+                                        <option value="rocky-9">Rocky Linux 9</option>
+                                        <option value="windows-2022">Windows Server 2022 (+€15/Monat)</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-gray-300 text-sm font-medium mb-2">Server-Name</label>
+                                    <input type="text" name="server_name" placeholder="mein-vps-server" class="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500" required>
+                                    <div class="text-gray-400 text-xs mt-1">Nur Buchstaben, Zahlen und Bindestriche erlaubt</div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-gray-300 text-sm font-medium mb-2">Root-Passwort</label>
+                                    <input type="password" name="root_password" placeholder="Sicheres Passwort eingeben" class="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500" required>
+                                    <div class="text-gray-400 text-xs mt-1">Mindestens 8 Zeichen, empfohlen sind Groß-/Kleinbuchstaben, Zahlen und Sonderzeichen</div>
+                                </div>
+                            </div>
+                            
+                            <?php elseif ($service['category'] === 'domain'): ?>
+                            <!-- Domain-spezifische Optionen -->
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-300 text-sm font-medium mb-2">Domain-Name</label>
+                                    <div class="flex">
+                                        <input type="text" name="domain_name" placeholder="meine-domain" class="flex-1 px-3 py-2 bg-gray-700 text-white rounded-l-lg border border-gray-600 focus:border-blue-500" required>
+                                        <select name="domain_extension" class="px-3 py-2 bg-gray-700 text-white rounded-r-lg border border-gray-600 focus:border-blue-500" required>
+                                            <option value=".de">.de</option>
+                                            <option value=".com">.com</option>
+                                            <option value=".org">.org</option>
+                                            <option value=".net">.net</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <?php elseif ($service['category'] === 'webspace'): ?>
+                            <!-- Webspace-spezifische Optionen -->
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-300 text-sm font-medium mb-2">Domain verknüpfen</label>
+                                    <input type="text" name="domain_name" placeholder="ihre-domain.de (optional)" class="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500">
+                                    <div class="text-gray-400 text-xs mt-1">Falls Sie bereits eine Domain besitzen, die Sie verknüpfen möchten</div>
+                                </div>
+                            </div>
+                            
+                            <?php elseif ($service['category'] === 'gameserver'): ?>
+                            <!-- GameServer-spezifische Optionen -->
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-300 text-sm font-medium mb-2">Spiel</label>
+                                    <select name="game_type" class="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500" required>
+                                        <option value="">Spiel wählen</option>
+                                        <option value="minecraft">Minecraft</option>
+                                        <option value="cs2">Counter-Strike 2</option>
+                                        <option value="rust">Rust</option>
+                                        <option value="ark">ARK: Survival Evolved</option>
+                                        <option value="valheim">Valheim</option>
+                                        <option value="teamspeak">TeamSpeak 3</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-gray-300 text-sm font-medium mb-2">Server-Name</label>
+                                    <input type="text" name="server_name" placeholder="Mein GameServer" class="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500" required>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <!-- Zusätzliche Optionen -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-white mb-4">Zusätzliche Optionen</h3>
+                            <div class="space-y-3">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="backup_service" value="1" class="mr-3">
+                                    <span class="text-gray-300">Tägliche Backups (+€5/Monat)</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="monitoring" value="1" class="mr-3">
+                                    <span class="text-gray-300">24/7 Monitoring (+€3/Monat)</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="setup_service" value="1" class="mr-3">
+                                    <span class="text-gray-300">Kostenloser Setup-Service (€0)</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Vertragslaufzeit -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-white mb-4">Vertragslaufzeit</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
+                                    <input type="radio" name="contract_period" value="1" class="mr-3" checked>
+                                    <div>
+                                        <div class="text-white font-medium">1 Monat</div>
+                                        <div class="text-gray-400 text-sm">Monatlich kündbar</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
+                                    <input type="radio" name="contract_period" value="12" class="mr-3">
+                                    <div>
+                                        <div class="text-white font-medium">12 Monate</div>
+                                        <div class="text-green-400 text-sm">10% Rabatt</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
+                                    <input type="radio" name="contract_period" value="24" class="mr-3">
+                                    <div>
+                                        <div class="text-white font-medium">24 Monate</div>
+                                        <div class="text-green-400 text-sm">20% Rabatt</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Bestellung abschließen -->
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300">
+                                <i class="fas fa-shopping-cart mr-2"></i>Jetzt bestellen
+                            </button>
+                            <a href="/dashboard" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 px-6 rounded-lg font-medium text-center transition-colors">
+                                Abbrechen
+                            </a>
+                        </div>
+                    </form>
                 </div>
             </div>
-
-            <!-- Webhosting -->
-            <div class="bg-gray-800 rounded-xl p-8 hover:bg-gray-700 transition-all duration-300 transform hover:scale-105 border border-gray-700">
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-6">
-                        <i class="fas fa-globe text-white text-2xl"></i>
+            
+            <!-- Bestellübersicht -->
+            <div class="lg:col-span-1">
+                <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border-2 border-gray-700 p-6 sticky top-8">
+                    <h3 class="text-xl font-bold text-white mb-4">Bestellübersicht</h3>
+                    
+                    <!-- Service-Details -->
+                    <div class="mb-6">
+                        <div class="flex items-center mb-3">
+                            <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-<?php 
+                                    switch($service['category']) {
+                                        case 'vserver': echo 'server'; break;
+                                        case 'webspace': echo 'globe'; break;
+                                        case 'gameserver': echo 'gamepad'; break;
+                                        case 'domain': echo 'link'; break;
+                                        default: echo 'server';
+                                    }
+                                ?> text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-medium"><?php echo htmlspecialchars($service['name']); ?></h4>
+                                <p class="text-gray-400 text-sm"><?php echo ucfirst($service['category']); ?></p>
+                            </div>
+                        </div>
+                        
+                        <?php if (!empty($specs)): ?>
+                        <div class="space-y-2 mb-4">
+                            <?php foreach ($specs as $key => $value): ?>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-400 capitalize"><?php echo htmlspecialchars(str_replace('_', ' ', $key)); ?>:</span>
+                                <span class="text-white"><?php echo htmlspecialchars($value); ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
                     </div>
-                    <h3 class="text-xl font-bold text-white mb-4">Webhosting</h3>
-                    <p class="text-gray-300 mb-6">Professionelles Webhosting mit SSD-Speicher und unbegrenzten E-Mail-Postfächern.</p>
-                    <ul class="text-sm text-gray-400 space-y-2 mb-8">
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>SSD-Speicher</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>SSL-Zertifikat inklusive</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>Unbegrenzte Domains</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>MySQL Datenbanken</li>
-                    </ul>
-                    <div class="text-center mb-6">
-                        <span class="text-lg text-gray-300">ab</span>
-                        <span class="text-3xl font-bold text-white">€4,99</span>
-                        <span class="text-gray-300">/Monat</span>
+                    
+                    <!-- Preisübersicht -->
+                    <div class="border-t border-gray-600 pt-4">
+                        <div class="space-y-2 mb-4">
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Grundpreis</span>
+                                <span class="text-white" id="basePrice">€<?php echo number_format($service['monthly_price'], 2); ?></span>
+                            </div>
+                            <div class="flex justify-between" id="backupPrice" style="display: none;">
+                                <span class="text-gray-300">Backup-Service</span>
+                                <span class="text-white">€5.00</span>
+                            </div>
+                            <div class="flex justify-between" id="monitoringPrice" style="display: none;">
+                                <span class="text-gray-300">Monitoring</span>
+                                <span class="text-white">€3.00</span>
+                            </div>
+                            <div class="flex justify-between" id="windowsPrice" style="display: none;">
+                                <span class="text-gray-300">Windows Lizenz</span>
+                                <span class="text-white">€15.00</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t border-gray-600 pt-2">
+                            <div class="flex justify-between">
+                                <span class="text-white font-medium">Gesamt (monatlich)</span>
+                                <span class="text-white font-bold text-lg" id="totalPrice">€<?php echo number_format($service['monthly_price'], 2); ?></span>
+                            </div>
+                            <div class="flex justify-between mt-1" id="discountInfo" style="display: none;">
+                                <span class="text-green-400 text-sm">Mit Rabatt</span>
+                                <span class="text-green-400 text-sm font-medium" id="discountedPrice"></span>
+                            </div>
+                        </div>
                     </div>
-                    <a href="/order-webhosting" class="block w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-                        Webhosting bestellen
-                    </a>
-                </div>
-            </div>
-
-            <!-- Gameserver -->
-            <div class="bg-gray-800 rounded-xl p-8 hover:bg-gray-700 transition-all duration-300 transform hover:scale-105 border border-gray-700">
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-green-600 rounded-xl flex items-center justify-center mx-auto mb-6">
-                        <i class="fas fa-gamepad text-white text-2xl"></i>
+                    
+                    <!-- Support Info -->
+                    <div class="mt-6 p-4 bg-blue-900/20 rounded-lg border border-blue-800">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-info-circle text-blue-400 mr-2"></i>
+                            <span class="text-blue-400 font-medium">Hinweis</span>
+                        </div>
+                        <p class="text-gray-300 text-sm">
+                            Nach der Bestellung erhalten Sie eine Bestätigungs-E-Mail mit allen Details. 
+                            Ihr Service wird innerhalb von 15 Minuten aktiviert.
+                        </p>
                     </div>
-                    <h3 class="text-xl font-bold text-white mb-4">Gameserver</h3>
-                    <p class="text-gray-300 mb-6">Optimierte Gaming-Server für Minecraft, CS:GO, ARK und viele weitere Spiele.</p>
-                    <ul class="text-sm text-gray-400 space-y-2 mb-8">
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>DDoS-Schutz</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>Instant Setup</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>Mod-Support</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>Backup-System</li>
-                    </ul>
-                    <div class="text-center mb-6">
-                        <span class="text-lg text-gray-300">ab</span>
-                        <span class="text-3xl font-bold text-white">€7,99</span>
-                        <span class="text-gray-300">/Monat</span>
-                    </div>
-                    <a href="/order-gameserver" class="block w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors">
-                        Gameserver bestellen
-                    </a>
-                </div>
-            </div>
-
-            <!-- Domains -->
-            <div class="bg-gray-800 rounded-xl p-8 hover:bg-gray-700 transition-all duration-300 transform hover:scale-105 border border-gray-700">
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-orange-600 rounded-xl flex items-center justify-center mx-auto mb-6">
-                        <i class="fas fa-link text-white text-2xl"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-4">Domains</h3>
-                    <p class="text-gray-300 mb-6">Registrieren Sie Ihre Wunschdomain aus über 500 verfügbaren Endungen.</p>
-                    <ul class="text-sm text-gray-400 space-y-2 mb-8">
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>500+ TLDs verfügbar</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>DNS-Management</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>Domain-Transfer</li>
-                        <li><i class="fas fa-check text-green-400 mr-2"></i>Whois-Privacy</li>
-                    </ul>
-                    <div class="text-center mb-6">
-                        <span class="text-lg text-gray-300">ab</span>
-                        <span class="text-3xl font-bold text-white">€0,99</span>
-                        <span class="text-gray-300">/Jahr</span>
-                    </div>
-                    <a href="/order-domain" class="block w-full bg-orange-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-700 transition-colors">
-                        Domain registrieren
-                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Why Choose Us -->
-<div class="py-20 bg-gray-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-            <h2 class="text-3xl font-bold text-white mb-4">Warum SpectraHost?</h2>
-            <p class="text-xl text-gray-300">Ihre Vorteile bei unseren Hosting-Services</p>
-        </div>
+<script>
+const basePrice = <?php echo $service['monthly_price']; ?>;
+
+// Preisberechnung
+function updatePricing() {
+    let total = basePrice;
+    const contractPeriod = document.querySelector('input[name="contract_period"]:checked')?.value || '1';
+    
+    // Zusätzliche Services
+    if (document.querySelector('input[name="backup_service"]').checked) {
+        total += 5;
+        document.getElementById('backupPrice').style.display = 'flex';
+    } else {
+        document.getElementById('backupPrice').style.display = 'none';
+    }
+    
+    if (document.querySelector('input[name="monitoring"]').checked) {
+        total += 3;
+        document.getElementById('monitoringPrice').style.display = 'flex';
+    } else {
+        document.getElementById('monitoringPrice').style.display = 'none';
+    }
+    
+    // Windows Lizenz
+    const os = document.querySelector('select[name="operating_system"]')?.value || '';
+    if (os.includes('windows')) {
+        total += 15;
+        document.getElementById('windowsPrice').style.display = 'flex';
+    } else {
+        document.getElementById('windowsPrice').style.display = 'none';
+    }
+    
+    // Rabatt berechnen
+    let discount = 0;
+    if (contractPeriod === '12') {
+        discount = 0.1; // 10%
+    } else if (contractPeriod === '24') {
+        discount = 0.2; // 20%
+    }
+    
+    const discountedTotal = total * (1 - discount);
+    
+    document.getElementById('totalPrice').textContent = '€' + total.toFixed(2);
+    
+    if (discount > 0) {
+        document.getElementById('discountInfo').style.display = 'flex';
+        document.getElementById('discountedPrice').textContent = '€' + discountedTotal.toFixed(2);
+    } else {
+        document.getElementById('discountInfo').style.display = 'none';
+    }
+}
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Preisberechnung bei Änderungen
+    document.querySelectorAll('input[type="checkbox"], input[type="radio"], select').forEach(element => {
+        element.addEventListener('change', updatePricing);
+    });
+    
+    // Formular-Submit
+    document.getElementById('orderForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="text-center">
-                <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-clock text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-white mb-4">Sofortige Bereitstellung</h3>
-                <p class="text-gray-300">Ihre Services werden automatisch eingerichtet und sind innerhalb von Minuten verfügbar.</p>
-            </div>
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+        
+        try {
+            const response = await fetch('/api/create-order.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
             
-            <div class="text-center">
-                <div class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-shield-alt text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-white mb-4">99.9% Uptime</h3>
-                <p class="text-gray-300">Höchste Verfügbarkeit durch redundante Infrastruktur und professionelles Monitoring.</p>
-            </div>
+            const result = await response.json();
             
-            <div class="text-center">
-                <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-headset text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-white mb-4">24/7 Support</h3>
-                <p class="text-gray-300">Deutschsprachiger Support rund um die Uhr für alle Ihre Fragen und Probleme.</p>
-            </div>
-        </div>
-    </div>
-</div>
+            if (response.ok) {
+                alert('Bestellung erfolgreich aufgegeben! Sie werden zur Übersicht weitergeleitet.');
+                window.location.href = '/dashboard';
+            } else {
+                alert('Fehler bei der Bestellung: ' + (result.error || 'Unbekannter Fehler'));
+            }
+        } catch (error) {
+            alert('Fehler bei der Bestellung: ' + error.message);
+        }
+    });
+    
+    // Initiale Preisberechnung
+    updatePricing();
+});
+</script>
 
-<?php renderFooter(); ?>
+<?php
+renderFooter();
+?>
