@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $selectedRam = intval($_POST['ram'] ?? 1);
         $selectedCpu = intval($_POST['cpu'] ?? 2);
         $selectedStorage = intval($_POST['storage'] ?? 10);
-        $selectedOs = $_POST['os_template'] ?? 'ubuntu-22.04';
+        $selectedOs = $_POST['os_template'] ?? 'debian-12';
         $serverName = trim($_POST['server_name'] ?? '');
         $serverPassword = trim($_POST['server_password'] ?? '');
         
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ram_gb, cpu_cores, storage_gb, 
                 os_template, monthly_price, 
                 ip_address, service_id, price, billing_cycle, status
-            ) VALUES (?, 'vserver', ?, ?, ?, ?, ?, ?, ?, 1, ?, 'monthly', 'pending')
+            ) VALUES (?, 'vserver', ?, ?, ?, ?, ?, ?, ?, 16, ?, 'monthly', 'pending')
         ");
         
         $stmt->execute([
@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'rootfs' => "local:{$selectedStorage}",
                 'ostemplate' => "local:vztmpl/{$osTemplateMapping[$selectedOs]}",
                 'net0' => "name=eth0,bridge=vmbr0,ip={$availableIp['ip_address']}/24,gw={$availableIp['gateway']}",
-                'nameserver' => '8.8.8.8 8.8.4.4',
+                'nameserver' => '1.1.1.1 8.8.4.4',
                 'password' => $serverPassword
             ];
             
@@ -310,7 +310,7 @@ renderHeader($pageTitle, $pageDescription);
                         <select name="os_template" required
                                 class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-purple-500 focus:outline-none">
                             <?php foreach ($osTemplates as $template => $name): ?>
-                            <option value="<?php echo $template; ?>" <?php echo $template === 'ubuntu-22.04' ? 'selected' : ''; ?>>
+                            <option value="<?php echo $template; ?>" <?php echo $template === 'debian-12' ? 'selected' : ''; ?>>
                                 <?php echo $name; ?>
                             </option>
                             <?php endforeach; ?>
