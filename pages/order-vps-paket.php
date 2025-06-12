@@ -58,13 +58,93 @@ renderHeader($pageTitle, $pageDescription);
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         
         <?php if (empty($vpsServices)): ?>
-        <!-- Fallback wenn keine Services verfügbar -->
-        <div class="text-center py-16">
-            <div class="bg-gray-800 rounded-2xl p-8 max-w-md mx-auto">
-                <i class="fas fa-server text-gray-400 text-4xl mb-4"></i>
-                <h3 class="text-xl font-bold text-white mb-2">Pakete werden geladen</h3>
-                <p class="text-gray-400">Unsere VPS-Pakete werden gerade aktualisiert. Bitte versuchen Sie es in Kürze erneut.</p>
+        <!-- Standard VPS-Pakete wenn keine Datenbank-Services verfügbar -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <?php 
+            $standardPackages = [
+                [
+                    'name' => 'VPS Starter',
+                    'price' => 9.99,
+                    'specs' => ['1 CPU Core', '2 GB RAM', '25 GB SSD', 'Unlimited Traffic'],
+                    'popular' => false
+                ],
+                [
+                    'name' => 'VPS Professional',
+                    'price' => 19.99,
+                    'specs' => ['2 CPU Cores', '4 GB RAM', '50 GB SSD', 'Unlimited Traffic'],
+                    'popular' => true
+                ],
+                [
+                    'name' => 'VPS Enterprise',
+                    'price' => 39.99,
+                    'specs' => ['4 CPU Cores', '8 GB RAM', '100 GB SSD', 'Unlimited Traffic'],
+                    'popular' => false
+                ]
+            ];
+            
+            foreach ($standardPackages as $index => $package): 
+            ?>
+            <div class="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border-2 <?php echo $package['popular'] ? 'border-purple-500' : 'border-gray-700'; ?> p-8 hover:border-purple-400 transition-all duration-300">
+                
+                <?php if ($package['popular']): ?>
+                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <span class="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium">
+                        Beliebt
+                    </span>
+                </div>
+                <?php endif; ?>
+                
+                <!-- Paket Header -->
+                <div class="text-center mb-8">
+                    <h3 class="text-2xl font-bold text-white mb-2"><?php echo $package['name']; ?></h3>
+                    <p class="text-gray-400 text-sm mb-4">Perfekt für professionelle Anwendungen</p>
+                    <div class="mb-4">
+                        <span class="text-4xl font-bold text-white">€<?php echo number_format($package['price'], 2); ?></span>
+                        <span class="text-gray-400">/Monat</span>
+                    </div>
+                </div>
+                
+                <!-- Spezifikationen -->
+                <div class="space-y-4 mb-8">
+                    <?php foreach ($package['specs'] as $spec): ?>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300"><?php echo explode(' ', $spec, 2)[1] ?? $spec; ?></span>
+                        <span class="text-white font-medium"><?php echo explode(' ', $spec, 2)[0] ?? ''; ?></span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                
+                <!-- Features -->
+                <div class="space-y-3 mb-8">
+                    <div class="flex items-center text-gray-300">
+                        <i class="fas fa-check text-green-400 mr-3"></i>
+                        <span>Full Root-Zugriff</span>
+                    </div>
+                    <div class="flex items-center text-gray-300">
+                        <i class="fas fa-check text-green-400 mr-3"></i>
+                        <span>99,9% Uptime SLA</span>
+                    </div>
+                    <div class="flex items-center text-gray-300">
+                        <i class="fas fa-check text-green-400 mr-3"></i>
+                        <span>DDoS-Schutz</span>
+                    </div>
+                    <div class="flex items-center text-gray-300">
+                        <i class="fas fa-check text-green-400 mr-3"></i>
+                        <span>24/7 Support</span>
+                    </div>
+                    <div class="flex items-center text-gray-300">
+                        <i class="fas fa-check text-green-400 mr-3"></i>
+                        <span>Kostenloses Setup</span>
+                    </div>
+                </div>
+                
+                <!-- Bestellen Button -->
+                <button onclick="orderStandardVPS('<?php echo $package['name']; ?>', <?php echo $package['price']; ?>)" 
+                        class="w-full bg-gradient-to-r <?php echo $package['popular'] ? 'from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700' : 'from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600'; ?> text-white py-3 px-6 rounded-lg font-medium transition-all duration-300 transform hover:scale-105">
+                    Jetzt bestellen
+                </button>
             </div>
+            <?php endforeach; ?>
         </div>
         <?php else: ?>
         
@@ -245,6 +325,8 @@ renderHeader($pageTitle, $pageDescription);
 
 <script>
 let selectedServiceId = null;
+let selectedServiceName = null;
+let selectedServicePrice = null;
 
 function orderVPS(serviceId) {
     selectedServiceId = serviceId;
@@ -268,15 +350,35 @@ function orderVPS(serviceId) {
     document.getElementById('orderModal').classList.remove('hidden');
 }
 
+function orderStandardVPS(serviceName, servicePrice) {
+    selectedServiceName = serviceName;
+    selectedServicePrice = servicePrice;
+    
+    document.getElementById('orderContent').innerHTML = `
+        <div class="text-center">
+            <h4 class="text-lg font-semibold text-white mb-2">${serviceName}</h4>
+            <p class="text-2xl font-bold text-blue-400 mb-4">€${servicePrice.toFixed(2)}/Monat</p>
+            <p class="text-gray-300 mb-4">Sie sind dabei, dieses VPS-Paket zu bestellen. Nach der Bestätigung werden Sie zur Bestellübersicht weitergeleitet.</p>
+        </div>
+    `;
+    
+    document.getElementById('orderModal').classList.remove('hidden');
+}
+
 function closeOrderModal() {
     document.getElementById('orderModal').classList.add('hidden');
     selectedServiceId = null;
+    selectedServiceName = null;
+    selectedServicePrice = null;
 }
 
 function proceedToOrder() {
     if (selectedServiceId) {
         // Zur Bestellseite weiterleiten mit Service-ID
         window.location.href = `/order?service_id=${selectedServiceId}&type=vps`;
+    } else if (selectedServiceName) {
+        // Für Standard-Pakete zur allgemeinen Kontaktseite
+        window.location.href = `/contact?service=${encodeURIComponent(selectedServiceName)}&price=${selectedServicePrice}`;
     }
     closeOrderModal();
 }
