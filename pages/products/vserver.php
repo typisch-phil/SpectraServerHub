@@ -343,8 +343,8 @@ renderHeader($pageTitle, $pageDescription);
 <script>
 // Bestellfunktion für Standard VPS-Pakete
 function orderVPS(packageName, price) {
-    // Direkt zur VPS-Bestellseite weiterleiten
-    window.location.href = `/order-vps-paket`;
+    // Zur VPS-Konfigurator-Seite weiterleiten
+    window.location.href = `/order-vps`;
 }
 
 // Bestellfunktion für datenbankbasierte VPS-Services
