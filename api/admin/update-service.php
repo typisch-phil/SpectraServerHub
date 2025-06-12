@@ -85,7 +85,7 @@ try {
     // Service aktualisieren
     $stmt = $db->prepare("
         UPDATE service_types 
-        SET name = ?, description = ?, category = ?, monthly_price = ?, is_active = ?, updated_at = NOW()
+        SET name = ?, description = ?, category = ?, monthly_price = ?, is_active = ?
         WHERE id = ?
     ");
     

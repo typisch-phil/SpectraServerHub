@@ -66,7 +66,7 @@ try {
     // Spezifikationen aktualisieren
     $stmt = $db->prepare("
         UPDATE service_types 
-        SET specifications = ?, updated_at = NOW()
+        SET specifications = ?
         WHERE id = ?
     ");
     

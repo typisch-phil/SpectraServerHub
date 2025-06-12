@@ -53,7 +53,7 @@ try {
     // Status umschalten
     $newStatus = $service['is_active'] ? 0 : 1;
     
-    $stmt = $db->prepare("UPDATE service_types SET is_active = ?, updated_at = NOW() WHERE id = ?");
+    $stmt = $db->prepare("UPDATE service_types SET is_active = ? WHERE id = ?");
     $stmt->execute([$newStatus, $serviceId]);
     
     $statusText = $newStatus ? 'aktiviert' : 'deaktiviert';
