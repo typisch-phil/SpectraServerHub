@@ -14,6 +14,12 @@ $pageTitle = "VPS Konfigurator - SpectraHost";
 $pageDescription = "Konfigurieren Sie Ihren individuellen VPS-Server nach Ihren Anforderungen";
 
 renderHeader($pageTitle, $pageDescription);
+
+// Benutzerinformationen laden
+$db = Database::getInstance();
+$stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$user = $stmt->fetch();
 ?>
 
 <div class="min-h-screen bg-gray-900">
@@ -39,6 +45,17 @@ renderHeader($pageTitle, $pageDescription);
             <!-- Konfiguration -->
             <div class="lg:col-span-2">
                 <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border-2 border-gray-700 p-8">
+                    <!-- Benutzerinformationen -->
+                    <div class="bg-blue-900/20 rounded-lg border border-blue-800 p-4 mb-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-white font-medium">Willkommen, <?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) ?></h4>
+                                <p class="text-gray-300 text-sm">Ihr aktuelles Guthaben: <span class="font-bold text-green-400">€<?= number_format($user['balance'], 2) ?></span></p>
+                            </div>
+                            <i class="fas fa-user-circle text-blue-400 text-2xl"></i>
+                        </div>
+                    </div>
+                    
                     <h2 class="text-2xl font-bold text-white mb-6">VPS konfigurieren</h2>
                     
                     <form id="vpsConfigForm">
@@ -212,7 +229,7 @@ renderHeader($pageTitle, $pageDescription);
                             <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300">
                                 <i class="fas fa-shopping-cart mr-2"></i>VPS bestellen
                             </button>
-                            <a href="/products/vserver" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 px-6 rounded-lg font-medium text-center transition-colors">
+                            <a href="/products/vps" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 px-6 rounded-lg font-medium text-center transition-colors">
                                 Zurück zur Übersicht
                             </a>
                         </div>
@@ -393,7 +410,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
             
             if (response.ok) {
-                alert('VPS-Bestellung erfolgreich aufgegeben! Sie werden zur Übersicht weitergeleitet.');
+                if (result.auto_activated) {
+                    alert('VPS erfolgreich bestellt und sofort aktiviert! Guthaben wurde abgezogen.');
+                } else if (result.payment_required) {
+                    alert('VPS-Bestellung erstellt. Bitte laden Sie Ihr Guthaben auf oder nutzen Sie eine andere Zahlungsmethode.');
+                } else {
+                    alert('VPS-Bestellung erfolgreich aufgegeben!');
+                }
                 window.location.href = '/dashboard';
             } else {
                 alert('Fehler bei der Bestellung: ' + (result.error || 'Unbekannter Fehler'));
