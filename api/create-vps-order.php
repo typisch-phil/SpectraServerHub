@@ -122,6 +122,20 @@ try {
     
     $orderId = $db->lastInsertId();
     
+    // Service in services-Tabelle erstellen für Dashboard-Anzeige
+    $serviceName = "VPS Custom ({$cpuCores} Cores, {$ram}GB RAM, {$storage}GB)";
+    $stmt = $db->prepare("
+        INSERT INTO services (user_id, name, service_type, status, monthly_price, configuration, created_at) 
+        VALUES (?, ?, 'VPS', 'pending', ?, ?, NOW())
+    ");
+    
+    $stmt->execute([
+        $_SESSION['user_id'],
+        $serviceName,
+        $totalPrice,
+        json_encode($vpsConfig)
+    ]);
+    
     // Benutzer-Balance überprüfen
     $stmt = $db->prepare("SELECT balance FROM users WHERE id = ?");
     $stmt->execute([$_SESSION['user_id']]);
@@ -144,6 +158,10 @@ try {
         // Bestellung aktivieren
         $stmt = $db->prepare("UPDATE orders SET status = 'active', activated_at = NOW() WHERE id = ?");
         $stmt->execute([$orderId]);
+        
+        // Service aktivieren
+        $stmt = $db->prepare("UPDATE services SET status = 'active' WHERE user_id = ? AND name = ? ORDER BY created_at DESC LIMIT 1");
+        $stmt->execute([$_SESSION['user_id'], $serviceName]);
         
         $response['auto_activated'] = true;
         $response['message'] = 'VPS-Bestellung erfolgreich erstellt und aktiviert';

@@ -135,7 +135,7 @@ $vpsServices = $stmt->fetchAll();
                     
                     <div class="mb-8">
                         <?php 
-                        $specs = json_decode($service['specifications'], true);
+                        $specs = json_decode($service['features'], true);
                         if ($specs): 
                         ?>
                         <ul class="space-y-3">
